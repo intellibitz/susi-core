@@ -87,9 +87,9 @@ current documents and code before relying on it.
 - [Independent agents, integration and pristine releases](ceo-agent-mandate.md),
   and the numbered directive documents `ceo-mandate-74.md` to
   `ceo-mandate-87.md` in this directory: superseded by the active contract in
-  [`AGENTS.md`](../AGENTS.md). These records are kept unedited (the canonical
-  Git server refuses any change to them), so a later change to what one
-  records is noted here.
+  [`AGENTS.md`](../AGENTS.md). The numbered documents are kept unedited (the
+  canonical Git server refuses any change to them), so a later change to what
+  one records is noted here.
 - The line limit recorded in `ceo-mandate-84.md` was withdrawn on 2026-11-22:
   core has no line limit, and its size is measured and reported
   ([Lean core](lean-core.md)).
