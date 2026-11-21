@@ -36,7 +36,7 @@ an empty selection, an ignored test, or a successful compile is not a passing
 behavioral test. Report failures, skips and untested platforms explicitly.
 
 Size measurements retain the complete counting boundary. `cargo core-size`
-checks the under-100,000-line goal; a successful size result alone does not
+reports the complete socket's size and applies no limit; a size report does not
 prove preserved functionality or standards conformance. See
 [Lean core](lean-core.md) and [Host contract conformance](host-contract-conformance.md).
 
@@ -95,8 +95,8 @@ migrations are requirements, not statements that all existing code already
 conforms. Consult the executable source and run the relevant checks before
 making a current capability or production claim.
 
-- The source-size goal and implementation extraction remain incomplete. See
-  [Lean core](lean-core.md) for counting and acceptance requirements.
+- Implementation extraction remains incomplete. Core has no source-size
+  limit; see [Lean core](lean-core.md) for how its size is counted and reported.
 - Passing sampled host checks is not complete standards certification. The
   [conformance contract](host-contract-conformance.md) names coverage and gaps.
 - A development build is not installed-product qualification. See

@@ -104,7 +104,7 @@ checks and a verified rollback path. Published release tags remain immutable.
 See [qualification](evidence.md#production-qualification) and
 [gate receipts](gate-receipts.md).
 
-These procedures do not claim the entire agent engine has moved out of core,
-that every persistent compatibility identity is generic, or that the core-size
-goal is met. Further implementation transfers require a working destination and
-actual socket parity before removal; authorization and provenance stay live.
+These procedures do not claim the entire agent engine has moved out of core or
+that every persistent compatibility identity is generic. Further implementation
+transfers require a working destination and actual socket parity before
+removal; authorization and provenance stay live.

@@ -655,7 +655,7 @@
         {
           "id": 69,
           "title": "Measured size and cost",
-          "imperative": "Remove dead paths, duplicates, unnecessary dependencies/features, speculative frameworks and mandatory service bloat while preserving required capabilities. Track artifact/distribution size, idle memory, startup, latency and cold/warm builds. BloatAuditor continuously checks dead code, oversized functions and behavior/config drift without certifying every byte necessary. Existing vendor, dependency, unsafe and size ratchets only tighten. Keep the warm build+test+release target under 10s and cold compile target under 60s, distinct from full qualification."
+          "imperative": "Remove dead paths, duplicates, unnecessary dependencies/features, speculative frameworks and mandatory service bloat while preserving required capabilities. Track artifact/distribution size, idle memory, startup, latency and cold/warm builds. BloatAuditor continuously checks dead code, oversized functions and behavior/config drift without certifying every byte necessary. Vendor, dependency and unsafe counts are recorded baselines; a change that raises one says why. Keep the warm build+test+release target under 10s and cold compile target under 60s, distinct from full qualification."
         },
         {
           "id": 70,
@@ -685,7 +685,7 @@
         {
           "id": 75,
           "title": "Verified source intake",
-          "imperative": "Quarantine upstream source without executing it. Copy or port only pure Apache-2.0, or an explicitly available and elected Apache-2.0 OR alternative; refuse other grants, AND obligations and exceptions unless pure Apache-2.0 is separately available. Pin commits, verify per-file rights and preserve section 4 license, attribution and modification notices, harvest manifests and Origin trailers. Route generic primitives within core ceilings and concrete products to separate implementation packages. Never import proprietary source into core. First-contact contributions and external messages need explicit authorization."
+          "imperative": "Quarantine upstream source without executing it. Copy or port only pure Apache-2.0, or an explicitly available and elected Apache-2.0 OR alternative; refuse other grants, AND obligations and exceptions unless pure Apache-2.0 is separately available. Pin commits, verify per-file rights and preserve section 4 license, attribution and modification notices, harvest manifests and Origin trailers. Route generic primitives to core and concrete products to separate implementation packages. Never import proprietary source into core. First-contact contributions and external messages need explicit authorization."
         },
         {
           "id": 76,
@@ -700,7 +700,7 @@
         {
           "id": 78,
           "title": "Reuse before implementation",
-          "imperative": "Inspect both repositories, suitable Apache-2.0 source/services and the locked dependency graph before adding code. Reuse only needed parts, delete replaced duplicates, and preserve Rust, safety, license and size/cost bounds. Audit copied source under pure Apache-2.0 intake rules; existing tools do not authorize foreign shipped dependencies. Record the search, decision and build reason in active/local task state before committing feature work. A recorded search is not proof it was thorough."
+          "imperative": "Inspect the Susi repositories, suitable Apache-2.0 source/services and the locked dependency graph before adding code. Reuse only needed parts, delete replaced duplicates, and preserve Rust, safety and license bounds. Audit copied source under pure Apache-2.0 intake rules; existing tools do not authorize foreign shipped dependencies. Record the search, decision and build reason in active/local task state before committing feature work. A recorded search is not proof it was thorough."
         },
         {
           "id": 79,
@@ -729,8 +729,8 @@
         },
         {
           "id": 84,
-          "title": "Strict core size goal",
-          "imperative": "The complete socket must be strictly below 10,000 physical runtime Rust lines, including every platform/feature, blanks, comments, inline tests and susi-vendor-* facades under docs/lean-core.md. Until met, core never grows; any runtime addition is paid for in the same change. Lower COMPLETE_SOCKET_CEILING after reductions and retain 9,999 as the maximum once below target. No minification, hidden excluded runtime, capability loss or weakened protocol/security acceptance. Only explicit user authority may change the limit. Keep runtime/current docs generic while preserving protocol identifiers and mandatory attribution."
+          "title": "Core size is reported, not limited",
+          "imperative": "Core has no line limit. Measure the complete socket in physical runtime Rust lines, including every platform/feature, blanks, comments, inline tests and susi-vendor-* facades under docs/lean-core.md, and report it; no size refuses a change. Pinned counts are recorded baselines: a change may raise one in the same commit, saying why. No minification, hidden excluded runtime, capability loss or weakened protocol/security acceptance. Keep runtime/current docs generic while preserving protocol identifiers and mandatory attribution."
         },
         {
           "id": 85,

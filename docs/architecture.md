@@ -322,9 +322,9 @@ entries or bus process. An isolated core instance uses its own `SUSI_HOME` and
 port offset.
 
 These transfers do not complete the implementation extraction. The whole agent
-engine and other concrete code still remain in core, and the under-100,000-line
-goal remains unmet. Each further removal requires a working destination and
-actual socket parity, including relevant platform and failure behavior.
+engine and other concrete code still remain in core. Core has no line limit;
+each further removal requires a working destination and actual socket parity,
+including relevant platform and failure behavior.
 
 ---
 
@@ -505,12 +505,13 @@ the socket. Moving a capability requires a working destination and demonstrated
 behavioral parity; the existing implementation inventory is migration work,
 not proof that this boundary is already complete. The plan, the measured
 ladder and the crate classification are in [`docs/lean-core.md`](lean-core.md);
-its dependency-reach ceilings are pinned by `tests/lean_core_ceilings.rs` and
-may only go down. The earlier per-pillar and per-file size ceilings remain
-removed. The subsequent Vision V-6 requires the complete standards socket
-strictly below 100,000 physical runtime Rust lines, with no functionality
-dropped; `cargo core-size` checks the size goal, currently unmet. The counting
-contract and separate behavioral acceptance are in the lean-core plan.
+its dependency-reach counts are recorded as baselines in
+`tests/lean_core_ceilings.rs`, and a change may raise one in the same commit,
+saying why. The earlier per-pillar and per-file size ceilings remain removed,
+and since 2026-11-22 core has no line limit at all: `cargo core-size` measures
+the complete standards socket and reports its size without failing on it. No
+functionality is dropped. The counting contract and separate behavioral
+acceptance are in the lean-core plan.
 
 Where it stands on 2026-11-08:
 

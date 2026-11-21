@@ -12,7 +12,7 @@ the requester to inspect code or perform routine engineering steps.
 
 - Preserve exactly three core pillars: **GAWD** (A2A, ACP and the parallel
   harness), **GEMI**, and **GMCP**. Preserve their existing public capabilities,
-  wire contracts, errors, authorization and compatibility while reducing core.
+  wire contracts, errors, authorization and compatibility as core changes.
 - Core contains generic protocol contracts and socket machinery. Concrete
   implementations belong in separately hosted implementation packages, including
   `susi-commercial-apps`. Prove the destination works through the standard
@@ -23,23 +23,27 @@ the requester to inspect code or perform routine engineering steps.
   match, is not dropped (a recorded decision): core forwards to it, and an
   installation without it names the command that serves it. Keep proprietary
   source out of core.
-- The complete socket must be under 10,000 physical runtime Rust lines,
-  including blanks, comments, inline tests, every feature/platform and the
-  `susi-vendor-*` facades. Until that goal is met, core never grows. Pay for any
-  runtime addition in the same change and lower `COMPLETE_SOCKET_CEILING` in
-  `tests/lean_core_ceilings.rs` after every reduction. Never hide or minify code,
-  move it into an excluded category, or weaken acceptance to manufacture a pass.
-  `cargo core-size` is the explicit goal check; its passing is not protocol
-  certification. Use the counting contract in `docs/lean-core.md` unchanged.
+- Core has no line limit (decision of 2026-11-22, which withdrew the 9,999-line
+  limit and the rule that a change adding lines removes as many). Size is
+  measured and reported, never refused: `cargo core-size` prints the complete
+  socket's physical runtime Rust lines, counted with blanks, comments, inline
+  tests, every feature/platform and the `susi-vendor-*` facades under the
+  counting contract in `docs/lean-core.md`. The other counts pinned in
+  `tests/lean_core_ceilings.rs` (third-party crates, workspace crates and
+  members, lock packages, facade edges, unsafe-baseline files) are recorded
+  baselines: a change may raise one in the same commit, saying why. Never hide
+  or minify code, or move it into an excluded category, to change a reported
+  number. A size report is not protocol certification.
 - Keep runtime and current documentation generic: no personal, corporate or
   individual identity references. Preserve protocol identifiers and mandatory
   license/attribution notices. Provider-specific compatibility moves with the
   implementation; blind renaming must not break clients or refusal boundaries.
 - Core ships no UI or bundled plug content. Existing product implementation
-  crates are migration debt and may only shrink. Keep the dependency, unsafe,
-  license and source-size ratchets; do not raise one without explicit authority.
-  The unsafe ratchet's tools are built from a Susi Commercial Apps release and
-  run against core's reviewed baselines (`.agents/baseline/`).
+  crates are migration debt that is leaving core. Keep the dependency, unsafe
+  and license checks; a change that raises one of their recorded baselines says
+  why in the same commit. The unsafe check's tools are built from a Susi
+  Commercial Apps release and run against core's reviewed baselines
+  (`.agents/baseline/`).
 - Zero required user configuration means discovery, defaults and agent repair.
   Measure size, memory, latency and build cost. The warm build + test + release
   budget is `<10s`; the cold compile target is `<60s`. Report cold and warm
@@ -99,10 +103,9 @@ the requester to inspect code or perform routine engineering steps.
    the license grants code rights, not rights to the Susi name or marks.
    Core improves on a weekly cycle: a change proven in dependent work enters
    only when it helps a single developer on its own, is not paid-only value,
-   is fresh code written here under this license, adds no net lines past the
-   size ceiling and passes the Linux gates and the offline test with every
-   mirror cut off; from a Windows host the Linux gates run in WSL2 under the
-   same blackout. A cycle that lands anything ships a
+   is fresh code written here under this license and passes the Linux gates
+   and the offline test with every mirror cut off (no size condition applies);
+   from a Windows host the Linux gates run in WSL2 under the same blackout. A cycle that lands anything ships a
    signed release with plain notes; public mirrors receive only signed release
    tags.
 8. Use portable Git storage, without hosting-service APIs, hosted CI, hosted
@@ -207,7 +210,7 @@ publication; retry a lost integration race against the new head.
 - Core ships for x86_64 Linux only (decision of 2026-11-18);
   qualify releases only on a native x86_64 Linux host. Windows is served by
   Susi Commercial Apps, which installs and manages the Windows channel; the
-  Windows code still in core is migration debt that only shrinks. Development
+  Windows code still in core is migration debt that is leaving it. Development
   on a Windows host uses native MSVC and OS APIs with no Bash/WSL/MSYS, Python,
   Node or container prerequisite. Keep portable source for other targets
   without adding their builds, tests or release legs. Optional legacy scripts remain migration
@@ -215,7 +218,8 @@ publication; retry a lost integration race against the new head.
 - Before building, inspect both repositories, suitable Apache-2.0 work, and the
   locked dependency graph. Prefer reuse of the needed part; delete what it
   replaces. Keep the decision in active/local task state. A new dependency needs
-  necessity and qualification; core growth and capability loss remain prohibited.
+  necessity and qualification, and the change that adds it raises its recorded
+  baseline and says why; capability loss remains prohibited.
 - Copied/harvested source must offer pure Apache-2.0, with that alternative
   explicitly elected for dual licensing. Preserve section 4 notices, licenses,
   modification attribution and pinned source provenance. Reject unlicensed or
@@ -242,10 +246,11 @@ publication; retry a lost integration race against the new head.
 - Keep code tidy. Before publishing, run rustfmt and Clippy with `-D warnings` on
   every crate a change affects, and leave no `dbg!`. Add no debt: a new lint
   allowance gives its reason, a marker comment names its task or the work is
-  done now, and commented-out code is deleted. A file over 2,000 lines grows by
-  at most 25 lines in a change; new code goes into a focused module. Remove what
-  nothing uses in the change that leaves it unused. Follow the crate's existing
-  patterns; comments say why. Clear debt you meet in its own commit.
+  done now, and commented-out code is deleted. No file has a line limit: a
+  large file's growth is reported, not refused, and new code goes into a focused
+  module where that reads better. Remove what nothing uses in the change that
+  leaves it unused. Follow the crate's existing patterns; comments say why.
+  Clear debt you meet in its own commit.
 - Keep commits tidy. Each commit is one whole change that builds and passes what
   it affects, with its task and other trailers together in the final paragraph.
   Its subject says what in at most 72 characters, with no trailing period; a

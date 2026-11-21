@@ -14,10 +14,9 @@ workflow policies and product integrations belong in separately hosted packages,
 including Susi Commercial Apps, connected through the same standard sockets.
 Core ships no UI and bundles no plugin content. Existing implementations in core
 are migration debt: each must have a working, compatible destination before
-removal. The complete core stays strictly below 10,000 physical runtime Rust
-lines (`COMPLETE_SOCKET_CEILING = 9_999` in `tests/lean_core_ceilings.rs`,
-currently met at `9,971` lines via `cargo core-size`). Neither the architectural
-goal nor a passing build certifies complete protocol conformance.
+removal. Core has no line limit; `cargo core-size` measures the complete socket
+and reports its size. Neither the architectural goal nor a passing build
+certifies complete protocol conformance.
 
 Use the socket to connect protocol clients, inspect routing decisions and run
 authorized agents on the host. It is a substrate on the host, not a replacement
@@ -177,7 +176,7 @@ describes available commands and migration limits.
 - [docs/evidence.md](docs/evidence.md): verified claims, platforms, the delivery workflow and every admitted gap.
 - [ARCHITECTURE.md](ARCHITECTURE.md): the enforceable crate-boundary contract (`tests/architecture_tests.rs`).
 - [.agents/gmcp/SPEC-PROVENANCE.md](.agents/gmcp/SPEC-PROVENANCE.md): the pinned third-party MCP specification text core keeps; GMCP certification (requirements ledger, contracts, roadmap and evidence) is maintained in Susi Commercial Apps.
-- [docs/lean-core.md](docs/lean-core.md#repository-line-accounting): tracked repository line accounting by category (separating first-party runtime Rust from tests, tooling, vendored sources, and audit/evidence trails), measured and printed by [`tests/lean_core_ceilings.rs`](tests/lean_core_ceilings.rs). The complete socket stays strictly below the 10,000-line ceiling (`COMPLETE_SOCKET_CEILING = 9_999`, met at `9,971` lines via `cargo core-size`).
+- [docs/lean-core.md](docs/lean-core.md#complete-socket-size): how core's size is counted by category (first-party runtime Rust apart from tests, tooling, vendored sources and audit trails), measured and printed by [`tests/lean_core_ceilings.rs`](tests/lean_core_ceilings.rs). Core has no line limit: `cargo core-size` reports the number and never fails on it.
 - [docs/extension-pack.md](docs/extension-pack.md), [docs/harness.md](docs/harness.md), [VISION.md](VISION.md), [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

@@ -50,10 +50,10 @@ no client is mid-mission; verify its artifact, keep rollback. Keep releases and 
 6. Keep core a generic standards socket with exactly three core pillars: GAWD (A2A, ACP and \
 parallel harness), GEMI and GMCP. Concrete implementations belong in separate packages; \
 prove each destination works through the standard socket before removing core implementation. \
-No functionality is dropped. Core stays under 10,000 physical runtime Rust lines, including \
-all platforms/features, comments, blanks, inline tests and facades; until then it never grows. \
-Lower COMPLETE_SOCKET_CEILING after each reduction. Never hide or minify code or weaken a \
-check to pass. Core has no UI or bundled plug content; keep proprietary code out of core.
+No functionality is dropped. Core has no line limit: its size in physical runtime Rust lines, \
+with all platforms/features, comments, blanks, inline tests and facades, is measured and \
+reported, and pinned counts are baselines a change may raise, saying why. Never hide or minify \
+code or weaken a check. Core has no UI or bundled plug content; keep proprietary code out of core.
 7. Zero bloat requires measured source, dependency, artifact, memory, latency and build cost. \
 Zero required user configuration means discovery, defaults and agent repair. The warm \
 build + test + release budget is <10s, the cold compile target <60s. The delivery goal is a \
@@ -66,7 +66,7 @@ explicitly elected with pinned provenance and all license/modification notices. 
 components allow Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause under the existing policy. \
 Audit nested exceptions, transitive/native/build/model/standard-library sources and AND/OR \
 obligations. Never relabel third-party code, broaden the allowlist or hide an audit failure. \
-Keep dependency, unsafe and size ratchets, typed errors and justified narrow FFI boundaries.
+Keep dependency and unsafe baselines, typed errors and justified narrow FFI boundaries.
 9. Operational history, growing facts, evidence and completed records stay outside source, in a \
 local database when available; history may be absent. Missing history never proves acceptance, \
 dependency completion or qualification. Retain mandatory notices, live authority and recovery \
@@ -124,10 +124,10 @@ mod tests {
             "RunLevel=Limited",
             "exactly three core pillars",
             "No functionality is dropped",
-            "under 10,000 physical runtime Rust lines",
-            "until then it never grows",
+            "Core has no line limit",
+            "is measured and reported",
             "destination works through the standard socket",
-            "Lower COMPLETE_SOCKET_CEILING",
+            "pinned counts are baselines a change may raise, saying why",
             "Zero bloat",
             "Zero required user configuration",
             "pure Apache-2.0",

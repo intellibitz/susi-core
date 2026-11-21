@@ -183,4 +183,4 @@ Disposable operational history may be discarded after its consumers no longer
 need it; do not publish it as source. Release qualification, required legal
 notices and artifact-bound provenance are separate obligations. The whole agent
 engine and persistent identifier migrations remain incomplete; this runbook
-does not claim the core-size goal or protocol certification is complete.
+does not claim protocol certification is complete.

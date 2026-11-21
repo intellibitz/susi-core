@@ -2006,10 +2006,10 @@ fn active_contract_preserves_delivery_authority_and_capability_boundaries() {
         "exactly three core pillars",
         "No functionality is dropped",
         "Prove the destination works through the standard socket before removing",
-        "under 10,000 physical runtime Rust lines",
-        "core never grows",
+        "Core has no line limit",
+        "Size is measured and reported, never refused",
         "blanks, comments, inline tests, every feature/platform",
-        "lower `COMPLETE_SOCKET_CEILING`",
+        "recorded baselines: a change may raise one in the same commit, saying why",
         "Never hide or minify code",
         "Core ships no UI or bundled plug content",
         "Keep proprietary source out of core",
@@ -2082,7 +2082,7 @@ fn active_contract_preserves_delivery_authority_and_capability_boundaries() {
         "a new lint allowance gives its reason",
         "a marker comment names its task or the work is done now",
         "commented-out code is deleted",
-        "A file over 2,000 lines grows by at most 25 lines in a change",
+        "No file has a line limit",
         "Remove what nothing uses in the change that leaves it unused",
         "Clear debt you meet in its own commit",
         "Keep commits tidy",
@@ -2320,7 +2320,9 @@ fn compiled_identity_is_generic_current_policy_with_active_safeguards() {
         (81, "Every Windows scheduled task retains RunLevel=Limited"),
         (82, "not a hard deadline"),
         (83, "never a private personal vault"),
-        (84, "strictly below 10,000 physical runtime Rust lines"),
+        (84, "Core has no line limit"),
+        (84, "report it; no size refuses a change"),
+        (84, "a change may raise one in the same commit, saying why"),
         (
             84,
             "No minification, hidden excluded runtime, capability loss",
@@ -3460,10 +3462,13 @@ fn ceo_mandate_85_ends_a_claim_when_its_work_is_done() {
     );
 }
 
-/// Mandate 84, tightened by the CEO on 2026-11-18: core stays under 10,000 lines and, until it
-/// does, never grows.
+/// Mandate 84 (core under 10,000 lines, never growing) was withdrawn on 2026-11-22: core has
+/// no line limit. Its document stays, unedited, as history (the canonical Git server
+/// refuses any change to a numbered mandate document), so the dated note that withdraws
+/// the rule is in the documentation index. The size suite measures, reports and holds no
+/// limit.
 #[test]
-fn ceo_mandate_84_keeps_core_under_10k_lines() {
+fn ceo_mandate_84_is_history_and_core_has_no_line_limit() {
     let root = workspace_root();
     let flat = |path: &str| {
         std::fs::read_to_string(root.join(path))
@@ -3472,8 +3477,19 @@ fn ceo_mandate_84_keeps_core_under_10k_lines() {
             .collect::<Vec<_>>()
             .join(" ")
     };
+    let index = flat("docs/README.md");
+    for phrase in [
+        "The line limit recorded in `ceo-mandate-84.md` was withdrawn on 2026-11-22",
+        "core has no line limit",
+    ] {
+        assert!(
+            index.contains(phrase),
+            "the documentation index lost the dated note on Mandate 84: {phrase}"
+        );
+    }
     let doc = flat("docs/ceo-mandate-84.md");
     for phrase in [
+        "**History, superseded.**",
         "**Agent reminder (one line):**",
         "always strictly below 10,000 physical lines: at most 9,999",
         "**Until core is below the limit, it never grows.**",
@@ -3490,16 +3506,31 @@ fn ceo_mandate_84_keeps_core_under_10k_lines() {
             "Mandate 84 lost requirement: {phrase}"
         );
     }
-    // The rule is held by the size suite, not only written down.
-    let ceilings = flat("tests/lean_core_ceilings.rs");
-    for needle in [
-        "const COMPLETE_SOCKET_CEILING: usize =",
-        "const COMPLETE_SOCKET_LIMIT: usize = 9_999;",
-        "complete_socket_never_grows(repository_size());",
-        "assert!(COMPLETE_SOCKET_CEILING >= COMPLETE_SOCKET_LIMIT)",
-    ] {
-        assert!(ceilings.contains(needle), "Mandate 84 check lost: {needle}");
+    // The size suite holds no line limit: it measures, reports and treats its
+    // other counts as baselines whose failure says how to raise them.
+    let size_suite = flat("tests/lean_core_ceilings.rs");
+    for withdrawn in ["COMPLETE_SOCKET_CEILING", "COMPLETE_SOCKET_LIMIT"] {
+        assert!(
+            !size_suite.contains(withdrawn),
+            "the withdrawn line limit returned to the size suite: {withdrawn}"
+        );
     }
+    for needle in [
+        "fn complete_socket_size_is_reported()",
+        "complete_socket_rust={complete_socket}",
+        "This is a baseline, not a",
+        "in the same commit and say why",
+    ] {
+        assert!(
+            size_suite.contains(needle),
+            "the size suite lost its report or its baseline rule: {needle}"
+        );
+    }
+    let alias = flat(".cargo/config.toml");
+    assert!(
+        alias.contains("--test lean_core_ceilings complete_socket_size_is_reported -- --exact"),
+        "`cargo core-size` must run the size report by its exact name"
+    );
     let vision: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(root.join(".agents/visions/V-9.json")).unwrap(),
     )

@@ -16,7 +16,7 @@ for a new one in the same change. The rules agents work by are in
 - [Agent-operated local Windows channels](local-channels.md)
 - [Table-free Rust identifier classification](identifier-platform.md)
 - [Unicode platform boundary](unicode-platform.md)
-- [Lean core: complete standards socket below 10,000 lines](lean-core.md)
+- [Lean core: a generic standards socket, measured and reported](lean-core.md)
 - [Native Rust Susi: delivery contract and evidence](native-rust-direction.md)
 - [Step 1: Susi builds, tests, improves and uses itself](step1-acceptance.md)
 - [Provider-neutral qualification inputs](provider-neutral-inputs.md)
@@ -81,4 +81,9 @@ current documents and code before relying on it.
 - [Independent agents, integration and pristine releases](ceo-agent-mandate.md),
   and the numbered directive documents `ceo-mandate-74.md` to
   `ceo-mandate-87.md` in this directory: superseded by the active contract in
-  [`AGENTS.md`](../AGENTS.md).
+  [`AGENTS.md`](../AGENTS.md). These records are kept unedited (the canonical
+  Git server refuses any change to them), so a later change to what one
+  records is noted here.
+- The line limit recorded in `ceo-mandate-84.md` was withdrawn on 2026-11-22:
+  core has no line limit, and its size is measured and reported
+  ([Lean core](lean-core.md)).

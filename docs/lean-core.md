@@ -1,4 +1,4 @@
-# Lean core: complete standards socket below 10,000 lines
+# Lean core: a generic standards socket, measured and reported
 
 Susi core is a generic, standards-protocol AI OS socket. Its three pillars are
 GAWD (A2A, ACP and the parallel harness), GEMI, and GMCP. The socket host and
@@ -7,29 +7,29 @@ hosted packages, including Susi Commercial Apps, reached through standard
 protocols. Preserve capabilities while moving their implementations.
 
 The [active engineering contract](../AGENTS.md) governs current work. This
-page defines the size and performance contracts; it is not an append-only
-progress log or evidence of a completed migration.
+page defines how core's size is measured and the performance budgets; it is
+not an append-only progress log or evidence of a completed migration.
 
 ## Complete socket size
 
-Core must contain fewer than 10,000 physical runtime Rust lines, including
-its in-repository vendor facades. Until it reaches that goal it never grows.
-`COMPLETE_SOCKET_CEILING` in
-[`tests/lean_core_ceilings.rs`](../tests/lean_core_ceilings.rs) pins the measured
-ceiling. Pay for each runtime addition with a genuine removal in the same
-change. Lower the ceiling after each reduction; once below the limit, keep
-it at 9,999. Do not raise the ceiling without explicit authority.
+Core has no line limit. The earlier limit of 9,999 physical runtime Rust
+lines, and the rule that a change adding lines removes as many, were withdrawn
+on 2026-11-22. Size is still measured and reported, because a number nobody
+reads cannot inform a decision; no size refuses a change.
 
-Run the explicit acceptance check:
+Print the measurement:
 
 ```sh
 cargo core-size
 ```
 
-This executes the under-10k test, which returns nonzero while the complete
-socket exceeds 9,999 lines. Ordinary test runs skip this explicit check; that skip is not acceptance. Acceptance requires one executed test and its size result;
-a zero-test or skipped selection proves nothing. Read the current measurement
-from the command rather than adding dated measurements to this document.
+This runs one test in
+[`tests/lean_core_ceilings.rs`](../tests/lean_core_ceilings.rs) that counts the
+complete socket and prints the total and each package's share. It does not
+fail on the number. It fails only when the measurement itself is broken, for
+example when a package that must exist is counted as empty. A run that
+executes no test has measured nothing. Read the current measurement from the
+command rather than adding dated measurements to this document.
 
 Counting contract: physical Rust lines, including comments, blanks, inline
 tests, every platform and every feature in first-party runtime files, plus
@@ -40,23 +40,36 @@ existing path-based category rules. The unconditionally public
 report test/bench/fuzz files, development tooling, third-party `vendor/`
 source and `.agents/` records. Count tracked and non-ignored untracked files;
 deduplicate Git's file list. The source report is not the size of linked
-dependencies or executable bytes. Test relocation, minification, excluding
-compiled code, or deleting coverage does not qualify as a functional
-implementation reduction.
+dependencies or executable bytes. Keep the report honest: do not relocate
+tests, minify, or exclude compiled code to change the number it prints.
 
-The ordinary reporting and ratchet checks remain available:
+## Recorded baselines
+
+The same test file records six counts that are not line counts:
+
+- third-party crates the four measurement roots compile;
+- workspace crates the four measurement roots compile;
+- workspace members declared in `Cargo.toml`;
+- packages resolved in `Cargo.lock`;
+- vendor facades the pillar crates name directly;
+- reviewed unsafe-baseline files under `.agents/baseline/`.
+
+Each is a baseline, not a ceiling. A change may raise one in the same commit:
+raise the constant in `tests/lean_core_ceilings.rs` to the new count and say
+why, in the constant's comment and in the commit body. A change that lowers a
+count lowers its baseline too, so the record stays true. A count above its
+baseline fails the ordinary run, and the failure says exactly this. What is
+measured did not change when the rule did.
 
 ```sh
 cargo test --locked --test lean_core_ceilings -- --nocapture
 ```
 
-The complete-socket ceiling is binding. Earlier separate per-pillar,
-category and per-file line ceilings remain removed. Existing dependency-reach
-ceilings and the unsafe-baseline count remain binding and may only decrease
-without explicit authority. Dependency reach uses normal and build edges
-from the four measurement roots `susi-gawd`, `susi-gemi`, `susi-gmcp` and
-`susi-harness`; development edges are excluded. The harness remains a GAWD
-capability, not a fourth architectural pillar.
+Earlier separate per-pillar, category and per-file line ceilings remain
+removed. Dependency reach uses normal and build edges from the four
+measurement roots `susi-gawd`, `susi-gemi`, `susi-gmcp` and `susi-harness`;
+development edges are excluded. The harness remains a GAWD capability, not a
+fourth architectural pillar.
 
 ## Preserve behavior through extraction
 
@@ -80,10 +93,10 @@ mutations, process ownership, cancellation, large payloads and native path
 handling. Inspect every platform and feature caller. A finite test corpus
 must not conceal a known capability gap. Keep proprietary source out of core.
 
-A size pass and structural socket tests do not establish standards compliance.
-Run affected behavioral regressions, relevant live conformance checks and
-`cargo check --workspace --all-targets` on the combined migration tree. Keep
-unmet size, behavior and conformance requirements open.
+A size report and structural socket tests do not establish standards
+compliance. Run affected behavioral regressions, relevant live conformance
+checks and `cargo check --workspace --all-targets` on the combined migration
+tree. Keep unmet behavior and conformance requirements open.
 
 ## Compile budget
 

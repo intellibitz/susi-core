@@ -1,15 +1,17 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-//! Lean-core ceilings (`docs/lean-core.md`): the four pillars' dependency
-//! reach may only shrink. Every cut lowers a constant here in the same change;
-//! nothing raises one without a CEO decision recorded in the doc.
+//! Lean-core baselines (`docs/lean-core.md`): the dependency reach of the four
+//! measurement roots and the size of the workspace in crates, as last recorded.
+//! Each constant here is a baseline, not a ceiling. A change may raise one in
+//! the same commit, saying why in the constant's comment and in the commit
+//! body; a change that lowers a count lowers its baseline too, so the record
+//! stays true. What is measured does not change with the rule.
 //!
-//! Per-pillar, category and file ceilings remain removed. The later explicit
-//! under-10k socket goal (Mandate 84) has a separate acceptance check, run by
-//! `cargo core-size`. The explicit check verifies the complete runtime count;
-//! a size check does not establish functional/protocol parity.
-//! Mandate 84 makes that goal a standing rule: the complete socket never grows
-//! past `COMPLETE_SOCKET_CEILING`, which only goes down until it is 9,999.
+//! Core has no line limit (decision of 2026-11-22, which withdrew the earlier
+//! 9,999-line limit and the rule that a change adding lines removes as many).
+//! The complete socket is still measured and its size reported, by every
+//! ordinary run and by `cargo core-size`; no size fails a test. A size report
+//! does not establish functional or protocol parity.
 //!
 //! The reach is measured from `cargo metadata` (normal and build edges, the
 //! way the linked product is built; dev edges excluded), so the numbers are
@@ -109,7 +111,7 @@ const CLOSURE_ROOTS: [&str; 4] = ["susi-gawd", "susi-gemi", "susi-gmcp", "susi-h
 /// `MontgomeryPoint::mul_clamped` and constant-time `IsIdentity`) + `zeroize`,
 /// removing `x25519-dalek`, `rand_core` and the `zeroize_derive` proc-macro
 /// from Cargo.lock (185 -> 182) and the four-pillar closure).
-const THIRD_PARTY_CEILING: usize = 96;
+const THIRD_PARTY_BASELINE: usize = 96;
 /// Workspace crates the four pillars compile (themselves included).
 /// 2026-11-09: 50 -> 47 (susi-gawd-a2a, susi-vendor-ra2a, susi-vendor-tower;
 /// susi-vendor-ra2a was deleted on 2026-11-11, T-CLAUDENOA2ASDK-1),
@@ -129,9 +131,9 @@ const THIRD_PARTY_CEILING: usize = 96;
 /// 2026-11-11: 34 -> 33 (susi-vendor-tracing leaves the pillar closure across
 /// susi-core, susi-gemi and susi-sandbox-client, T-AGYWIN-1).
 /// 2026-11-12: 33 unchanged on T-CARBONCLOUD-3 (`susi-vendor-tempfile` was a
-/// `[dev-dependencies]`-only leaf across 8 crates; `WORKSPACE_MEMBERS_CEILING`
-/// ratchets 50 -> 49 and `CARGO_LOCK_PACKAGES_CEILING` ratchets 182 -> 181).
-const WORKSPACE_CEILING: usize = 33;
+/// `[dev-dependencies]`-only leaf across 8 crates; `WORKSPACE_MEMBERS_BASELINE`
+/// ratchets 50 -> 49 and `CARGO_LOCK_PACKAGES_BASELINE` ratchets 182 -> 181).
+const WORKSPACE_BASELINE: usize = 33;
 /// Total workspace members in `Cargo.toml` (`cargo metadata` `workspace_members`).
 /// 2026-11-12: 50 -> 49 (T-CARBONCLOUD-3: fold `susi-vendor-tempfile` into
 /// `susi_paths::tempfile` and delete `crates/susi-vendor-tempfile`;
@@ -140,13 +142,13 @@ const WORKSPACE_CEILING: usize = 33;
 /// susi-build-os-ucrt; Windows PE/UCRT live in Susi Commercial Apps).
 /// 2026-11-18: 29 -> 28 (SAES-9: delete susi-vendor-winapi after commercial
 /// H-SAES9-2 / #124 owned it).
-const WORKSPACE_MEMBERS_CEILING: usize = 28;
+const WORKSPACE_MEMBERS_BASELINE: usize = 28;
 /// Total resolved packages in `Cargo.lock` (`cargo metadata` `packages`).
 /// 2026-11-12: 182 -> 181 (T-CARBONCLOUD-3: `susi-vendor-tempfile` leaves
 /// `Cargo.lock` alongside 8 workspace `[dev-dependencies]` facade edges).
-const CARGO_LOCK_PACKAGES_CEILING: usize = 181;
+const CARGO_LOCK_PACKAGES_BASELINE: usize = 181;
 /// Distinct `susi-vendor-*` facades the pillar crates name directly in
-/// their manifests (normal edges): the edges the program removes one by one.
+/// their manifests (normal edges).
 /// 2026-11-09: 22 -> 21 (susi-gmcp -> susi-vendor-mcp-server).
 /// 2026-11-10: 21 -> 20; GMCP uses Hyper's existing Bytes/Buf exports.
 /// 2026-11-11: 20 -> 19 (T-AGYCLOUD-4: susi-gemi -> susi-vendor-parking-lot
@@ -170,7 +172,7 @@ const CARGO_LOCK_PACKAGES_CEILING: usize = 181;
 /// removed 8 `[dev-dependencies]` facade edges across `susi-core`, `susi-gawd`,
 /// `susi-gemi-models`, `susi-gemi`, `susi-gmcp`, `susi-harness`,
 /// `susi-leaf-services` and `susi-tools`).
-const DIRECT_FACADE_EDGES_CEILING: usize = 9;
+const DIRECT_FACADE_EDGES_BASELINE: usize = 9;
 /// The pillar crates whose shipped source size is reported.
 const PILLAR_CRATES: [&str; 8] = [
     "susi-gawd",
@@ -183,26 +185,31 @@ const PILLAR_CRATES: [&str; 8] = [
     "susi-harness",
 ];
 
-/// Unsafe-exposure baselines under `.agents/baseline/` may not multiply. A file
-/// count, not a line count.
-const UNSAFE_BASELINE_FILES_CEILING: usize = 2;
+/// Reviewed unsafe-exposure baseline files under `.agents/baseline/`. A file
+/// count, not a line count; like the counts above, a recorded baseline.
+const UNSAFE_BASELINE_FILE_COUNT: usize = 2;
 
-/// Mandate 84 (`docs/ceo-mandate-84.md`): Susi core stays strictly below
-/// 10,000 lines. The complete socket (first-party runtime Rust plus the
-/// in-repository vendor facades, counted by `repository_size`) may never exceed
-/// this pinned ceiling. A change that shrinks core lowers it to the new measure,
-/// or to `COMPLETE_SOCKET_LIMIT` once core is below that. Only a CEO decision
-/// recorded in `docs/ceo-mandate-84.md` raises it.
-// The model Provider trait moved to Susi Commercial Apps.
-/// 2026-11-18: 27_066 -> 25_144 (SAES-9: delete susi-windows-runtime and
-/// susi-build-os-ucrt after commercial H-SAES9-1 / #123 owned them).
-/// 2026-11-18: 25_144 -> 24_999 (SAES-9: delete susi-vendor-winapi after
-/// commercial H-SAES9-2 / #124; complete socket 23_144, at the CEO limit).
-/// 2026-11-18: 24_999 -> 9_999 (T-ANTIGRAVITYSLIM-3 / V-18: bring complete
-/// socket strictly below 10,000 lines at the tightened CEO limit).
-const COMPLETE_SOCKET_CEILING: usize = 9_999;
-/// The CEO's limit: strictly below 10,000 physical lines.
-const COMPLETE_SOCKET_LIMIT: usize = 9_999;
+/// The failure text for a count above its recorded baseline. It tells the
+/// agent what to do, because a baseline is not a ceiling.
+fn above_baseline(what: &str, now: usize, constant: &str, baseline: usize) -> String {
+    format!(
+        "{what}: {now}, above the recorded baseline {baseline}. This is a baseline, not a \
+         ceiling: when the change needs it, raise `{constant}` in tests/lean_core_ceilings.rs \
+         to {now} in the same commit and say why, in the constant's comment and in the commit \
+         body. When the change does not need it, remove what raised the count"
+    )
+}
+
+/// Advice, never a failure: a count that fell below its baseline.
+fn note_below_baseline(what: &str, now: usize, constant: &str, baseline: usize) {
+    if now < baseline {
+        eprintln!(
+            "lean-core: {what} fell to {now}, below the recorded baseline {baseline}; lower \
+             `{constant}` in tests/lean_core_ceilings.rs to {now} in this change so the record \
+             stays true"
+        );
+    }
+}
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -343,8 +350,11 @@ fn rust_lines_in(dir: &Path, top: bool) -> usize {
     total
 }
 
+/// The dependency reach and the workspace's size in crates, against the
+/// recorded baselines. A count above its baseline fails with what to do: raise
+/// the baseline in the same commit and say why, or remove what raised it.
 #[test]
-fn pillar_dependency_reach_does_not_grow() {
+fn pillar_dependency_reach_stays_within_its_recorded_baselines() {
     let meta = metadata();
     let workspace_members = meta["workspace_members"]
         .as_array()
@@ -360,39 +370,55 @@ fn pillar_dependency_reach_does_not_grow() {
         workspace_members,
         lock_packages
     );
-    assert!(
-        workspace_members <= WORKSPACE_MEMBERS_CEILING,
-        "workspace now declares {workspace_members} members (ceiling {WORKSPACE_MEMBERS_CEILING})"
-    );
-    assert!(
-        lock_packages <= CARGO_LOCK_PACKAGES_CEILING,
-        "Cargo.lock now resolves {lock_packages} packages (ceiling {CARGO_LOCK_PACKAGES_CEILING})"
-    );
-    assert!(
-        reach.third_party.len() <= THIRD_PARTY_CEILING,
-        "the four pillars now compile {} third-party crates (ceiling {}): {:?}",
-        reach.third_party.len(),
-        THIRD_PARTY_CEILING,
-        reach.third_party
-    );
-    assert!(
-        reach.workspace.len() <= WORKSPACE_CEILING,
-        "the four pillars now compile {} workspace crates (ceiling {}): {:?}",
-        reach.workspace.len(),
-        WORKSPACE_CEILING,
-        reach.workspace
-    );
-    assert!(
-        reach.direct_facades.len() <= DIRECT_FACADE_EDGES_CEILING,
-        "the pillar crates now name {} vendor facades directly (ceiling {}): {:?}",
-        reach.direct_facades.len(),
-        DIRECT_FACADE_EDGES_CEILING,
-        reach.direct_facades
-    );
+    for (what, now, constant, baseline, named) in [
+        (
+            "workspace members declared in Cargo.toml",
+            workspace_members,
+            "WORKSPACE_MEMBERS_BASELINE",
+            WORKSPACE_MEMBERS_BASELINE,
+            None,
+        ),
+        (
+            "packages resolved in Cargo.lock",
+            lock_packages,
+            "CARGO_LOCK_PACKAGES_BASELINE",
+            CARGO_LOCK_PACKAGES_BASELINE,
+            None,
+        ),
+        (
+            "third-party crates the four pillars compile",
+            reach.third_party.len(),
+            "THIRD_PARTY_BASELINE",
+            THIRD_PARTY_BASELINE,
+            Some(&reach.third_party),
+        ),
+        (
+            "workspace crates the four pillars compile",
+            reach.workspace.len(),
+            "WORKSPACE_BASELINE",
+            WORKSPACE_BASELINE,
+            Some(&reach.workspace),
+        ),
+        (
+            "vendor facades the pillar crates name directly",
+            reach.direct_facades.len(),
+            "DIRECT_FACADE_EDGES_BASELINE",
+            DIRECT_FACADE_EDGES_BASELINE,
+            Some(&reach.direct_facades),
+        ),
+    ] {
+        assert!(
+            now <= baseline,
+            "{}{}",
+            above_baseline(what, now, constant, baseline),
+            named.map_or_else(String::new, |names| format!(". Counted: {names:?}"))
+        );
+        note_below_baseline(what, now, constant, baseline);
+    }
 }
 
 /// Shipped Rust lines under each pillar's `src`, printed for the record. Not a
-/// ceiling: growth never fails this.
+/// limit: growth never fails this.
 #[test]
 fn pillar_source_size_is_reported() {
     let root = workspace_root();
@@ -430,47 +456,52 @@ fn is_test_or_bench_rust(rel: &str) -> bool {
 /// for the record: runtime Rust, vendor facades, tests, tooling, vendored sources
 /// and audit trails, with the largest file of each watched kind. Includes
 /// untracked, non-ignored files so a new unstaged source file is not invisible.
-/// It also holds Mandate 84: core never grows past its pinned ceiling.
+/// No size fails this: core has no line limit. The one count it checks is the
+/// number of reviewed unsafe-baseline files, against its recorded baseline.
 #[test]
-fn repository_size_is_reported_and_unsafe_baselines_do_not_multiply() {
-    complete_socket_never_grows(repository_size());
-}
-
-/// Mandate 84: while core is above 10,000 lines it never grows, and once it is
-/// below it never reaches 10,000 again.
-fn complete_socket_never_grows(lines: usize) {
+fn repository_size_is_reported_and_unsafe_baseline_files_are_counted() {
+    let size = repository_size();
     assert!(
-        lines <= COMPLETE_SOCKET_CEILING,
-        "Mandate 84: Susi core's complete socket is {lines} physical Rust lines, above its \
-         pinned ceiling {COMPLETE_SOCKET_CEILING}. Core never grows: remove as many runtime \
-         lines from core in the same change, or ship an add-on as a plug in \
-         susi-commercial-apps (docs/ceo-mandate-84.md)"
+        size.unsafe_baseline_files <= UNSAFE_BASELINE_FILE_COUNT,
+        "{}",
+        above_baseline(
+            "reviewed unsafe-baseline files under .agents/baseline/",
+            size.unsafe_baseline_files,
+            "UNSAFE_BASELINE_FILE_COUNT",
+            UNSAFE_BASELINE_FILE_COUNT
+        )
     );
-    let won = lines.max(COMPLETE_SOCKET_LIMIT);
-    if won < COMPLETE_SOCKET_CEILING {
-        eprintln!(
-            "Mandate 84: core is {lines} lines; lower COMPLETE_SOCKET_CEILING in \
-             tests/lean_core_ceilings.rs from {COMPLETE_SOCKET_CEILING} to {won} so the cut stays won"
-        );
-    }
-}
-
-// The ceiling stops at the limit: below 10,000, core may use the room the CEO gave it.
-const _: () = assert!(COMPLETE_SOCKET_CEILING >= COMPLETE_SOCKET_LIMIT);
-
-/// Explicit complete-socket acceptance. All
-/// first-party runtime and facade code counts, not just the pillar crates.
-#[test]
-#[ignore = "explicit complete-socket acceptance; run cargo core-size"]
-fn complete_socket_is_under_10k_lines() {
-    let lines = repository_size();
-    assert!(
-        lines < 10_000,
-        "complete socket has {lines} physical Rust lines; must be strictly below 10000; functionality and protocol parity must also be verified"
+    note_below_baseline(
+        "reviewed unsafe-baseline files under .agents/baseline/",
+        size.unsafe_baseline_files,
+        "UNSAFE_BASELINE_FILE_COUNT",
+        UNSAFE_BASELINE_FILE_COUNT,
     );
 }
 
-fn repository_size() -> usize {
+/// `cargo core-size`: measure the complete socket and report it. All
+/// first-party runtime and facade code counts, not just the pillar crates. It
+/// never fails on the number, whatever it is: core has no line limit. It fails
+/// only when the measurement itself is broken (a package counted as empty).
+#[test]
+#[ignore = "the size report of cargo core-size; ordinary runs already print the same measurement"]
+fn complete_socket_size_is_reported() {
+    let size = repository_size();
+    eprintln!(
+        "core-size: the complete socket is {} physical runtime Rust lines (reported; core has no line limit)",
+        size.complete_socket
+    );
+}
+
+/// What one measurement of the repository returns.
+struct RepositorySize {
+    /// First-party runtime Rust plus the in-repository vendor facades.
+    complete_socket: usize,
+    /// Reviewed unsafe-baseline files under `.agents/baseline/`.
+    unsafe_baseline_files: usize,
+}
+
+fn repository_size() -> RepositorySize {
     let root = workspace_root();
     let output = Command::new("git")
         .current_dir(&root)
@@ -567,9 +598,9 @@ fn repository_size() -> usize {
     }
 
     eprintln!(
-        "lean-core categories: runtime_rust={first_party_runtime_rust}, vendor_facade_rust={vendor_facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, vendor={vendor_lines}, .agents={agents_lines} (append-only evidence={evidence_jsonl_lines}, unsafe_baselines={unsafe_baseline_files} / ceiling {UNSAFE_BASELINE_FILES_CEILING})"
+        "lean-core categories: runtime_rust={first_party_runtime_rust}, vendor_facade_rust={vendor_facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, vendor={vendor_lines}, .agents={agents_lines} (append-only evidence={evidence_jsonl_lines}, unsafe_baselines={unsafe_baseline_files} / baseline {UNSAFE_BASELINE_FILE_COUNT})"
     );
-    // A missing/empty inventory cannot satisfy the goal by counting zero.
+    // A missing/empty inventory must not pass as a small measurement.
     // Include ACP explicitly: the historical pillar report predates its crate.
     for package in PILLAR_CRATES.iter().copied().chain([
         "susi (root)",
@@ -586,11 +617,7 @@ fn repository_size() -> usize {
         );
     }
     let complete_socket = first_party_runtime_rust + vendor_facade_rust;
-    eprintln!(
-        "lean-core goal: complete_socket_rust={complete_socket}, strict_limit=10000, remaining_to_remove={}, size_goal_met={}",
-        complete_socket.saturating_sub(COMPLETE_SOCKET_LIMIT),
-        complete_socket <= COMPLETE_SOCKET_LIMIT
-    );
+    eprintln!("lean-core size: complete_socket_rust={complete_socket} (reported; no line limit)");
     let mut packages: Vec<_> = runtime_by_package.into_iter().collect();
     packages.sort_by(|(a_name, a_size), (b_name, b_size)| {
         b_size.cmp(a_size).then_with(|| a_name.cmp(b_name))
@@ -608,9 +635,8 @@ fn repository_size() -> usize {
         eprintln!("lean-core largest {kind} file: {file} = {lines} lines");
     }
 
-    assert!(
-        unsafe_baseline_files <= UNSAFE_BASELINE_FILES_CEILING,
-        "unsafe baseline file count reached {unsafe_baseline_files} (ceiling {UNSAFE_BASELINE_FILES_CEILING})"
-    );
-    complete_socket
+    RepositorySize {
+        complete_socket,
+        unsafe_baseline_files,
+    }
 }
