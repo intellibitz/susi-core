@@ -145,7 +145,7 @@ The guard writes nothing to the remote and nothing local except its own refs
 (it creates, advances and, for an accepted directed deletion, drops them).
 It works with any Git remote: a hosted service, a self-hosted server or a bare
 repository on a disk. It runs from another repository's checkout too (for
-example `susi-commercial-apps`) by starting the built binary there.
+example Susi, repository `susi`) by starting the built binary there.
 
 Limits, stated plainly: the guard detects and recovers, it does not prevent. A
 clone only vouches for what it has seen, so a ref created and destroyed between

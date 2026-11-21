@@ -87,8 +87,10 @@ agent state/evidence, concrete HTTP server, daemon services and provider adapter
 The implementation descriptions below apply in that owning repository; they do
 not imply that these concrete packages remain in the native core workspace.
 
+Since 2026-11-22 Susi holds only its licence and vault core: the implementations this page places in Susi were removed from it that day and are being rebuilt (CEO Mandate 101). A path in Susi named here is where that code lived until then.
+
 The complete HTTP owner is `crates/susi-server` (package `susi-server-runtime`)
-in `susi-commercial-apps`. That repository also owns `susi-daemon-runtime`,
+in Susi. That repository also owns `susi-daemon-runtime`,
 `susi-leaf-services` and `susi-adapters-llm`. Its `susi-agent-runtime` owns the
 broker, capture, context graph, evidence, mission trace, parallel execution,
 pattern matching, receipt archive, registry, registry IPC, truth and verification.
@@ -159,7 +161,7 @@ whose events post to the error service with a local-file fallback; the global
 local files; `susi-sandbox-client` owns the sandbox IPC client and the
 audit-chain / auto-install / daemon-state / manager helpers the service and
 every client share, while Docker/bollard container orchestration lives in
-`susi-commercial-apps`;
+Susi;
 `susi-core` and `susi-abi` are each one compiled copy, re-exported by their
 consumers), and a ratchet
 (`cross_crate_source_mounts_only_decrease`) keeps the remaining cross-crate

@@ -19,11 +19,13 @@ something that is not finished, it says so.
   derivatives. The product is what is sold and is built by agents only; the
   two public repositories carry no secrets and are how the work earns its name
   in the open. The three move together.
-- **Names are written as they are today, and they are changing.** This
-  repository and its program are still literally named `susi`; they become
-  `susi-core` in a later guarded step. The private repository is still
-  `susi-commercial-apps`, and text written before the decision calls the
-  product "Susi Commercial Apps". Susi Tools is the repository `susi-tools`; it
+- **Names are written as they are today.** This repository is `susi-core`
+  since 2026-11-22 (it was `susi`; GitHub and GitLab redirect the old
+  address); its program is still `susi` and becomes `susi-core` in a second
+  guarded step. The private repository is `susi` (it was
+  `susi-commercial-apps`), and text written before the decision calls the
+  product "Susi Commercial Apps"; there, a repository called `susi` is this
+  one. Clone folders kept their old names. Susi Tools is the repository `susi-tools`; it
   is not the `crates/susi-tools` crate in this workspace, which is the
   tool-socket binding.
 - **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never
@@ -62,11 +64,11 @@ something that is not finished, it says so.
   wire contracts, errors, authorization and compatibility as core changes.
 - Core contains generic protocol contracts and socket machinery. Concrete
   implementations belong in separately hosted implementation packages, including
-  `susi-commercial-apps`. Prove the destination works through the standard
+  Susi (repository `susi`). Prove the destination works through the standard
   socket before removing its implementation from core. No functionality is
   dropped, no error stub replaces a working capability, and no implementation
   is merely relabeled to reduce the count. A capability moved into
-  `susi-commercial-apps`, working there with old and new behaviour shown to
+  Susi, working there with old and new behaviour shown to
   match, is not dropped (a recorded decision): core forwards to it, and an
   installation without it names the command that serves it. Keep proprietary
   source out of core.
@@ -162,9 +164,10 @@ something that is not finished, it says so.
 8. Use portable Git storage, without hosting-service APIs, hosted CI, hosted
    pull requests or required remote review. The local canonical Git server is
    the source of truth and the `origin` of every clone and worktree (reached via
-   the configured `https://git.susi.local/<org>/susi.git` canonical URL). It
-   holds the three repositories (`susi.git`, `susi-commercial-apps.git` and
-   `susi-tools.git`). GitHub and GitLab hold write-only backup copies, which
+   the configured `https://git.susi.local/<org>/susi-core.git` canonical URL;
+   the old `.../susi.git` address stays an alias of this repository so every
+   earlier commit builds). It holds the three repositories (`susi-core.git`,
+   `susi.git` for Susi and `susi-tools.git`). GitHub and GitLab hold write-only backup copies, which
    the canonical server's storage sync refreshes every ten minutes; the public
    copies of this repository receive only `main` and signed release tags.
    Nothing is ever fetched from a hosted copy. Never fetch from, push to or

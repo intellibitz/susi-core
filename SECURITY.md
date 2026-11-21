@@ -28,7 +28,7 @@ SUSI is designed with a governance-first local host architecture:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report suspected vulnerabilities privately via [GitHub Private Vulnerability Reporting](https://github.com/intellibitz/susi/security/advisories/new) on `intellibitz/susi`.
+Instead, please report suspected vulnerabilities privately via [GitHub Private Vulnerability Reporting](https://github.com/intellibitz/susi-core/security/advisories/new) on `intellibitz/susi-core`.
 
 Please include:
 - A clear description of the vulnerability and affected crate/endpoint (e.g., `susi-daemon`, `susi-gmcp`, `susi-gemi`, `susi-sandbox`, `susi-config`).

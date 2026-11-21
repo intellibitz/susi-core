@@ -37,8 +37,8 @@ version = "0.21.72"
 edition = "2021"
 description = "susi: RSI swarm AI OS for hosting, provisioning, and managing any local and cloud AI ecosystem. Evidence-gated agent substrate. Open-admit OpenAI-compat/MCP/protocol peers, consensus swarm, HMAC audit, absolute truth, bearer-authenticated host ports."
 license = "Apache-2.0"
-repository = "https://github.com/intellibitz/susi"
-homepage = "https://github.com/intellibitz/susi"
+repository = "https://github.com/intellibitz/susi-core"
+homepage = "https://github.com/intellibitz/susi-core"
 publish = false
 # Last toolchain this was actually built and tested against; CI tracks
 # `stable` rather than pinning to this, so treat it as a floor, not a

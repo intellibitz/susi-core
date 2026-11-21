@@ -35,7 +35,7 @@ This Code of Conduct applies within all project spaces (issue reports, discussio
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers via GitHub security/maintainer contact on [`intellibitz/susi`](https://github.com/intellibitz/susi). All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers via GitHub security/maintainer contact on [`intellibitz/susi-core`](https://github.com/intellibitz/susi-core). All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

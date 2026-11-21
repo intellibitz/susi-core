@@ -102,7 +102,7 @@ Field by field:
 - The receipt names no path, user or machine. Agents appear by their claim
   name (also the branch and task-record name); the host appears as its triple.
 
-The commercial gate (`susi-commercial-apps`, same tool) keeps no native gate
+The commercial gate (Susi, repository `susi`, same tool) keeps no native gate
 plan, so its receipts carry each command's exit code and duration from the
 evidence lines but no test totals or harness list.
 

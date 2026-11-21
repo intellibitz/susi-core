@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mandate checks shared by intellibitz/susi and intellibitz/susi-commercial-apps
+# Mandate checks shared by Susi Core (repository susi-core) and Susi (repository susi)
 # (the same file in both repositories; keep them byte-identical). Plain bash
 # and git: no network, no build, no workflow tool, well under a second.
 #

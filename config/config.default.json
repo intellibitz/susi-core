@@ -15,13 +15,13 @@
       "name": "SusiReflexCloud-v2",
       "provider": "SUSI",
       "tier": "Tier 0: SUSI-Alpha (Reflex)",
-      "url": "https://github.com/intellibitz/susi"
+      "url": "https://github.com/intellibitz/susi-core"
     },
     {
       "name": "DistilledRouter-1B",
       "provider": "SUSI",
       "tier": "Tier 0: SUSI-Alpha (Reflex)",
-      "url": "https://github.com/intellibitz/susi"
+      "url": "https://github.com/intellibitz/susi-core"
     }
   ],
   "governance": {
@@ -70,7 +70,7 @@
   "port_offset": 0,
   "tls_cert_path": "",
   "tls_key_path": "",
-  "openrouter_http_referer": "https://github.com/intellibitz/susi",
+  "openrouter_http_referer": "https://github.com/intellibitz/susi-core",
   "openrouter_app_title": "SUSI",
   "allow_origin": "*",
   "max_rpc_body_bytes": 10485760,

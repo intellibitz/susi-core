@@ -205,7 +205,7 @@ susi start` brings up a complete sibling node.
 Prometheus server, and 9092-9094 are the ports Kafka brokers commonly listen
 on, so a developer machine often has one of them taken. The daemon binds six
 ports as one block, the five contract ports and gossip 9095
-(Commercial Apps: `susi-commercial-apps/crates/susi-daemon-runtime/src/port_fallback.rs`). Before it binds, it probes each
+(Susi: `crates/susi-daemon-runtime/src/port_fallback.rs`; since 2026-11-22 Susi holds only its licence and vault core: the implementations this page places in Susi were removed from it that day and are being rebuilt (CEO Mandate 101). A path in Susi named here is where that code lived until then.) Before it binds, it probes each
 with a real bind on every address it will use, offers each held port to the
 stale-susi reclaim (only a susi process of this instance with the trusted
 binary hash is evicted), and then:
@@ -500,7 +500,7 @@ Verify: `susi crown` (exit non-zero if any critical USP fails).
 
 Susi core targets a minimal, generic standards socket with three protocol
 pillars: GAWD (including A2A, ACP and harness admission), GEMI and GMCP.
-Product implementations belong in `susi-commercial-apps` and are admitted over
+Product implementations belong in Susi (repository `susi`) and are admitted over
 the socket. Moving a capability requires a working destination and demonstrated
 behavioral parity; the existing implementation inventory is migration work,
 not proof that this boundary is already complete. The plan, the measured

@@ -5,7 +5,7 @@ Development `main` is an ungated feature dump. A release is distilled from it,
 and several agents move the same release forward in parallel. GitHub never
 merges and never shows a pull request: every move is a Git operation pushed as
 a normal fast-forward. The tool uses Rust and the installed `git` only, and works
-in any checkout, including `susi-commercial-apps`.
+in any checkout, including one of Susi (repository `susi`).
 
 ## Commands
 

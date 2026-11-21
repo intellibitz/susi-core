@@ -78,6 +78,7 @@ publish your branch tip to `refs/agents/<agent>` first.
 
 ## Not finished
 
-The rename of this repository and its program from `susi` to `susi-core`, and
-the move of development-only code to Susi Tools, which holds no tooling yet.
+The rename of this repository's program from `susi` to `susi-core` (the
+repository itself is `susi-core` since 2026-11-22), and the move of
+development-only code to Susi Tools, which holds no tooling yet.
 The contract's first section lists each open item.

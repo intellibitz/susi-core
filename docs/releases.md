@@ -258,6 +258,6 @@ variable to set.
 
 ## Commercial certification
 
-`susi-commercial-apps/scripts/refresh-certified-core.sh` fetches the core
+Susi's `scripts/refresh-certified-core.sh` fetches the core
 repository over git (its configured core remote) and takes the pinned
 release's commit and reference digests from `releases/<tag>.json`.

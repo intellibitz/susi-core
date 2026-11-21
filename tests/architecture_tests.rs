@@ -2737,7 +2737,7 @@ fn current_git_authority_preserves_evidence_and_scope() {
 }
 
 /// Open-core boundary (AGENTS.md): organisation-scale capabilities are sold in
-/// susi-commercial-apps and must not return to the Apache-2.0 substrate.
+/// Susi (repository `susi`) and must not return to the Apache-2.0 substrate.
 #[test]
 fn enterprise_capabilities_live_in_commercial_apps() {
     let root = workspace_root();
@@ -2833,7 +2833,7 @@ fn enterprise_capabilities_live_in_commercial_apps() {
     ] {
         assert!(
             !root.join(rel).exists(),
-            "enterprise capability belongs in susi-commercial-apps: {rel}"
+            "enterprise capability belongs in Susi (repository susi): {rel}"
         );
     }
     // The relocated handler contract is checked by commercial ownership_guards.
@@ -2843,7 +2843,7 @@ fn enterprise_capabilities_live_in_commercial_apps() {
 // Zero-UI boundary (CEO directive): core is a pure Rust CLI plus a standards
 // protocol socket. It ships no GUI/TUI, no web assets, serves no HTML and
 // carries no plugin content; every UI and plugin lives in
-// susi-commercial-apps. Plan: susi-commercial-apps docs/zero-ui-migration-plan.md
+// Susi (repository `susi`). Plan: Susi's docs/zero-ui-migration-plan.md
 // (items A1-A7).
 // ---------------------------------------------------------------------------
 
@@ -2948,7 +2948,7 @@ fn core_declares_no_gui_or_tui_crates() {
     }
     assert!(
         offenders.is_empty(),
-        "core has zero UI: GUI/TUI/spinner crates belong in susi-commercial-apps:\n{}",
+        "core has zero UI: GUI/TUI/spinner crates belong in Susi (repository susi):\n{}",
         offenders.join("\n")
     );
 }
@@ -2977,7 +2977,7 @@ fn core_ships_zero_ui_assets() {
         .collect();
     assert!(
         offenders.is_empty(),
-        "core ships zero UI assets; move these to susi-commercial-apps:\n{}",
+        "core ships zero UI assets; move these to Susi (repository susi):\n{}",
         offenders.join("\n")
     );
 }
@@ -3027,7 +3027,7 @@ fn core_serves_no_html() {
 }
 
 /// BT-02: the UI and plugin content removed from core must not return; it
-/// lives in susi-commercial-apps (or, for the DeepSeek Harness plugin, is
+/// lives in Susi, repository `susi` (or, for the DeepSeek Harness plugin, is
 /// retired in favour of a native commercial desktop view).
 #[test]
 fn ui_and_plugins_live_in_commercial_apps() {
@@ -3052,7 +3052,7 @@ fn ui_and_plugins_live_in_commercial_apps() {
     ] {
         assert!(
             !root.join(rel).exists(),
-            "UI and plugin content belongs in susi-commercial-apps, not core: {rel}"
+            "UI and plugin content belongs in Susi (repository susi), not core: {rel}"
         );
     }
     let root_toml = std::fs::read_to_string(root.join("Cargo.toml")).expect("root Cargo.toml");
@@ -3150,7 +3150,7 @@ fn core_never_autolaunches_third_party_servers() {
 
 /// A9: core bundles no launchable vendor catalog. The leading-MCP list, the
 /// MCP scout registry, and the execution-agent / agent-engine catalogs ship
-/// in extension packs (susi-commercial-apps), never as compiled defaults,
+/// in extension packs (Susi, repository `susi`), never as compiled defaults,
 /// and core's `config.default.json` lists no vendor peers or bootstrap MCP
 /// servers. Model catalogs, prices and cloud-vendor aliases stay (NP-04,
 /// NP-18, NP-19).
@@ -3219,7 +3219,7 @@ fn core_bundles_no_launchable_vendor_catalogs() {
 /// `harness cockpit` live in `#[command(alias = ...)]`, not in doc comments),
 /// and there is no interactive shell: no `Shell` command variant in defs.rs and
 /// no `susi> ` prompt anywhere in `src/`. Bare `susi` prints usage; the
-/// conversation lives in the Susi desktop app (susi-commercial-apps).
+/// conversation lives in the Susi desktop app (Susi, repository `susi`).
 #[test]
 fn core_cli_has_no_ui_subcommands() {
     let root = workspace_root();

@@ -9,7 +9,7 @@ and depends only on the `git` executable. It uses no hosting API and no network
 beyond `git fetch`.
 
 It runs in whatever Git checkout is the current directory, so
-`susi-commercial-apps` runs the same binary.
+Susi (repository `susi`) runs the same binary.
 
 ```sh
 local-harvest <command> [--json]
