@@ -12,6 +12,12 @@
 //! (`releases/<tag>.json`, `docs/releases.md`); a landing's record is its gate
 //! receipt, retained under `refs/susi/receipts/`.
 //!
+//! GitLab is held to the same rule (decision of 2026-11-22: zero dependency on
+//! GitHub or GitLab). A hosted copy on either service is a write-only backup,
+//! so nothing in the tree may run `glab` against GitLab, call a GitLab REST or
+//! GraphQL endpoint, send a `PRIVATE-TOKEN` header or carry a GitLab-only
+//! integration file.
+//!
 //! This test scans every tracked file. The allow-list below is the only
 //! exception, and each entry says why it may quote a retired form.
 
@@ -66,15 +72,55 @@ const LITERALS: [&str; 5] = [
     "ghcr.io/intellibitz",
 ];
 
-/// The `gh <subcommand>` invocation on `line`, if any: `gh` as a whole word
-/// (at the start, or after whitespace, a quote or a shell operator) followed by
-/// a GitHub subcommand.
-fn gh_invocation(line: &str) -> Option<String> {
+/// `glab` subcommands that talk to GitLab. A shell line that runs any of them
+/// is a coupling (`glab api`, `glab mr create`, `glab ci status`, ...).
+const GLAB_SUBCOMMANDS: [&str; 22] = [
+    "api",
+    "auth",
+    "ci",
+    "cluster",
+    "deploy-key",
+    "duo",
+    "incident",
+    "issue",
+    "iteration",
+    "job",
+    "label",
+    "mr",
+    "release",
+    "repo",
+    "schedule",
+    "securefile",
+    "snippet",
+    "ssh-key",
+    "stack",
+    "token",
+    "user",
+    "variable",
+];
+
+/// Literal markers of a GitLab API or registry dependency: the hosted API, the
+/// REST path every GitLab instance serves, the personal-token request header
+/// and Susi's own images in a GitLab registry. A plain Git remote URL on
+/// GitLab is storage, not coupling, and is not matched.
+const GITLAB_LITERALS: [&str; 5] = [
+    "gitlab.com/api/",
+    "/api/v4/",
+    "PRIVATE-TOKEN",
+    "new(\"glab\")",
+    "registry.gitlab.com/intellibitz",
+];
+
+/// The `<cli> <subcommand>` invocation on `line`, if any: the CLI's name as a
+/// whole word (at the start, or after whitespace, a quote or a shell operator)
+/// followed by one of `subcommands`.
+fn cli_invocation(line: &str, cli: &str, subcommands: &[&str]) -> Option<String> {
     let bytes = line.as_bytes();
+    let needle = format!("{cli} ");
     let mut from = 0;
-    while let Some(found) = line[from..].find("gh ") {
+    while let Some(found) = line[from..].find(&needle) {
         let at = from + found;
-        from = at + 3;
+        from = at + needle.len();
         let word_start = at == 0
             || matches!(
                 bytes[at - 1],
@@ -83,26 +129,50 @@ fn gh_invocation(line: &str) -> Option<String> {
         if !word_start {
             continue;
         }
-        let rest = line[at + 3..].trim_start();
+        let rest = line[at + needle.len()..].trim_start();
         let word: String = rest
             .chars()
             .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
             .collect();
-        if GH_SUBCOMMANDS.contains(&word.as_str()) {
-            return Some(format!("gh {word}"));
+        if subcommands.contains(&word.as_str()) {
+            return Some(format!("{cli} {word}"));
         }
     }
     None
 }
 
+/// The `gh <subcommand>` invocation on `line`, if any.
+fn gh_invocation(line: &str) -> Option<String> {
+    cli_invocation(line, "gh", &GH_SUBCOMMANDS)
+}
+
+/// The `glab <subcommand>` invocation on `line`, if any.
+fn glab_invocation(line: &str) -> Option<String> {
+    cli_invocation(line, "glab", &GLAB_SUBCOMMANDS)
+}
+
 fn couplings(line: &str) -> Vec<String> {
     let mut found: Vec<String> = LITERALS
         .iter()
+        .chain(GITLAB_LITERALS.iter())
         .filter(|literal| line.contains(**literal))
         .map(|literal| (*literal).to_owned())
         .collect();
     found.extend(gh_invocation(line));
+    found.extend(glab_invocation(line));
     found
+}
+
+/// Whether `text` can hold a coupling at all: the cheap test that lets the
+/// scan skip most files. It must admit everything [`couplings`] can find, on
+/// both services.
+fn may_hold_a_coupling(text: &str) -> bool {
+    text.contains("gh ")
+        || text.contains("glab ")
+        || LITERALS
+            .iter()
+            .chain(GITLAB_LITERALS.iter())
+            .any(|literal| text.contains(literal))
 }
 
 fn tracked_files(root: &Path) -> &'static [String] {
@@ -143,7 +213,7 @@ fn nothing_tracked_depends_on_a_github_feature() {
             continue; // binary
         };
         scanned += 1;
-        if !text.contains("gh ") && !LITERALS.iter().any(|lit| text.contains(lit)) {
+        if !may_hold_a_coupling(&text) {
             continue;
         }
         for (number, line) in text.lines().enumerate() {
@@ -162,7 +232,7 @@ fn nothing_tracked_depends_on_a_github_feature() {
     );
     assert!(
         hits.is_empty(),
-        "GitHub is storage only (AGENTS.md, CEO mandate 2026-11-09): use git push/fetch, tags and committed records instead of:\n{}",
+        "GitHub and GitLab are storage only (AGENTS.md; CEO mandate 2026-11-09, extended to GitLab on 2026-11-22): use git push/fetch, tags and committed records instead of:\n{}",
         hits.join("\n")
     );
 }
@@ -187,6 +257,51 @@ fn no_github_hook_files_are_tracked() {
         found.is_empty(),
         "GitHub-only integration files are not allowed (zero GitHub dependency): {found:?}"
     );
+}
+
+/// GitLab-only integration files: the pipeline definition GitLab runs and the
+/// `.gitlab/` directory (issue and merge-request templates, its own
+/// `CODEOWNERS`). The decision of 2026-11-22 gives GitLab the rule GitHub
+/// already had: zero dependency, no hosted pipeline, no hosted review.
+fn gitlab_only_path(path: &str) -> bool {
+    path.starts_with(".gitlab/") || path == ".gitlab-ci.yml"
+}
+
+#[test]
+fn no_gitlab_hook_files_are_tracked() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let found: Vec<String> = tracked_files(root)
+        .iter()
+        .map(|path| path.replace('\\', "/"))
+        .filter(|path| gitlab_only_path(path))
+        .collect();
+    assert!(
+        found.is_empty(),
+        "GitLab-only integration files are not allowed (zero GitLab dependency): {found:?}"
+    );
+}
+
+#[test]
+fn gitlab_only_path_matches_hook_files_and_nothing_else() {
+    for hook in [
+        ".gitlab-ci.yml",
+        ".gitlab/merge_request_templates/default.md",
+        ".gitlab/issue_templates/bug.md",
+        ".gitlab/CODEOWNERS",
+    ] {
+        assert!(gitlab_only_path(hook), "{hook} must be refused");
+    }
+    for ordinary in [
+        ".githooks/pre-push",
+        "docs/gitlab.md",
+        "docs/.gitlab-ci.yml",
+        "vendor/x/.gitlab-like",
+    ] {
+        assert!(
+            !gitlab_only_path(ordinary),
+            "{ordinary} is not a GitLab hook"
+        );
+    }
 }
 
 #[test]
@@ -252,4 +367,57 @@ fn the_matcher_finds_couplings_and_ignores_prose() {
     ] {
         assert!(couplings(line).is_empty(), "false positive: {line}");
     }
+}
+
+#[test]
+fn the_matcher_finds_gitlab_couplings_and_ignores_prose() {
+    for line in [
+        "glab api projects/1/pipelines",
+        "    if ! glab release download \"$tag\"; then",
+        "state=$(glab ci status --branch main)",
+        "echo x | glab mr create --fill",
+        "glab ssh-key list",
+        "let mut command = Command::new(\"glab\");",
+        "curl -H \"PRIVATE-TOKEN: $TOKEN\" https://git.example.invalid/projects",
+        "curl https://git.example.invalid/api/v4/projects/1/releases",
+        "https://gitlab.com/api/graphql",
+        "    image: registry.gitlab.com/intellibitz/susi:latest",
+    ] {
+        assert!(!couplings(line).is_empty(), "missed: {line}");
+        assert!(
+            may_hold_a_coupling(line),
+            "the scan would skip a file holding: {line}"
+        );
+    }
+    for line in [
+        "the storage sync pushes main to the gitlab copy",
+        "a glab-like tool is not used here",
+        "\"glab\",",
+        "glab version",
+        "git push gitlab-storage main",
+        "git clone https://gitlab.com/group/project.git",
+        "a private token is never printed",
+        "package: \"registry.gitlab.com/other/project\"",
+    ] {
+        assert!(couplings(line).is_empty(), "false positive: {line}");
+    }
+}
+
+/// The scan's cheap skip must never hide what the matcher would refuse: every
+/// GitHub sample the matcher finds is also admitted by the pre-filter.
+#[test]
+fn the_scan_never_skips_a_file_the_matcher_would_refuse() {
+    for line in [
+        "gh api repos/o/r/statuses/abc",
+        "let mut command = Command::new(\"gh\");",
+        "https://api.github.com/repos/o/r",
+        "    image: ghcr.io/intellibitz/susi:latest",
+    ] {
+        assert!(!couplings(line).is_empty(), "missed: {line}");
+        assert!(
+            may_hold_a_coupling(line),
+            "the scan would skip a file holding: {line}"
+        );
+    }
+    assert!(!may_hold_a_coupling("git push origin main\n"));
 }
