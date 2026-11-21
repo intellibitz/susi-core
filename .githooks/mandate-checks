@@ -73,7 +73,7 @@ check_message() {
             return 0
         fi
         if ! printf '%s\n' "$msg" | grep -Eq '^Task: (T-[A-Z0-9]+-[0-9]+|LOCAL-[A-Za-z0-9._-]+)[[:space:]]*$'; then
-            refuse "Mandate 50: this commit names no task. Add one (susi-commercial tasks add '<title>' --accept '<cmd>') and end the message with: Task: T-<AGENT>-<n>"
+            refuse "Mandate 50: this commit names no task. Add one (susi-tools tasks add '<title>' --accept '<cmd>') and end the message with: Task: T-<AGENT>-<n>"
         fi
     fi
 }
@@ -192,7 +192,7 @@ advise_finished_worktrees() {
     printf '%s\n' "⚠ Mandate 98: remove finished worktrees before starting a fresh one." \
         "  These are clean and fully on origin/main (check they are yours first):" >&2
     printf '%s' "$list" >&2
-    printf '%s\n' "  Remove yours with: susi-commercial workflow prune --apply" \
+    printf '%s\n' "  Remove yours with: susi-tools workflow prune --apply" \
         "  (or: git worktree remove <path> && git branch -d <branch>)" >&2
 }
 

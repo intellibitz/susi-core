@@ -3,7 +3,10 @@
 # and pre-merge-commit (pre-push runs push-policy instead):
 #   workflow-guard <commit|merge|push>
 #
-# The rules are susi's: `susi-commercial workflow guard` (Susi Commercial Apps' susi-dev-workflow).
+# The rules are the Susi development tool's: `susi-tools workflow guard`, or
+# `susi-commercial workflow guard` only where `susi-tools` is not installed or
+# does not answer (run-susi picks the program and says in one line when nothing
+# answers).
 #   commit  — refuse in the primary checkout, and refuse plain commits on main
 #   merge   — refuse in the primary checkout (merging into main is allowed)
 #   push    — refuse deleting, force-pushing or non-fast-forwarding main, and a
