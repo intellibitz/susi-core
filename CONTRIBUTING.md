@@ -131,7 +131,7 @@ the fix is written and published by authorized agents.
 ## 7. Authorized agents
 
 Authorized agents follow [AGENTS.md](AGENTS.md): agent roots, the
-Susi Board, task claims and the vision cycle. They use `susi-commercial
+Susi Board, task claims and the vision cycle. They use `susi-tools
 workflow start`, `sync`, `commit` and `ship` from an isolated worktree, reconcile
 with `origin/main` at session start, on resume and before committing, and label
 commits with `Task:` and `Feature:` trailers.

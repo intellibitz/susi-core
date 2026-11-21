@@ -1,17 +1,42 @@
-# susi
+# Susi Core
 
 ![SUSI Version](https://img.shields.io/badge/version-v0.21.72-blue.svg) ![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
 
+**This repository is Susi Core, the public Apache-2.0 derivative of Susi.** It
+is a local-first AI OS socket: one Rust daemon exposes models, agents and tools
+through stable protocols on ports `9090-9094`.
+
+Susi Core is one of three repositories that move together:
+
+| Name | What it is | Public? |
+|------|------------|---------|
+| **Susi** | The product: commercial applications that run on this socket, sold under licence. It is the primary, and the other two derive from it. Its repository is `susi-commercial-apps`, and older text here calls it Susi Commercial Apps. | No. Private and licensed. |
+| **Susi Core** (this repository) | The socket itself and its three core pillars: **GAWD** (agent coordination, A2A, ACP and parallel harness), **GEMI** (inference routing) and **GMCP** (MCP and governed tools). | Yes. Apache-2.0, all of it. |
+| **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Yes. Apache-2.0. |
+
+Nothing in this repository is secret, and it builds and runs without the
+private product. A capability that lives in the product is not here: the core
+says so and names what serves it. Dependencies flow one way, from Susi to Susi
+Core and Susi Tools, never the reverse.
+
+The software is built by AI agents. The repository is published one way: no
+outside pull request, patch or commit is merged. Anyone is free to fork it
+under Apache-2.0; the licence grants rights to the code, not to the Susi name
+or marks.
+
+Not finished yet, said plainly: this repository and its program are still
+named `susi` and will become `susi-core`; development-only code (`scripts/`,
+`toolchain/`, `fuzz/`) is still in this tree and will move to Susi Tools, which
+holds no tooling yet; and two test files still need a checkout of the private
+repository.
+
 **[Two-minute start](#two-minute-start)** · **[Host contract](#host-contract)** · **[Where it stands](#where-it-stands)** · **[Architecture](docs/architecture.md)** · **[Evidence](docs/evidence.md)** · **[Integrate your app](docs/integrating-with-susi.md)** · **[Forking and contributing](CONTRIBUTING.md)**
 
-Susi is a local-first AI OS socket: one Rust daemon exposes models, agents and
-tools through stable protocols on ports `9090-9094`. Its three core pillars,
-all Apache-2.0, are **GAWD** (agent coordination, A2A, ACP and parallel harness), **GEMI**
-(inference routing), and **GMCP** (MCP and governed tools).
+## What the socket is
 
 The core is a generic protocol boundary. Concrete model engines, providers,
 workflow policies and product integrations belong in separately hosted packages,
-including Susi Commercial Apps, connected through the same standard sockets.
+including Susi, connected through the same standard sockets.
 Core ships no UI and bundles no plugin content. Existing implementations in core
 are migration debt: each must have a working, compatible destination before
 removal. Core has no line limit; `cargo core-size` measures the complete socket
@@ -20,8 +45,7 @@ certifies complete protocol conformance.
 
 Use the socket to connect protocol clients, inspect routing decisions and run
 authorized agents on the host. It is a substrate on the host, not a replacement
-operating system. The core is Apache-2.0 and free forever, published one way,
-and everyone is free to fork under the license.
+operating system. Susi Core is Apache-2.0 and free forever.
 
 ## Two-minute start
 
@@ -150,11 +174,15 @@ Agents own authorized development, verification, integration and production
 qualification under the [active engineering contract](AGENTS.md). Work in an
 isolated worktree with disjoint scopes (`local-workflow start <agent>
 --scope <path>`, `xtask local-build debug`; core's development and release tools
-are built from Susi Commercial Apps' `tools/core-xtask`) and private
-build/runtime state.
+are still built from Susi Commercial Apps' `tools/core-xtask`, and move to Susi
+Tools later) and private build/runtime state. One page says where a feature
+belongs and how an agent lands one here without being asked:
+[docs/landing-features.md](docs/landing-features.md).
 
-Use portable, zero-GitHub Git transport (canonical local or self-hosted Git
-remote) and reconcile the current remote before work and commits. Commit, push,
+Use portable Git transport with zero dependency on GitHub or GitLab (canonical
+local or self-hosted Git remote; the copies on GitHub and GitLab are backups
+the project pushes to and never fetches from) and reconcile the current remote
+before work and commits. Commit, push,
 merge and pull meaningful work about every ten minutes.
 Each commit carries `Task: T-<AGENT>-<n>`. Main is unqualified development;
 release integration verifies the actual combined tree before a release ref
@@ -172,6 +200,7 @@ describes available commands and migration limits.
 ## Read next
 
 - [docs/README.md](docs/README.md): every document, indexed.
+- [docs/landing-features.md](docs/landing-features.md): why agents land features unprompted, where a feature belongs (Susi, Susi Core or Susi Tools) and the loop that lands one here.
 - [docs/architecture.md](docs/architecture.md): pillars, Tier S invariants, plane bus and its loopback rendezvous, implementation services and protocol adapters, the lean-core direction, the command reference.
 - [docs/evidence.md](docs/evidence.md): verified claims, platforms, the delivery workflow and every admitted gap.
 - [ARCHITECTURE.md](ARCHITECTURE.md): the enforceable crate-boundary contract (`tests/architecture_tests.rs`).

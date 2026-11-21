@@ -5,6 +5,10 @@ in the repository. Look here before you add one: extend the document that alread
 for a new one in the same change. The rules agents work by are in
 [`AGENTS.md`](../AGENTS.md); they are not repeated here.
 
+## Start here
+
+- [Landing a feature in Susi Core](landing-features.md)
+
 ## Architecture and contracts
 
 - [Susi architecture: the socket, its pillars and what sits on it](architecture.md)
@@ -39,7 +43,9 @@ Core's development and release tools (`local-workflow`, `local-release`,
 `push-policy`, `susi-dev` and `xtask` itself) live in Susi Commercial Apps since
 2026-11-19: build them there from `tools/core-xtask` and run them from a core
 checkout. Paths under `tools/core-xtask/` in these documents are in that
-repository.
+repository. Development-only code is to move to the public Susi Tools
+repository (decision of 2026-11-22); that move has not started, and Susi Tools
+holds no tooling yet.
 
 - [Native development bootstrap](native-bootstrap.md)
 - [Evidence: verification and qualification](evidence.md)

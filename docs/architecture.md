@@ -285,7 +285,7 @@ protocol library without placing its implementation in core.
 
 | MCP contract | Core caller | Implementation responsibility |
 |---|---|---|
-| `workflow_harness_v1` | `susi-harness` workflow and scorecard adapters; the storage guard is `susi-commercial workflow storage-guard` | Git reconciliation, storage audit and lifecycle reporting |
+| `workflow_harness_v1` | `susi-harness` workflow and scorecard adapters; the storage guard is `susi-tools workflow storage-guard` | Git reconciliation, storage audit and lifecycle reporting |
 | `worker_view_file`, `worker_list_dir`, `worker_write_to_file`, `worker_append_to_file`, `worker_replace_file_content` | Harness file-tool contracts after existing authorization and argument checks | Workspace-confined filesystem operations |
 | `swarm_storage_v1` | `susi-gawd-swarm::writer_isolation` | Workspace revision, private scope creation and retirement, conflict-aware folding |
 

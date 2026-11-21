@@ -1467,6 +1467,80 @@ fn agents_md_opens_with_start_here_and_the_workflow_check() {
     }
 }
 
+/// An agent lands a feature here without being asked, from one page. The
+/// contract's first line and the documentation index link it, and it keeps the
+/// parts an agent acts from: why, what to pick up, where a feature belongs, the
+/// loop, what not to do and what is not finished. No size condition appears.
+#[test]
+fn the_landing_page_is_linked_and_complete() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let read = |rel: &str| std::fs::read_to_string(root.join(rel)).unwrap();
+    let contract = read("AGENTS.md");
+    assert!(
+        contract
+            .lines()
+            .next()
+            .unwrap()
+            .contains("](docs/landing-features.md)"),
+        "AGENTS.md line 1 must link the landing page"
+    );
+    assert!(
+        read("docs/README.md").contains("](landing-features.md)"),
+        "the documentation index must list the landing page"
+    );
+    let page = read("docs/landing-features.md");
+    for part in [
+        "## Why",
+        "## What to work on, unprompted",
+        "## Where it goes",
+        "## How to land it here",
+        "## What not to do",
+        "## Not finished",
+        "| paid for, or secret in any part | Susi (private) |",
+        "| used only while developing, testing or releasing | Susi Tools |",
+        "| anything else | Susi |",
+        "cargo test --workspace --offline --locked",
+        "Size is never a condition",
+    ] {
+        assert!(page.contains(part), "the landing page lost `{part}`");
+    }
+}
+
+/// A stranger reads the README's first screen: before its first section it
+/// says which repository this is, what Susi and Susi Tools are, what is public
+/// and what is not, who builds the software and what the licence does not grant.
+#[test]
+fn readme_first_screen_says_what_this_repository_is() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let readme = std::fs::read_to_string(root.join("README.md")).unwrap();
+    let first_screen: String = readme
+        .split("\n## ")
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    for needle in [
+        "This repository is Susi Core, the public Apache-2.0 derivative of Susi.",
+        "| **Susi** | The product:",
+        "No. Private and licensed.",
+        "| **Susi Tools** | The development tooling:",
+        "Yes. Apache-2.0",
+        "Nothing in this repository is secret",
+        "from Susi to Susi Core and Susi Tools, never the reverse",
+        "The software is built by AI agents.",
+        "no outside pull request, patch or commit is merged",
+        "free to fork",
+        "not to the Susi name or marks",
+        "Not finished yet",
+    ] {
+        assert!(
+            first_screen.contains(needle),
+            "the README's first screen lost `{needle}`"
+        );
+    }
+}
+
 /// The README is the front door: it must cover the workflow, the task queue,
 /// the ecosystem and brain commands, and point to the active contract without
 /// growing a second history of policy changes.
@@ -2006,6 +2080,15 @@ fn active_contract_preserves_delivery_authority_and_capability_boundaries() {
         "exactly three core pillars",
         "No functionality is dropped",
         "Prove the destination works through the standard socket before removing",
+        "Dependencies flow one way",
+        "Nothing secret and nothing of the private product enters this repository",
+        "Development-only code never ships with production code",
+        "Tests stay beside the code they test",
+        "Agents land features without being asked",
+        "Nothing is a permanent ceiling, and nothing has a line limit",
+        "Nothing is ever fetched from a hosted copy",
+        "a cloud agent has no delivery path until it can reach the canonical server directly",
+        "Documentation reflects reality at all times",
         "Core has no line limit",
         "Size is measured and reported, never refused",
         "blanks, comments, inline tests, every feature/platform",

@@ -1,12 +1,59 @@
-**START HERE: read this active contract, inspect local state, and reserve an isolated worktree before editing.**
+**START HERE: read this active contract, inspect local state, and reserve an isolated worktree before editing. To land a feature here without being asked, follow [docs/landing-features.md](docs/landing-features.md).**
 
 # Active engineering contract
 
-Susi core is a generic standards-protocol AI OS socket. The requirements below
-are not claims of completed implementation. Follow the current user instruction
-where it supersedes older repository text. Agents own authorized development,
+This repository is Susi Core. Susi Core is a generic standards-protocol AI OS
+socket. The requirements below are not claims of completed implementation.
+Follow the current user instruction where it supersedes older repository text. Agents own authorized development,
 verification, integration and production qualification end-to-end; do not ask
 the requester to inspect code or perform routine engineering steps.
+
+## Susi, Susi Core and Susi Tools
+
+These rules record the decisions of 2026-11-22. Where a later section names
+something that is not finished, it says so.
+
+- **Three repositories, one ecosystem.** **Susi**, unqualified, is the product:
+  a private, licensed set of commercial applications, and the primary. **Susi
+  Core** (this repository) and **Susi Tools** are its public Apache-2.0
+  derivatives. The product is what is sold and is built by agents only; the
+  two public repositories carry no secrets and are how the work earns its name
+  in the open. The three move together.
+- **Names are written as they are today, and they are changing.** This
+  repository and its program are still literally named `susi`; they become
+  `susi-core` in a later guarded step. The private repository is still
+  `susi-commercial-apps`, and text written before the decision calls the
+  product "Susi Commercial Apps". Susi Tools is the repository `susi-tools`; it
+  is not the `crates/susi-tools` crate in this workspace, which is the
+  tool-socket binding.
+- **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never
+  the reverse. Susi Core never needs the private product to build or run, and
+  Susi Tools stands on Susi Core alone. Not done yet: two of this repository's
+  test files (`tests/functional_distillation.rs` and
+  `tests/pure_apache2_cloud_harvest.rs`) still build core's release tools from
+  a checkout of the private repository and fail without one.
+- **Nothing secret and nothing of the private product enters this
+  repository**: no credential, key, licence material, private record or
+  proprietary source, in any file or in the history.
+- **Development-only code never ships with production code.** Whatever is used
+  only while developing, testing or releasing gets its home in Susi Tools. Not
+  done yet: Susi Tools holds no tooling; `scripts/`, `toolchain/` and `fuzz/`
+  are still in this repository; core's release tools are still built from the
+  private repository; and the development program `susi-tools` does not yet
+  come from the Susi Tools repository. Tests stay beside the code they test
+  (they are never part of a production program); only test machinery and
+  proofs that span repositories belong in Susi Tools.
+- **Agents land features without being asked**, in Susi, Susi Core and Susi
+  Tools. Why, what to pick up, where a feature belongs and the loop that lands
+  it here are on one page:
+  [docs/landing-features.md](docs/landing-features.md).
+- **Nothing is a permanent ceiling, and nothing has a line limit.** The aim is
+  to make everything better, more flexible and more dynamic; a rule that stops
+  serving that is corrected in place. Measurements are reported, and a pinned
+  count is a recorded baseline (see the next section). Not done yet: older
+  tests outside `tests/lean_core_ceilings.rs` (in `tests/architecture_tests.rs`
+  and `tests/socket_boundary.rs`) still word their pinned counts as ceilings
+  that only go down.
 
 ## Core boundary and size
 
@@ -57,7 +104,7 @@ the requester to inspect code or perform routine engineering steps.
    working directory. Roots never nest or overlap; register an existing root in
    place. Reuse your own idle worktrees where appropriate. Before creating a
    fresh worktree, first remove your own old finished worktrees (rule 10;
-   `susi-commercial workflow prune --apply`); decision of 2026-11-20.
+   `susi-tools workflow prune --apply`); decision of 2026-11-20.
    `git worktree add` runs the post-checkout hook, which lists the finished
    worktrees (advice; git cannot refuse a checkout). The pre-commit and
    commit-msg hooks run `.githooks/mandate-checks`, shared byte-for-byte with
@@ -66,10 +113,12 @@ the requester to inspect code or perform routine engineering steps.
    subject of only `wip` or `update`, and advise on a long subject.
 2. Inspect current changes and active claims before editing. Reserve disjoint
    scopes using available native `local-workflow` tooling (core's development
-   and release tools are built from Susi Commercial Apps' `tools/core-xtask`
-   and run from a core checkout). Keep one live
+   and release tools are still built from Susi Commercial Apps' `tools/core-xtask`
+   and run from a core checkout; they move to Susi Tools, which is not done
+   yet). Development commands are run as `susi-tools workflow`, `susi-tools
+   tasks` and `susi-tools admin`. Keep one live
    claim per worker and renew active progress; a claim's lease is one hour,
-   renewed by publishing work on the task or `susi-commercial tasks renew <id>`.
+   renewed by publishing work on the task or `susi-tools tasks renew <id>`.
    Do not hold a claim for work you
    have stopped, handed off or completed; release it in the same step. The lease
    is a last resort, not the release. Preserve unpublished work or deliberately
@@ -105,20 +154,24 @@ the requester to inspect code or perform routine engineering steps.
    only when it helps a single developer on its own, is not paid-only value,
    is fresh code written here under this license and passes the Linux gates
    and the offline test with every mirror cut off (no size condition applies);
-   from a Windows host the Linux gates run in WSL2 under the same blackout. A cycle that lands anything ships a
-   signed release with plain notes; public mirrors receive only signed release
-   tags.
+   from a Windows host the Linux gates run in WSL2 under the same blackout.
+   Anything else goes to Susi or to Susi Tools, as
+   [docs/landing-features.md](docs/landing-features.md) sets out. A cycle that
+   lands anything ships a signed release with plain notes; an unsigned tag is
+   never published (rule 8 says what the public copies receive).
 8. Use portable Git storage, without hosting-service APIs, hosted CI, hosted
    pull requests or required remote review. The local canonical Git server is
    the source of truth and the `origin` of every clone and worktree (reached via
-   the configured `https://git.susi.local/<org>/susi.git` canonical URL); GitHub and GitLab are
-   one-way storage mirrors that only receive `main` and signed release tags from the
-   canonical server's storage sync. Never fetch from, push to or depend on a
-   mirror: clone, build, test and release must succeed with every mirror and
-   the internet unreachable. A cloud agent, which cannot reach the canonical
-   server, pushes only to `refs/inbox/<agent>/<topic>` on a private mirror;
-   the storage sync brings that lane in without forcing, and local agents
-   review and merge it. Only `refs/heads/main` is published
+   the configured `https://git.susi.local/<org>/susi.git` canonical URL). It
+   holds the three repositories (`susi.git`, `susi-commercial-apps.git` and
+   `susi-tools.git`). GitHub and GitLab hold write-only backup copies, which
+   the canonical server's storage sync refreshes every ten minutes; the public
+   copies of this repository receive only `main` and signed release tags.
+   Nothing is ever fetched from a hosted copy. Never fetch from, push to or
+   depend on a mirror: clone, build, test and release must succeed with every
+   mirror and the internet unreachable. The earlier inbound lane for cloud
+   agents is closed: a cloud agent has no delivery path until it can reach the
+   canonical server directly. Only `refs/heads/main` is published
    as a branch. Agent handoffs use `refs/agents/<agent>`; qualified release lines
    use fast-forward-only `refs/candidates/release/<name>`. Release tags are
    immutable. Preserve the source, artifact and license binding of each release.
@@ -179,7 +232,8 @@ holds its rule. Agent rule files stay identical pointers that restate nothing.
 
 Keep documentation tidy. A document says what is true now and changes in the
 change that alters what it describes; correct or remove it when its subject
-goes. Keep one topic in one document, found through the documentation index
+goes. Documentation reflects reality at all times: a stranger must be able to
+tell what each repository is, what is public and what is not finished. Keep one topic in one document, found through the documentation index
 (`docs/README.md`) and extended rather than copied, and list every new document
 there. Keep every relative link and named command resolving. Dated records say
 their date and are listed as records; quoted upstream text keeps its words and
@@ -215,7 +269,7 @@ publication; retry a lost integration race against the new head.
   Node or container prerequisite. Keep portable source for other targets
   without adding their builds, tests or release legs. Optional legacy scripts remain migration
   debt, never prerequisites for native users.
-- Before building, inspect both repositories, suitable Apache-2.0 work, and the
+- Before building, inspect the three repositories, suitable Apache-2.0 work, and the
   locked dependency graph. Prefer reuse of the needed part; delete what it
   replaces. Keep the decision in active/local task state. A new dependency needs
   necessity and qualification, and the change that adds it raises its recorded

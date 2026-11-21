@@ -60,7 +60,7 @@ build + test + release budget is <10s, the cold compile target <60s. The deliver
 verified live executable in under 60 seconds with declared millisecond response budgets. \
 Measure cold/warm build, test, startup, acknowledgment, first output and completion separately, \
 including failures and rollback. Show plugin updates over the socket without rebuilding core.
-8. Look for reuse inside both repositories, suitable Apache-2.0 work and the locked graph \
+8. Look for reuse inside the three repositories, suitable Apache-2.0 work and the locked graph \
 before building; delete what reuse replaces. Copied source must offer pure Apache-2.0, \
 explicitly elected with pinned provenance and all license/modification notices. Distributed \
 components allow Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause under the existing policy. \

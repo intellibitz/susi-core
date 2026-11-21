@@ -61,7 +61,7 @@ The storage remote is a bucket. Susi does not depend on a hosting provider's
 branch or tag protection, and `push-policy` is a
 client hook: a push with `--no-verify`, or from a clone whose hooks are off, is
 not checked. The guard closes that gap with Git alone. Susi Commercial Apps
-serves it (`susi-commercial workflow storage-guard [--witness] [<remote>]`,
+serves it (`susi-tools workflow storage-guard [--witness] [<remote>]`,
 since 2026-11-18); core's command hands the check there, and without Susi
 Commercial Apps installed it refuses and says so:
 
@@ -170,7 +170,7 @@ contains the dropped commits republishes them with its normal fast-forward. A
 finding remains only when the lost commits are in no later submission, which
 is exactly when someone has to act.
 
-The witness is `susi-commercial workflow storage-guard --witness origin`, run
+The witness is `susi-tools workflow storage-guard --witness origin`, run
 in the publishing clone; `local-snapshot` and `local-workflow ship` call it
 through `tools/core-xtask/src/storage_guard.rs`. Without
 Susi Commercial Apps the publish still succeeds and prints that the guard did

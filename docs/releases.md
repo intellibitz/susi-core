@@ -61,7 +61,7 @@ that release is qualified here, the remote answers and no susi client is
 mid-mission (the updater waits for an idle susi). The hourly timer
 (`susi-release-sync.sh --install-timer`, registering `systemd --user`
 `susi-release-sync.timer` on Linux or `RunLevel=Limited` Task Scheduler task
-`susi-release-sync` on Windows) does it unattended; `susi-commercial workflow
+`susi-release-sync` on Windows) does it unattended; `susi-tools workflow
 check` shows where the installed copy stands and starts the updater on both
 Windows and Linux when it is behind. `--check` reports `installed:`,
 `qualified:`, and `latest:`. "Remote binary" means the remote release: no

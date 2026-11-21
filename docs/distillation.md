@@ -114,7 +114,7 @@ rules make development main distillable:
 2. **Every task declares `scopes`** (repo-relative files or directories, the
    same scopes it claims) and its commits stay inside them. The task's own
    record and the evidence files it lists are always in scope.
-3. **Close the record when its work lands** (`susi-commercial tasks close`),
+3. **Close the record when its work lands** (`susi-tools tasks close`),
    so a landed task is not left `in_progress`.
 
 `distill lint` checks these over a commit range, deterministically and without

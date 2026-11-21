@@ -87,6 +87,6 @@ silently delete targets, change features, or rebuild every test binary.
 
 Automatic background snapshot compilation is off by default. Existing snapshots
 still seed new worktrees. Agents can refresh during an idle maintenance window
-with `susi-commercial workflow seed-target --refresh --force`; setting
+with `susi-tools workflow seed-target --refresh --force`; setting
 `SUSI_SEED_AUTO_REFRESH=1` before starting the primary watcher explicitly restores
 automatic refresh. Restart an already-running watcher to load that policy.

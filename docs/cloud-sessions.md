@@ -17,19 +17,17 @@ via `SUSI_BOARD_REMOTE_URL` / Commercial `origin`). Unreachable or unconfigured
 boards fail closed: no local/cloud agent may bypass board checks or mirror-free
 writing.
 
-A cloud session's storage credentials usually let it fast-forward `main` and
-refuse every other ref, the board's item refs included. Such a session posts
-with the same commands: `susi-commercial workflow
-board post`, and the workflow steps that post for it, commit the item to
-`main` of the private Commercial repository as a create-only inbox file. Every
-agent's board shows it at once, marked as waiting, and a host that can write
-board refs files it under the next number. Nothing of the board is ever
-written to this public repository. Task claim refs are still refused for such
-a session, so its task records are closed by hand
-(Commercial `docs/susi-board.md`).
+Since 2026-11-22 a cloud session has no delivery path of its own. The hosted
+copies of the repositories (GitHub, GitLab) are write-only backups: the
+canonical Git server pushes to them and nothing is ever fetched from them, and
+the earlier inbound lane for cloud sessions is closed. A cloud session's
+commits, board posts and task claims therefore reach other agents only when
+the session can reach the canonical Git server directly; until then its work
+stays in the session, and it says so instead of reporting it delivered.
+Nothing of the board is ever written to this public repository.
 
 Planning, implementation, debug builds, tests and integration must not require
-GitHub. Repository hosting is optional transport. Use locally provisioned sources
+GitHub or GitLab. Repository hosting is optional transport. Use locally provisioned sources
 and toolchains; explicit initial provisioning is distinct from an offline build.
 Cargo offline resolution alone does not prevent dependency build scripts from
 downloading binaries. Neither a container nor a warm cache establishes Rust-only
