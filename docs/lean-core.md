@@ -1,9 +1,9 @@
 # Lean core: a generic standards socket, measured and reported
 
 Susi core is a generic, standards-protocol AI OS socket. Its three pillars are
-GAWD (A2A, ACP and the parallel harness), GEMI, and GMCP. The socket host and
-foundation are part of core. Concrete implementations belong in separately
-hosted packages, including Susi Commercial Apps, reached through standard
+GAWD (A2A and ACP), GEMI and GMCP. The socket host and foundation are part of
+core. Concrete implementations belong in separately hosted packages, including
+Susi, reached through standard
 protocols. Preserve capabilities while moving their implementations.
 
 The [active engineering contract](../AGENTS.md) governs current work. This
@@ -36,7 +36,7 @@ tests, every platform and every feature in first-party runtime files, plus
 the `susi-vendor-*` facades. Count all pillar, foundation, host, client and
 compatibility code, rather than only the crate named `susi-core`. Reuse the
 existing path-based category rules. The unconditionally public
-`susi-paths/src/test_env.rs` is runtime and must remain counted. Separately
+`crates/susi-paths/src/test_env.rs` is runtime and must remain counted. Separately
 report test/bench/fuzz files, development tooling, third-party `vendor/`
 source and `.agents/` records. Count tracked and non-ignored untracked files;
 deduplicate Git's file list. The source report is not the size of linked
@@ -47,8 +47,8 @@ tests, minify, or exclude compiled code to change the number it prints.
 
 The same test file records six counts that are not line counts:
 
-- third-party crates the four measurement roots compile;
-- workspace crates the four measurement roots compile;
+- third-party crates the three measurement roots compile;
+- workspace crates the three measurement roots compile;
 - workspace members declared in `Cargo.toml`;
 - packages resolved in `Cargo.lock`;
 - vendor facades the pillar crates name directly;
@@ -66,10 +66,9 @@ cargo test --locked --test lean_core_ceilings -- --nocapture
 ```
 
 Earlier separate per-pillar, category and per-file line ceilings remain
-removed. Dependency reach uses normal and build edges from the four
-measurement roots `susi-gawd`, `susi-gemi`, `susi-gmcp` and `susi-harness`;
-development edges are excluded. The harness remains a GAWD capability, not a
-fourth architectural pillar.
+removed. Dependency reach uses normal and build edges from the three
+measurement roots `susi-gawd-a2a`, `susi-gawd-acp` and `susi-gmcp`, the GAWD and
+GMCP crates (GEMI has none yet); development edges are excluded.
 
 ## Preserve behavior through extraction
 
@@ -106,10 +105,9 @@ Measure wall time, total and workspace CPU-seconds, critical path, host load,
 toolchain, target, feature set and source revision. Report cold and warm runs
 separately; cache reuse does not establish a cold result.
 
-`xtask build-time` performs the cold build in a temporary target with
-`--timings`, reports wall time, CPU-seconds and the critical path, and retains
-measurements in ignored local state at `.susi/records/build-time.jsonl`.
-Historical measurements may be absent. Keep results and comparisons in local
+No tool measures it today: `xtask build-time`, which did, left with the private
+repository's `tools/core-xtask` on 2026-11-22. Historical measurements may be
+absent. Keep results and comparisons in local
 storage rather than extending this source document with successive runs.
 
 ## Warm build, test and release budget
@@ -148,4 +146,5 @@ authorized agents exercise it within scope without gaining new access. Outside
 pull requests, patches and commits are not accepted. Everyone is free to fork
 under Apache-2.0; code from a fork returns only through authorized source
 admission with its pinned provenance and required notices. See
-[CONTRIBUTING.md](../CONTRIBUTING.md) and [harvest.md](harvest.md).
+[CONTRIBUTING.md](../CONTRIBUTING.md) and the harvest rule in
+[AGENTS.md](../AGENTS.md).

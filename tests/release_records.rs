@@ -344,9 +344,10 @@ fn the_release_format_is_documented() {
         "missing_targets",
         "SUSI_SOURCE_REPO",
         "rust-toolchain.toml",
-        "## Promoting a distilled candidate",
-        "--from-distill",
-        "--verify-only",
+        // `## Promoting a distilled candidate`, `--from-distill` and `--verify-only` were
+        // pinned here until 2026-11-22, when the release tools that had them left with the
+        // private repository's tools/core-xtask; the page now says no tool cuts a release.
+        "## Distilled releases",
         "accept_verified_candidate",
         "adopted_host_commits",
         "`source: distill`",

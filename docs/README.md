@@ -1,99 +1,44 @@
 # Documentation index
 
 Every document under `docs/` is listed here, with the main documents elsewhere
-in the repository. Look here before you add one: extend the document that already covers your topic, and add a line here
-for a new one in the same change. The rules agents work by are in
-[`AGENTS.md`](../AGENTS.md); they are not repeated here.
+in the repository. Look here before you add one: extend the document that
+already covers your topic, and add a line here for a new one in the same change.
+The rules agents work by are in [`AGENTS.md`](../AGENTS.md); they are not
+repeated here.
 
 ## Start here
 
 - [The contract: how agents work here and where a feature goes](../AGENTS.md)
+- [The README: what Susi Core is and what runs today](../README.md)
 
-## Architecture and contracts
+## What the program is
 
-- [Susi architecture: the socket, its pillars and what sits on it](architecture.md)
-- [Threat model: the open core socket](threat-model.md)
-- [Host contract conformance](host-contract-conformance.md)
-- [Integrating with Susi](integrating-with-susi.md)
-- [Extension pack manifest schema & 5-minute starter guide](extension-pack.md)
-- [The sealed peer channel](peer-channel.md)
-- [Agent-operated local Windows channels](local-channels.md)
-- [Table-free Rust identifier classification](identifier-platform.md)
-- [Unicode platform boundary](unicode-platform.md)
-- [Lean core: a generic standards socket, measured and reported](lean-core.md)
-- [Native Rust Susi: delivery contract and evidence](native-rust-direction.md)
-- [Step 1: Susi builds, tests, improves and uses itself](step1-acceptance.md)
-- [Provider-neutral qualification inputs](provider-neutral-inputs.md)
+- [Architecture: what runs, the crates and how they may depend on each other](../ARCHITECTURE.md)
+- [Security: what the program exposes and how to report a vulnerability](../SECURITY.md)
+- [Integrating with Susi Core](integrating-with-susi.md)
+- [Lean core: how the socket's size is measured and reported](lean-core.md)
 
-## Harness and agents
+## Releases
 
-- [SUSI harness](harness.md)
-- [SUSI harness as an AI OS](harness-os.md)
-- [Harness coordination across hosts: the repository is the shared state](harness-coordination.md)
-- [Harness runbook](harness-runbook.md)
-- [Harness FAQ](harness-faq.md)
-- [Recursive driver/engine delegation: first slice](recursive-delegation.md)
-- [Isolated cloud agent sessions](cloud-sessions.md)
-- [Agent refs: `refs/agents/<agent>`](agent-refs.md)
+- [Releases: the record format, installing, and what is not available today](releases.md)
 
-## Building, evidence and releases
+## Direction and the project
 
-Core's development and release tools (`local-workflow`, `local-release`,
-`local-harvest`, `local-snapshot`, `release-lanes`, `release-qualify`,
-`push-policy`, `susi-dev` and `xtask` itself) live in Susi Commercial Apps since
-2026-11-19: build them there from `tools/core-xtask` and run them from a core
-checkout. Paths under `tools/core-xtask/` in these documents are in that
-repository. Development-only code is to move to the public Susi Tools
-repository (decision of 2026-11-22); that move has not started. Susi Tools'
-README lists what it holds.
+- [Vision](../VISION.md)
+- [Forking and contributing](../CONTRIBUTING.md)
+- [Contributors and credits](../CONTRIBUTORS.md)
 
-- [Native development bootstrap](native-bootstrap.md)
-- [Evidence: verification and qualification](evidence.md)
-- [Gate receipts](gate-receipts.md)
-- [Parallel development without weakening landing evidence](parallel-development.md)
-- [Parallel runbook](parallel-runbook.md)
-- [Parallel FAQ](parallel-faq.md)
-- [Harvest: `local-harvest`](harvest.md)
-- [Release distillation: plan-only planner (first slice)](distillation.md)
-- [Portable feature and release distillation](release-distillation.md)
-- [Release lanes: many agents, one release, no conflicts](release-lanes.md)
-- [Releases](releases.md)
-- [Git storage publisher: first portable slice](git-storage-publisher.md)
+## Records
 
-## GMCP
-
-GMCP certification (the requirements ledger, one contract per vector, the
-roadmap and the evidence) was kept in Susi until 2026-11-22, when it was
-removed with the GMCP product, and the pinned copy of the MCP specification core
-kept for it was removed the same day; history keeps both. Core keeps the MCP
-socket; the specification is upstream, in the
-`modelcontextprotocol/modelcontextprotocol` repository.
-
-## Elsewhere in the repository
-
-- The Susi AI OS ecosystem: the three repositories, how they relate and where
-  they stand. One page, `ECOSYSTEM.md`, kept in the Susi Tools repository since
-  2026-11-22 (it was a copy in each repository, held the same by a test).
-- [SUSI architecture](../ARCHITECTURE.md)
-- [SUSI vision](../VISION.md)
-- [Forking and contributing to Susi](../CONTRIBUTING.md)
-- [Security Policy](../SECURITY.md)
-- [Config layout](../config/README.md)
-- [susi-harness](../crates/susi-harness/README.md)
-- Windows PE process boundary: see Susi Commercial Apps `crates/susi-windows-runtime` (core is Linux-only)
-- [Product standard-library builder](../toolchain/stdlib/README.md)
-- [Native product standard library and release checks](../toolchain/stdlib/NATIVE-BUILDS.md)
-
-## Dated records
-
-Kept for reference. Each describes the state on its date, so check the
-current documents and code before relying on it.
-
-- [Historical workflow measurements](workflow-speed.md).
-- The numbered directive documents (`ceo-agent-mandate.md` and
-  `ceo-mandate-74.md` to `ceo-mandate-87.md`) and the landing page
-  (`landing-features.md`) left this directory on 2026-11-22. The rules of
-  theirs that still hold are in [`AGENTS.md`](../AGENTS.md); the documents
-  stay in the history, last in commit `027bab400`. The line limit one of them
-  recorded was withdrawn the same day: core has no line limit, and its size is
-  measured and reported ([Lean core](lean-core.md)).
+- On 2026-11-22 the pages about features that had left core were removed: the
+  harness and its runbooks, the peer channel, extension packs, local Windows
+  channels, release distillation and release lanes, gate receipts, the Git
+  storage publisher, cloud sessions, the host contract and its conformance
+  checker, the Unicode and identifier adapters, the earlier architecture and
+  threat model, the evidence page, the step-1 acceptance record and the
+  historical workflow measurements. The numbered directive documents
+  (`ceo-agent-mandate.md`, `ceo-mandate-74.md` to `ceo-mandate-87.md`) and the
+  landing page (`landing-features.md`) left the same day. Their rules that
+  still hold are in [`AGENTS.md`](../AGENTS.md); the pages stay in the history
+  (the directive documents last in commit `027bab400`, the others in
+  `7525cf55b`).

@@ -3,17 +3,16 @@
 A Susi core release is two things in git and nothing else: an annotated tag
 `vX.Y.Z`, and the committed release record `releases/<tag>.json` on the
 default branch. No hosting service's release page, asset list or API is part of
-a release (CEO mandate 2026-11-09, "GitHub is storage only"). Canonical
+a release (decision of 2026-11-09: hosted copies are storage only). Canonical
 development and release transport use zero-GitHub portable Git storage (a local
 or self-hosted bare Git remote, with an optional one-way public mirror of
 `refs/heads/main` and signed `refs/tags/v*` only), so the repositories never
 depend on GitHub.
 
-Core standalone releases target native `x86_64` Linux only (since 2026-11-18;
-Option 2A). Windows desktop apps, installers, and Windows runtime qualification
-live in Susi Commercial Apps. Binaries are not committed and are not downloaded
+Core standalone releases target native `x86_64` Linux only (since 2026-11-18);
+Windows is not a Core target. Binaries are not committed and are not downloaded
 from GitHub. Every core install and upgrade builds the tag from source on the
-host that will run it (CEO decision 2026-11-09 00:22).
+host that will run it (decision of 2026-11-09).
 
 ## The record: `releases/<tag>.json`
 
@@ -44,7 +43,7 @@ passed to cargo is a plain word.
 ### Which release a host installs
 
 The installed Susi is the stable copy and tracks the latest release qualified
-for the host it runs on (CEO Mandate 48). A record lists every released target
+for the host it runs on. A record lists every released target
 either with a reference build under `assets` or under `missing_targets`, so a
 release whose record has no reference build for a host was not qualified there.
 `scripts/susi-release-sync.sh` therefore installs the newest tag whose record
@@ -52,8 +51,7 @@ has a reference build for this host and skips newer ones that do not; `--check`
 prints both. An explicit `--tag` of a release not qualified for the host is
 refused unless `SUSI_RELEASE_ALLOW_UNQUALIFIED_HOST=1` is set knowingly.
 
-**Keeping it updated is a duty, not only a report** (CEO Mandate 48 & CEO Mandate
-81: cutting or publishing a
+**Keeping it updated is a duty, not only a report** (cutting or publishing a
 release qualified for the current host must sync `~/.susi/bin/susi` (`susi.exe`)
 and the live daemon before the release is considered complete). Required: the
 installed copy is behind the latest release qualified for the host. Feasible:
@@ -83,157 +81,42 @@ matches the reference digest, and they never refuse a build for differing.
 **The gate is the version check**: the built binary must report the tag's
 version, and the tag must point at the record's commit.
 
-## Cutting a release
+## Cutting a release: not available today
 
-Main is unqualified development. A release is cut from a snapshot of it and
-qualified on the exact tree it ships (CEO mandate 73):
+Until 2026-11-22 a release was cut with the release tools in the private
+repository's `tools/core-xtask`: `release-qualify vX.Y.Z` ran every gate on the
+exact tree from a snapshot of main (format, check, Clippy, licences, the whole
+test suite, the reference build, smoke, startup and conformance), wrote
+`releases/qualification/<tag>.json` only when all passed, and created the
+annotated tag; its `--verify-only` ran the checks before the gates and wrote
+nothing; and the pre-push `push-policy` admitted a `vX.Y.Z` tag only on a tree
+whose record showed every gate at exit 0. Those tools left with
+`tools/core-xtask` when the private repository was cut to its licence and vault
+core on 2026-11-22. They are to be rebuilt in Susi Tools. Until then no tool cuts
+or qualifies a Core release, and no new `vX.Y.Z` tag is published; the tags and
+records already published stay valid.
 
-1. Snapshot main and take the release branch locally:
-   `local-snapshot cut vX-Y-Z-rcN` (publishes the
-   immutable `refs/tags/susi-snapshot/vX-Y-Z-rcN` and creates the local branch
-   `release/vX-Y-Z-rcN`).
-2. On that branch, commit only the version bump (the engine manifests,
-   `Cargo.lock`, the README badge and the governance ledgers) with its task
-   record. A defect found from here on is fixed on main and the snapshot is cut
-   again (`rcN+1`); the release branch takes nothing else.
-3. Qualify: `release-qualify vX.Y.Z [--jobs N]` from
-   the clean release checkout. This profile keeps the running Windows qualification
-   executable outside the debug directory rebuilt by workspace tests. It runs `format`, `check`, `clippy`, `licenses`,
-   `tests` (the whole workspace), `build` (the reference binaries, profile
-   `dist` with `CARGO_PROFILE_DIST_LTO=false` and
-   `CARGO_PROFILE_DIST_CODEGEN_UNITS=16`), `smoke` (each binary answers
-   `--version` with the release version from a private home), `startup`
-   (`startup-gate --runs 5` against `dist/susi` in an isolated private home with
-   `SUSI_NO_REGISTRY_ENV=1`) and `conformance` (isolated `dist/susi daemon-start`
-   on an ephemeral high `SUSI_PORT_OFFSET` checked by
-   `susi-conformance --max-ms 2000 --susi-bin target/dist/susi --json`). Only when every
-   gate passes does it write `releases/qualification/<tag>.json` (schema
-   `susi-release-qualification/v1`: the qualified commit and tree, the
-   `Cargo.lock` digest, the toolchain, the host, every gate's command, exit
-   code, duration and log digest, the test counts, the `startup_gate`,
-   `conformance` and top-level `performance_gates` summaries, each asset's sha256 and
-   `--version` answer, the platforms still owed, and `source: snapshot`),
-   commit that one file, verify the commit and create the annotated tag
-   locally. A failing gate writes nothing. `--verify-only` runs every check
-   that comes before the gates and stops: no gate runs, nothing is written.
-4. Publish: `git push origin vX.Y.Z`. The pre-push `push-policy` admits a
-   `vX.Y.Z` tag only when the tagged commit adds exactly its record to the
-   qualified tree and the record shows every gate at exit 0 with tests run
-   and none failed — including, for releases after `v0.21.66` on trees carrying
-   `tools/core-xtask/src/bin/startup-gate.rs` (or any record carrying `performance_gates`),
-   passing `startup` and `conformance` (`max_check_ms <= 2000`) gates
-   (`tools/core-xtask/src/release_qualification.rs`; historical tags `v0.21.54`..`v0.21.66`
-   remain valid). Every other tag
-   name, and any tag replacement or deletion, is refused.
-5. Write `releases/<tag>.json` (the record below) with the reference digests
-   and land it on main. A platform with no qualification yet is listed under
-   `missing_targets` and in the qualification record's `owed_platforms`.
-6. **Mandatory host sync (CEO Mandate 81):** immediately after `vX.Y.Z` and
-   `releases/<tag>.json` land on `origin`, if `releases/<tag>.json` qualifies the
-   current host (`missing_targets` does not list the host target), sync the
-   local installed release binary and live daemon:
-   `scripts/susi-release-sync.sh --tag vX.Y.Z --built target/dist/susi`
-   (`target/dist/susi.exe` on Windows; omit `--built` on another host to build
-   from tag source), and verify `susi --version` and `/health` report `X.Y.Z`.
-   On Windows, keep every scheduled task at `RunLevel=Limited` so unattended
-   sync and daemon restarts never hit UAC elevation lockouts.
+After a release qualified for the current host was published, the installed
+copy and the live daemon were synced to it with
+`scripts/susi-release-sync.sh --tag vX.Y.Z` (see below).
 
-## Promoting a distilled candidate
+## Distilled releases
 
-Three states, and only Susi tools move work between them; no merge, pull
-request or composition happens on the Git host:
-
-| State | Where | What it proves |
-|---|---|---|
-| Development integration | `main` | nothing: main is unqualified development (mandate 73) |
-| Accept-verified candidate | the local-only `release/<name>` from `local-distill` (snapshot tag `susi-distill/<name>`) | the selected tasks compose onto their base and each task's `accept.cmd` passed on the composed tree; not a release |
-| Qualified release | tag `vX.Y.Z` | every release gate passed on the exact tree, reached only through `release-qualify` |
-
-### One version, one cut
-
-Before any gate runs, `release-qualify` asks the storage remote (`--remote`,
-default `origin`) whether the version is free, and reserves it
-(`tools/core-xtask/src/release_version_guard.rs`):
-
-- a tag that is already published is refused: cut the next version;
-- an open release line `refs/candidates/release/vX.Y.Z` (`docs/release-lanes.md`)
-  must be contained in the tree being qualified, so a cut never bypasses a
-  line other agents are advancing;
-- the version is reserved with a create-only blob
-  `refs/claims/release-version/vX.Y.Z` naming the agent, host and commit. Of
-  two concurrent cuts exactly one gets it; the other is refused with the
-  holder's name. The same agent renews it for the same commit, anyone may take
-  it over after four hours, and a cut whose gates fail gives it back.
-
-`--verify-only` runs the checks and reserves nothing. `--skip-remote-check`
-is for a host that cannot reach the remote; it restores the old local-only
-check and says so in nothing but the command line, so use it knowingly.
-v0.21.62 is why this exists: it was qualified twice at once, on Windows from
-its release line and on Linux from a distilled candidate, and only one tree
-could be published.
-
-A release is qualified from a snapshot of main (above) or from a distilled
-candidate:
-
-1. `local-distill orchestrate ... --verify-accept --release-candidate` leaves
-   the candidate as the local branch `release/<name>`: the composed commit, then
-   one envelope commit that adds only its receipt `releases/distill/<name>.json`
-   (`docs/release-distillation.md`).
-2. On that branch, commit only the version bump, exactly as in "Cutting a
-   release" step 2.
-3. Qualify: `release-qualify vX.Y.Z --from-distill
-   <name> [--jobs N]`. Before any gate runs it refuses, with the reason, unless
-   all of these hold (`verify_distilled_source` in
-   `tools/core-xtask/src/release_qualification.rs`):
-   - the receipt is in the release tree, parses, and its `receipt_sha256`
-     re-computes (SHA-256 of the compact JSON without that field, as
-     `local-distill` writes it);
-   - it names this candidate and its verdict is `accept_verified_candidate`;
-   - `rejected` and `deferred` are empty;
-   - every commit in `git_host_created_in_stream` is in
-     `adopted_host_commits` (a receipt without that accounting is refused:
-     distil it again);
-   - every `accept_verification` entry exited 0 and every included task has
-     one;
-   - the envelope commit (the one that added the receipt) has the composed
-     commit `final_commit` as its only parent, changes only the receipt, and is
-     an ancestor of the release tree; `final_tree` is that commit's tree;
-   - between the envelope and the release tree there is only the version bump:
-     the files the v0.21.55 bump `47339995d` touched (the root and six engine
-     `Cargo.toml` files, `Cargo.lock`, `README.md`,
-     `.agents/{evidence,identity,roadmap}.json`), each changed only by the old
-     version becoming the new one on a line, plus at most one added task record
-     directly under `.agents/tasks/`. Nothing else, and nothing else deleted.
-     GMCP evidence is no longer kept in core (it is recorded in Susi Commercial
-     Apps), so `gmcp_evidence_rerecorded` stays absent.
-
-   It also checks the local refs that name the candidate when they exist:
-   `susi-distill/<name>` must be the composed commit,
-   `susi-distill/legacy-release-<name>` (the envelopes preserved when the
-   remote release branches were retired) must be the envelope, and
-   `release/<name>` must contain it. Then the gates run unchanged, and the
-   record states `source: distill` with a `distillation` block: `candidate`,
-   `receipt_path`, `receipt_sha256`, `envelope_commit`, `base_commit`,
-   `final_commit`, `final_tree`, `included_tasks` and `adopted_host_commits`.
-   So the record says which tasks the release contains.
-4. Publish the tag as in "Cutting a release" step 4. push-policy re-proves the
-   `distillation` block from the tagged tree: the block must be exactly what
-   the receipt in the qualified tree proves, by the same checks. A record with
-   no `source` (v0.21.54, v0.21.55, written before the field existed) is a
-   snapshot release; `source` must otherwise be `snapshot` (with no
-   `distillation`) or `distill` (with it).
-
-`--verify-only` with `--from-distill` is the way to check a candidate before
-spending the gates on it: it prints the `distillation` block and the refs that
-corroborated it, and changes nothing. A defect found from here on is fixed on
-main and distilled again (`rcN+1`); the release branch takes nothing but the
-bump.
+A record says where its tree came from. `source: snapshot`, or no `source` at
+all (v0.21.54 and v0.21.55, written before the field existed), is a release cut
+from a snapshot of main. `source: distill` is a release cut from a distilled
+candidate with `release-qualify --from-distill <name>`: the candidate's receipt
+had the verdict `accept_verified_candidate`, every commit made on the Git host
+was listed in `adopted_host_commits`, and every included task's acceptance had
+exited 0 on the composed tree. Such a record carries a `distillation` block:
+`candidate`, `receipt_path`, `receipt_sha256`, `envelope_commit`,
+`base_commit`, `final_commit`, `final_tree`, `included_tasks` and
+`adopted_host_commits`, so it says which tasks the release contains.
 
 ## Installing and upgrading
 
-Core standalone installation and upgrades target native `x86_64` Linux (Option
-2A; Windows desktop apps and installers live in Susi Commercial Apps, and
-`install.ps1` stays in this repository only as legacy migration debt). Both
+Core standalone installation and upgrades target native `x86_64` Linux
+(`install.ps1` stays in this repository only as legacy migration debt). Both
 active Linux paths resolve the newest tag with `git ls-remote --tags` against a
 configured zero-GitHub canonical or mirror Git remote, check that tag out, read
 its record from the remote's default branch, build `susi` natively with the
@@ -250,7 +133,7 @@ toolchain is not installed the installers stop and print the
 |---|---|
 | `install.sh` (Linux x86_64) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
 | `scripts/susi-release-sync.sh` (Linux x86_64 upgrades; installs its own next copy from the default branch, not from the tag) | `SUSI_RELEASE_REMOTE`, else the `origin` of the private release checkout `~/.susi/release-src` that the installer or an earlier sync made |
-| `install.ps1` (legacy Windows migration debt; active Windows installers live in Susi Commercial Apps) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
+| `install.ps1` (legacy Windows migration debt) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
 
 `SUSI_RELEASE_TAG` (installers) and `--tag` (sync) pin a specific release.
 There is no built-in default remote: a script that finds none says which

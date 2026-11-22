@@ -1,10 +1,10 @@
 //! In-process **plane message bus** — the only allowed control plane between
-//! feature crates (gawd / gemi / gmcp / tools / agents / server).
+//! feature crates (the GAWD, GEMI and GMCP pillars).
 //!
 //! Feature planes must not depend on each other in Cargo.toml. They talk only
-//! through this bus (and shared foundation: paths / error / core / config /
-//! sandbox / native). Composition roots (`susi-daemon`, CLI) register handlers
-//! and may still link every plane.
+//! through this bus (and the shared foundation: paths / error / config / core).
+//! The composition root, the `susi` program, registers handlers and may link
+//! every plane; today it registers none (see ARCHITECTURE.md).
 use crate::susi_core::plane_bus_ipc::IpcPlaneBus;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

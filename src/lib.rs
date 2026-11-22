@@ -10,11 +10,10 @@
     )
 )]
 
-//! Susi's public launcher and generic protocol contracts. Concrete command,
-//! daemon, agent, model and tool implementations run in the commercial runtime.
+//! Susi Core's library: the version and the shared error and workspace-path helpers the
+//! program uses. The program itself is `src/main.rs`.
 //!
 //! - [`error`]: shared typed errors
-//! - [`native`]: native/WASM execution primitives
 //! - [`sandbox`]: generic workspace paths
 
 #![warn(missing_docs)]

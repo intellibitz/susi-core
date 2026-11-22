@@ -29,14 +29,16 @@ provisioning happens before the offline native build. Retain toolchain/package
 caches in the cloud snapshot; do not rebuild the full workspace in install or
 publication scripts.
 
-`cargo local-release prepare-sysroot` authenticates the upstream sources,
-executes the tracked builder, inventories target archives, and runs the consumer
+Not available today: the two commands below were in the private repository's
+`tools/core-xtask`, which left it on 2026-11-22, and are to be rebuilt in Susi
+Tools. `cargo local-release prepare-sysroot` authenticated the upstream sources,
+executed the tracked builder, inventoried target archives, and ran the consumer
 with ordinary stable rustc. Linux cache hits recompile and execute this consumer
 against the admitted archives, then recheck source identity and archive hashes:
 OS ICU can change without changing the source/compiler cache key. Failed
 consumer checks fail admission and retain their private diagnostic output.
-`cargo local-build debug` uses that sysroot for an
-isolated development build. Neither command qualifies or promotes production.
+`cargo local-build debug` used that sysroot for an
+isolated development build. Neither command qualified or promoted production.
 Linux archive handles and pre/post hashes detect mutation; they do not provide
 mandatory write exclusion.
 

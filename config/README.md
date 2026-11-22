@@ -21,7 +21,7 @@ admission protocols.
 
 Launchable catalogs (`leading-mcp.json`, `mcp-registry.json`,
 `execution-agents.json`, `agent-engines.json`) are not in core: they ship in
-extension packs (manifest schema: [`docs/extension-pack.md`](../docs/extension-pack.md)).
+extension packs (the manifest schema page left core on 2026-11-22).
 
 ## Do not confuse
 

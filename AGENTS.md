@@ -191,13 +191,17 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 - **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
   19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
-- **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools,
-  and core's release check for unsafe code still builds its tools from a Susi release.
+- **Releases:** no tool cuts or qualifies a release. The release tools, the unsafe-code check
+  and the standard-library builder's runner were in Susi's `tools/core-xtask`, which left Susi
+  on 2026-11-22; they are to be rebuilt in Susi Tools. The newest release, `v0.21.71`
+  (2026-11-16), predates today's program.
+- **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.
-- **Old records and pages:** `ARCHITECTURE.md` and many documents in `docs/` describe
-  packages and features that left core and are being removed; the goal notes in
-  `.agents/visions/carried/` name sections of the earlier contract by number, and the rules
-  they name are kept here word for word.
+- **Old records:** `config/` holds the earlier runtime's catalogs (models, agents, vendors),
+  `.agents/roadmap.json` its roadmap, and `.agents/baseline/` an unsafe-code baseline that
+  still lists packages removed on 2026-11-22; the goal notes in `.agents/visions/carried/`
+  name sections of the earlier contract by number, and the rules they name are kept here
+  word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
   are still worded as ceilings that only go down.

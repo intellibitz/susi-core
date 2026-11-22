@@ -24,8 +24,8 @@ fork; see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 Susi reuses Apache-2.0 work from other projects. Their authors are credited
 where the code is: in each harvest manifest
 (`.agents/harvest/H-<AGENT>-<n>.json`), in the notices kept in the harvested
-files, and in the `THIRD_PARTY_NOTICES` that ship with a release
-([docs/harvest.md](docs/harvest.md)).
+files, and in the `THIRD_PARTY_NOTICES` that ship with a release (the harvest
+rule in [AGENTS.md](AGENTS.md)).
 
 ## Development setup
 

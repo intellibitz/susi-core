@@ -40,18 +40,11 @@ Most products need no fork. Core is a lean, vendor-neutral socket
 ([`AGENTS.md`](AGENTS.md), "The socket and its size"), and what you build attaches to
 it from the outside:
 
-- **The host contract (`9090–9094`).** MCP on `9090` and `9093`, the
-  OpenAI-compatible and Anthropic Messages router on `9091`, A2A and ACP on
-  `9094`, cluster discovery on `9092`. See [docs/integrating-with-susi.md](docs/integrating-with-susi.md)
-  and check your integration with the black-box conformance checker
-  ([docs/host-contract-conformance.md](docs/host-contract-conformance.md)).
-- **Extension packs and Wasm reflexes.** MCP server catalogs, execution-agent
-  adapters and deterministic `wasm32-wasip1` reflexes are external plugs. Follow
-  the [extension pack and Wasm reflex starter guide](docs/extension-pack.md) and
-  validate your pack with:
-  ```bash
-  susi extensions validate ./your-pack-dir
-  ```
+- **The Model Context Protocol.** `susi mcp serve` serves MCP over standard
+  input and output, and the local daemon serves it on 127.0.0.1 port 9090 (plus
+  `SUSI_PORT_OFFSET`) behind a bearer token. See
+  [docs/integrating-with-susi.md](docs/integrating-with-susi.md); that is the
+  whole surface today, and it grows one working capability at a time.
 
 A plug you write is yours. It lives in your repository under the license you
 choose, and core admits it over the socket.
@@ -119,7 +112,7 @@ SUSI_HOME=/tmp/susi-dev SUSI_PORT_OFFSET=700 cargo run -- stop
 
 Nothing flows back by request. Susi takes existing Apache-2.0 work by its own
 harvest: a pinned commit, per-file license verification, preserved notices and
-recorded attribution ([docs/harvest.md](docs/harvest.md)). A fork of Susi is an
+recorded attribution (the harvest rule in [AGENTS.md](AGENTS.md)). A fork of Susi is an
 Apache-2.0 project like any other, so that is the only way its code can return,
 and it is Susi's decision.
 

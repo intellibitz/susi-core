@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-//! Lean-core baselines (`docs/lean-core.md`): the dependency reach of the four
+//! Lean-core baselines (`docs/lean-core.md`): the dependency reach of the three
 //! measurement roots and the size of the workspace in crates, as last recorded.
 //! Each constant here is a baseline, not a ceiling. A change may raise one in
 //! the same commit, saying why in the constant's comment and in the commit
@@ -23,7 +23,7 @@ use std::process::Command;
 
 const CLOSURE_ROOTS: [&str; 3] = ["susi-gawd-a2a", "susi-gawd-acp", "susi-gmcp"];
 
-/// Third-party (non-workspace) crates the four pillars compile. 2026-11-07:
+/// Third-party (non-workspace) crates the pillar crates compile. 2026-11-07:
 /// 331 before the lean-core program began, 313 after wave 1 (rayon, flume
 /// and jsonschema edges cut from the GAWD and GEMI crates). 2026-11-09:
 /// 259 -> 231 when susi-gawd stopped depending on the A2A tier (ra2a, its
@@ -111,8 +111,10 @@ const CLOSURE_ROOTS: [&str; 3] = ["susi-gawd-a2a", "susi-gawd-acp", "susi-gmcp"]
 /// `MontgomeryPoint::mul_clamped` and constant-time `IsIdentity`) + `zeroize`,
 /// removing `x25519-dalek`, `rand_core` and the `zeroize_derive` proc-macro
 /// from Cargo.lock (185 -> 182) and the four-pillar closure).
-const THIRD_PARTY_BASELINE: usize = 96;
-/// Workspace crates the four pillars compile (themselves included).
+/// 2026-11-22: 96 -> 23, measured after the eight packages that only re-exported
+/// `susi-core` left (T-CLAUDE-426) and the closure roots became the three pillar crates.
+const THIRD_PARTY_BASELINE: usize = 23;
+/// Workspace crates the pillar crates compile (themselves included).
 /// 2026-11-09: 50 -> 47 (susi-gawd-a2a, susi-vendor-ra2a, susi-vendor-tower;
 /// susi-vendor-ra2a was deleted on 2026-11-11, T-CLAUDENOA2ASDK-1),
 /// then 47 -> 46 (susi-vendor-mcp-server deleted).
@@ -133,7 +135,9 @@ const THIRD_PARTY_BASELINE: usize = 96;
 /// 2026-11-12: 33 unchanged on T-CARBONCLOUD-3 (`susi-vendor-tempfile` was a
 /// `[dev-dependencies]`-only leaf across 8 crates; `WORKSPACE_MEMBERS_BASELINE`
 /// ratchets 50 -> 49 and `CARGO_LOCK_PACKAGES_BASELINE` ratchets 182 -> 181).
-const WORKSPACE_BASELINE: usize = 33;
+/// 2026-11-22: 33 -> 13, measured after the eight packages that only re-exported
+/// `susi-core` left (T-CLAUDE-426) and the closure roots became the three pillar crates.
+const WORKSPACE_BASELINE: usize = 13;
 /// Total workspace members in `Cargo.toml` (`cargo metadata` `workspace_members`).
 /// 2026-11-12: 50 -> 49 (T-CARBONCLOUD-3: fold `susi-vendor-tempfile` into
 /// `susi_paths::tempfile` and delete `crates/susi-vendor-tempfile`;
@@ -142,11 +146,15 @@ const WORKSPACE_BASELINE: usize = 33;
 /// susi-build-os-ucrt; Windows PE/UCRT live in Susi Commercial Apps).
 /// 2026-11-18: 29 -> 28 (SAES-9: delete susi-vendor-winapi after commercial
 /// H-SAES9-2 / #124 owned it).
-const WORKSPACE_MEMBERS_BASELINE: usize = 28;
+/// 2026-11-22: 28 -> 19, measured after the eight packages that only re-exported
+/// `susi-core` left (T-CLAUDE-426) and the closure roots became the three pillar crates.
+const WORKSPACE_MEMBERS_BASELINE: usize = 19;
 /// Total resolved packages in `Cargo.lock` (`cargo metadata` `packages`).
 /// 2026-11-12: 182 -> 181 (T-CARBONCLOUD-3: `susi-vendor-tempfile` leaves
 /// `Cargo.lock` alongside 8 workspace `[dev-dependencies]` facade edges).
-const CARGO_LOCK_PACKAGES_BASELINE: usize = 181;
+/// 2026-11-22: 181 -> 89, measured after the eight packages that only re-exported
+/// `susi-core` left (T-CLAUDE-426) and the closure roots became the three pillar crates.
+const CARGO_LOCK_PACKAGES_BASELINE: usize = 89;
 /// Distinct `susi-vendor-*` facades the pillar crates name directly in
 /// their manifests (normal edges).
 /// 2026-11-09: 22 -> 21 (susi-gmcp -> susi-vendor-mcp-server).
@@ -172,7 +180,9 @@ const CARGO_LOCK_PACKAGES_BASELINE: usize = 181;
 /// removed 8 `[dev-dependencies]` facade edges across `susi-core`, `susi-gawd`,
 /// `susi-gemi-models`, `susi-gemi`, `susi-gmcp`, `susi-harness`,
 /// `susi-leaf-services` and `susi-tools`).
-const DIRECT_FACADE_EDGES_BASELINE: usize = 9;
+/// 2026-11-22: 9 -> 2, measured after the eight packages that only re-exported
+/// `susi-core` left (T-CLAUDE-426) and the closure roots became the three pillar crates.
+const DIRECT_FACADE_EDGES_BASELINE: usize = 2;
 /// The pillar crates whose shipped source size is reported.
 /// 2026-11-22: 8 -> 3, when the six packages that only re-exported `susi-core` left
 /// (GEMI holds no code yet).
@@ -379,14 +389,14 @@ fn pillar_dependency_reach_stays_within_its_recorded_baselines() {
             None,
         ),
         (
-            "third-party crates the four pillars compile",
+            "third-party crates the pillar crates compile",
             reach.third_party.len(),
             "THIRD_PARTY_BASELINE",
             THIRD_PARTY_BASELINE,
             Some(&reach.third_party),
         ),
         (
-            "workspace crates the four pillars compile",
+            "workspace crates the pillar crates compile",
             reach.workspace.len(),
             "WORKSPACE_BASELINE",
             WORKSPACE_BASELINE,

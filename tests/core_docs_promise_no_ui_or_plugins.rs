@@ -214,55 +214,9 @@ const HISTORY_NOTES: &[&str] = &["(historical", "(superseded"];
 /// Historical evidence logs: (file, sentence fragment) pairs that record a
 /// past measurement or the past release pipeline and carry no marker.
 const ALLOWED: &[(&str, &str)] = &[
-    // Release legs measured on v0.21.27 (2026-10-31), before the CEO
-    // decision of 2026-11-03 cut the macOS/ARM legs from core.
-    (
-        "docs/workflow-speed.md",
-        "| build macos-aarch64 | cancelled after 1 s",
-    ),
-    // v0.21.29 timing log of the former publish-extra job.
-    (
-        "docs/workflow-speed.md",
-        "arm64, macos and cuda upload when they finish",
-    ),
-    // Mandate 62 plugin-update evidence recorded with the since-removed
-    // `extensions seed`; plan item E2 re-records it with a commercial pack.
-    (
-        "docs/workflow-speed.md",
-        "delivered to a running binary as an extension pack (extensions seed",
-    ),
-    // The same release-leg table: the Linux ARM64 build of v0.21.27.
-    ("docs/workflow-speed.md", "| build linux-x86_64 / aarch64 |"),
-    // Step 1 release-D evidence of the starter download (2026-11-02).
-    (
-        "docs/step1-acceptance.md",
-        "the automatic starter download reached100%",
-    ),
-    // ARM64 Windows portable-source note: the target is named only to say it
-    // is not a published core release and qualifies downstream.
-    (
-        "docs/step1-acceptance.md",
-        "arm64 windows (aarch64-pc-windows-msvc) portable source support exists",
-    ),
-    // The `auto-install` helper module of `susi-sandbox-client`.
-    (
-        "ARCHITECTURE.md",
-        "audit-chain / auto-install / daemon-state",
-    ),
-    // v0.21.26 and v0.21.29 release timings, before the macOS legs were cut.
-    (
-        "docs/workflow-speed.md",
-        "| tag → release published (v0.21.26) | 92 min |",
-    ),
-    (
-        "docs/workflow-speed.md",
-        "on v0.21.29 the wall was windows at 24 min",
-    ),
-    // The provider's own billing page, not a core view.
-    (
-        "docs/harness-faq.md",
-        "a provider's own dashboard cannot say which task spent the money",
-    ),
+    // Empty since 2026-11-22: the historical logs these entries excused (the workflow
+    // measurements, the step-1 acceptance record and the harness FAQ) and the old
+    // ARCHITECTURE.md sentence left with the pages they were in.
 ];
 
 fn root() -> PathBuf {
@@ -468,11 +422,21 @@ fn broken_bans(file: &str, sentence: &str) -> Vec<&'static Ban> {
 #[test]
 fn core_docs_promise_no_ui_or_plugins() {
     let docs = scanned_docs();
-    assert!(
-        docs.len() > 10,
-        "expected the front-door files and docs/, found {}",
-        docs.len()
-    );
+    // The scan must reach the front-door files and docs/ (its index proves the directory was
+    // read). Until 2026-11-22 this was a count, more than 10; the pages about removed features
+    // left that day, and 7 remain.
+    for expected in [
+        "README.md",
+        "ARCHITECTURE.md",
+        "VISION.md",
+        "docs/README.md",
+    ] {
+        assert!(
+            docs.iter().any(|(file, _)| file == expected),
+            "the scan missed {expected}; found {:?}",
+            docs.iter().map(|(file, _)| file).collect::<Vec<_>>()
+        );
+    }
     let mut violations = Vec::new();
     for (file, text) in &docs {
         for sentence in sentences(text) {

@@ -21,9 +21,12 @@ Unicode source directory, replaces its only implementation file, and builds the
 sysroot offline. Bootstrap is limited to the child standard-library build; normal
 consumers use stable rustc with `--sysroot <fresh-directory>/sysroot`. The
 receipt says `requires-qualification` and cannot authorize a production release.
-Existing destinations are preserved and refused. Core's build tooling runs it
-through `xtask/src/trusted_sysroot.rs`, which hashes these sources into the
-sysroot identity and recompiles `consumer.rs` against every admitted sysroot.
+Existing destinations are preserved and refused. Until 2026-11-22 core's build
+tooling ran it through `xtask/src/trusted_sysroot.rs` in the private
+repository's `tools/core-xtask`, which hashed these sources into the sysroot
+identity and recompiled `consumer.rs` against every admitted sysroot. That
+runner left with `tools/core-xtask` and is to be rebuilt in Susi Tools; nothing
+runs the builder today.
 
 The source tree contains only `core/src/unicode/mod.rs` and `unicode_data.rs`.
 The former retains its original Apache/MIT license. The latter is replaced
