@@ -35,7 +35,7 @@ host that no longer exists, so the program does not yet run on its own; and sinc
 are rebuilt, so a capability core points to the product for has no
 implementation there today.
 
-**[Two-minute start](#two-minute-start)** · **[Host contract](#host-contract)** · **[Where it stands](#where-it-stands)** · **[Architecture](docs/architecture.md)** · **[Evidence](docs/evidence.md)** · **[Integrate your app](docs/integrating-with-susi.md)** · **[Forking and contributing](CONTRIBUTING.md)**
+**[What runs today](#what-runs-today)** · **[Host contract](#host-contract)** · **[Where it stands](#where-it-stands)** · **[Architecture](docs/architecture.md)** · **[Evidence](docs/evidence.md)** · **[Integrate your app](docs/integrating-with-susi.md)** · **[Forking and contributing](CONTRIBUTING.md)**
 
 ## What the socket is
 
@@ -52,38 +52,24 @@ Use the socket to connect protocol clients, inspect routing decisions and run
 authorized agents on the host. It is a substrate on the host, not a replacement
 operating system. Susi Core is Apache-2.0 and free forever.
 
-## Two-minute start
+## What runs today
 
-```bash
-# 1. Start the host daemon (binds 9090-9094, seeds ~/.susi/api_token)
-susi start
-
-# 2. See what you already have: hardware, local engines, cloud keys
-susi ecosystem scan
-susi keys check
-
-# 3. Run an evidence-gated mission in the current directory
-susi "analyze this repository and summarize its architecture"
-
-# 4. List models through the authenticated HTTP socket
-curl -s http://127.0.0.1:9091/v1/models \
-  -H "Authorization: Bearer $(cat ~/.susi/api_token)"
-
-# 5. Ask which model susi trusts for which work, and why
-susi brain                     # SUSI_BUDGET=low|balanced|max turns the cost dial
-```
-
-Every HTTP contract port needs `Authorization: Bearer <token>` except
-`/health`. `susi stop` / `susi restart` are deterministic host commands.
-The full command reference is in
-[docs/architecture.md](docs/architecture.md#operating-the-socket-command-reference).
-
+Tested on 2026-11-22 (version 0.21.72, Linux x86_64): the program builds,
+`susi --help` lists 61 commands, and `susi install` copies the program into
+`~/.susi/bin`. Every other command hands its work to a runtime host
+(`SUSI_RUNTIME_HOST`). The only one that existed was part of the private
+product and was removed on 2026-11-22, so today those commands stop with "no
+runtime host configured". A small runtime that starts on its own and serves a
+working MCP endpoint is being built, one working capability at a time; the
+commands that do nothing go when it lands. Until then nothing in the next two
+sections is served by this program.
 ## Host contract
 
-External clients can trust these ports; the daemon never silently drifts them.
-Verify a running host with the external black-box conformance checker
-([docs/host-contract-conformance.md](docs/host-contract-conformance.md);
-`susi-conformance` lives in Susi Commercial Apps rather than this workspace).
+This is the contract the runtime serves; today nothing serves it (see What
+runs today). External clients can trust these ports; the daemon never silently
+drifts them. The black-box conformance checker that verified a running host
+([docs/host-contract-conformance.md](docs/host-contract-conformance.md)) was
+part of the private product's tooling and was removed on 2026-11-22.
 
 | Port | Surface |
 |------|---------|
@@ -115,26 +101,22 @@ part of the contract.
 
 ## Where it stands
 
-The host exposes the five-port contract with bearer authentication and a
-conformance checker. Current paths include evidence-gated missions, tool
-receipts, an HMAC audit chain and a Wasm interpreter. These paths have separate
-capability and qualification checks; availability does not establish complete
-standards compliance or qualify an artifact for production.
-
-The current default build uses an external inference plug or configured HTTP
-engine/provider. Embeddings and browser page capture are plug ports and report
-a typed capability gap when no plug is wired. In-process model delivery remains
-a documented gap. Pattern-based governance vetoes are not a sandbox boundary.
-See [current limitations](docs/evidence.md) and [delivery acceptance](docs/step1-acceptance.md).
+Today the program runs nothing on its own (see What runs today). The five-port
+host, evidence-gated missions, tool receipts, the HMAC audit chain and the Wasm
+interpreter this section described ran through the runtime host that left the
+private product on 2026-11-22; history keeps them. See [current
+limitations](docs/evidence.md) and [delivery acceptance](docs/step1-acceptance.md),
+both dated records.
 
 Full acceptance requires the exact combined source and artifact to pass the
 installed journey, promotion, health and rollback checks. The separate warm
 `xtask fast-release` budget is <10 s; it does not replace full release
 qualification. The cold compile target is <60 s. Report current-tree measurements
 and platform coverage explicitly; retained historical timings are not current
-qualification. Core releases target native x86_64 Linux only (since 2026-11-18). Windows
-desktop apps, installers and runtime distribution live in Susi Commercial Apps;
+qualification. Core releases target native x86_64 Linux only (since 2026-11-18);
 other platforms remain portable source without core release qualification.
+Core's release tools are still built from the private product's development
+tooling and are to be rebuilt in Susi Tools.
 
 ## Install
 
