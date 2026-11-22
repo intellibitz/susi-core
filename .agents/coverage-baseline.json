@@ -6,7 +6,6 @@
   "susi-abi": 88.0,
   "susi-adapters-llm": 94.0,
   "susi-agents": 79,
-  "susi-config": 74,
   "susi-core": 87.0,
   "susi-daemon": 60.0,
   "susi-error": 80,

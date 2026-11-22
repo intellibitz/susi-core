@@ -23,7 +23,7 @@ const PROGRAM: &str = "susi";
 /// Workspace packages the program does not compile, kept because Susi, the product, builds on
 /// them (its manifest names them); `ARCHITECTURE.md` says so in its package table. Any other
 /// package the program does not reach is bloat, and this suite fails on it.
-const LIBRARIES_FOR_SUSI: [&str; 3] = ["susi-config", "susi-vendor-getrandom", "susi-vendor-libc"];
+const LIBRARIES_FOR_SUSI: [&str; 1] = ["susi-vendor-getrandom"];
 
 /// Third-party crates the program compiles. 2026-11-22: 21, measured when the packages no
 /// program reached left (T-CLAUDE-437).
@@ -348,13 +348,7 @@ fn repository_size() -> RepositorySize {
         "lean-core categories: runtime_rust={runtime_rust}, vendor_facade_rust={facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, other_files={other_lines}"
     );
     // A missing or empty inventory must not pass as a small measurement.
-    for package in [
-        "susi (root)",
-        "susi-gmcp",
-        "susi-paths",
-        "susi-error",
-        "susi-config",
-    ] {
+    for package in ["susi (root)", "susi-gmcp", "susi-paths", "susi-error"] {
         assert!(
             runtime_by_package
                 .get(package)

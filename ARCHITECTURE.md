@@ -42,12 +42,10 @@ Every package of the workspace, and nothing else, has a row here; a test fails w
 | `susi-gmcp` | 582 | The MCP server, its read-only file tools and the seam for a host's own tools. | The program |
 | `susi-paths` | 915 | The host directory contract: the Susi home, test isolation, standard-output guards, platform service names. | The program, Susi |
 | `susi-error` | 849 | The typed error every package returns, secret redaction and the metrics sink. | The program, Susi |
-| `susi-config` | 534 | Atomic file storage, JSON field helpers, progress output and random nonces. | Susi only |
 | `susi-vendor-serde` | 6 | The only owner of the serde crates. | The program, Susi |
 | `susi-vendor-serde-json` | 6 | The only owner of serde_json. | The program, Susi |
 | `susi-vendor-sha2` | 6 | The only owner of sha2. | The program, Susi |
 | `susi-vendor-getrandom` | 25 | The only owner of getrandom. | Susi only |
-| `susi-vendor-libc` | 6 | The only owner of libc. | Susi only |
 
 "Susi only": the program does not compile it; Susi, the product, builds on it (its manifest
 names it), so it stays (`LIBRARIES_FOR_SUSI` in `tests/lean_core_ceilings.rs`). A package used
@@ -82,12 +80,12 @@ when they differ. Their licences are checked by `cargo deny` (`deny.toml`).
 | `cfg-if` | sha2 | Part of sha2. |
 | `getrandom` | `susi-vendor-getrandom` | The system's random source, for Susi. |
 | `wasi` | getrandom | Part of getrandom on WebAssembly targets; never compiled on Linux. |
-| `libc` | `susi-vendor-libc`, getrandom, cpufeatures | The C library interface. |
+| `libc` | getrandom, cpufeatures | The C library interface. |
 
 ## How packages may depend on each other
 
 - **Leaf order.** A package depends only on packages of a lower rank: `susi-paths` and
-  `susi-gmcp`, then `susi-error`, then `susi-config`, and the root program last (`LEAF_RANK` in
+  `susi-gmcp`, then `susi-error`, and the root program last (`LEAF_RANK` in
   `tests/architecture_tests.rs`).
 - **No source mounts.** Shared code is reached through a Cargo edge, never a `#[path]`
   include across packages.

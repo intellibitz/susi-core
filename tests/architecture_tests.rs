@@ -98,7 +98,6 @@ const LEAF_RANK: &[(&str, u8)] = &[
     ("susi-paths", 0),
     ("susi-gmcp", 0),
     ("susi-error", 1),
-    ("susi-config", 2),
     ("susi", 3),
 ];
 
@@ -109,7 +108,6 @@ const LEAF_RANK: &[(&str, u8)] = &[
 /// The zero-external-deps ratchet below is what actually constrains them.
 const VENDOR_FACADES: &[&str] = &[
     "susi-vendor-getrandom",
-    "susi-vendor-libc",
     "susi-vendor-serde",
     "susi-vendor-serde-json",
     "susi-vendor-sha2",

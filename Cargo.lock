@@ -170,19 +170,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "susi-config"
-version = "0.1.0"
-dependencies = [
- "susi-error",
- "susi-paths",
- "susi-vendor-getrandom",
- "susi-vendor-libc",
- "susi-vendor-serde",
- "susi-vendor-serde-json",
- "susi-vendor-sha2",
-]
-
-[[package]]
 name = "susi-error"
 version = "0.1.0"
 dependencies = [
@@ -211,13 +198,6 @@ name = "susi-vendor-getrandom"
 version = "0.1.0"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "susi-vendor-libc"
-version = "0.1.0"
-dependencies = [
- "libc",
 ]
 
 [[package]]

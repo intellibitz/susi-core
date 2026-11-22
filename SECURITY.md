@@ -45,7 +45,7 @@ Instead, please report suspected vulnerabilities privately via [GitHub Private V
 
 Please include:
 - A clear description of the vulnerability and the affected part (e.g., the daemon in
-  `src/daemon.rs`, the MCP server in `susi-gmcp`, `susi-paths`, `susi-config`).
+  `src/daemon.rs`, the MCP server in `susi-gmcp`, `susi-paths`).
 - Minimal reproduction steps or a proof-of-concept test case.
 - Potential impact (e.g., bearer-token bypass, path traversal outside the served folder, or a
   file read beyond the limits above).
