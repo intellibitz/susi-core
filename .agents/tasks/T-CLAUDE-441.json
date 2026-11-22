@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-441",
+  "title": "Remove Core's program and MCP server: the CEO chose libraries only",
+  "goal": "CEO 2026-11-22: cut Core's server. Core keeps only the libraries Susi uses; the program (MCP server, daemon, installer), its releases, configs, tests and pages leave, and every page says what Core now is.",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "nextest",
+      "run",
+      "--workspace",
+      "--offline",
+      "--locked"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795371760
+}
