@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-007",
-  "verdict": "delivered",
-  "evidence": "crates/susi-gawd/src/reflex_intent.rs; crates/susi-gawd/src/reflex_synth.rs; crates/susi-gawd/src/tests/vc_201_007.rs; crates/susi-gawd/src/tests/vc_201_007_mastery.rs",
-  "missing": "",
-  "tracked_by": ["T-DEVIN20261002053148-19"],
-  "recorded_by": "INTELLIBITZ20261005030120687099",
-  "recorded_unix": 1791172256
-}

@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-072",
-  "verdict": "not-delivered",
-  "evidence": "",
-  "missing": "Moved out of scope 2026-11-03 by CEO direction: issuing many revocable gateway keys with per-key rate, token and dollar quotas, workspace/mission/capability bindings and an audit trail is team spend governance sold in susi-commercial-apps (Fleet Command, crates/susi-fleet-command/src/gateway_keys.rs). The Apache-2.0 substrate keeps one bearer token per host.",
-  "tracked_by": ["T-COMMERCIALSPLIT-1"],
-  "recorded_by": "COMMERCIALSPLIT",
-  "recorded_unix": 1793689364
-}

@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-079",
-  "verdict": "delivered",
-  "evidence": "vc_201_079_cli_verify_round_trips_a_file_without_leaking_secrets (tests/vc_201_079_cli_verify.rs)",
-  "missing": "",
-  "tracked_by": [],
-  "recorded_by": "ANTIGRAVITY20261015214257121476",
-  "recorded_unix": 1792126715
-}

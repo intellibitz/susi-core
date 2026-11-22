@@ -1,9 +1,0 @@
-{
-  "vector": "VC-202-018",
-  "verdict": "delivered",
-  "evidence": "audit_payload_free_policy_* (crates/susi-sandbox-client/src/audit_fidelity.rs — 7 tests: a credential value never reaches the signed audit tier; a prompt and a tool output ride as sha256+byte-length via AuditDetails::payload_ref; legacy &str details are masked and hard-capped with a visible truncation marker; the trace tier is off unless a subsystem opts in, levelled, per-day rotated, TTL-swept, bytes/day-bounded, and a payload in trace is still a digest; both audit paths land through the one signed hash-chained chokepoint and tamper detection holds). audit_retention_prune_* (crates/susi-sandbox-client/src/audit_fidelity.rs — 6 tests: a full audit segment rotates into a dated archive that self-verifies with its moved checkpoint while the fresh segment opens with a signed AUDIT_ROTATE attestation of the archived tip; archives past retain_days are pruned checkpoint-and-all; the tier's total-byte cap drops the oldest archive first and never touches the active segment; the trace tier's total-byte cap prunes the oldest day file across subsystems; every audit write lands an attributed observation record — tier, subsystem, bytes, elapsed overhead, agent — and the report aggregates it; susi status reads observation-cost.jsonl and renders bytes + overhead attributed per agent, pinned by source scan). crates/susi-sandbox-client/src/manager/runtime/shared.rs — the single append chokepoint applies the retention policy before each signed write, attests rotations, and measures the write into the ledger. src/cli/status_cli.rs — the spend section publishes the measured cost of observation in bytes and ms overhead per agent.",
-  "missing": "",
-  "tracked_by": [],
-  "recorded_by": "DEEPSEEK",
-  "recorded_unix": 1791183200
-}

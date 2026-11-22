@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-095",
-  "verdict": "not-delivered",
-  "evidence": "",
-  "missing": "Moved out of scope 2026-11-07 by CEO direction: chaos_deployment fleet deployment chaos harness migrated to susi-commercial-apps (susi-fleet-command).",
-  "tracked_by": [],
-  "recorded_by": "INTELLIBITZ20261005030120687099",
-  "recorded_unix": 1791195915
-}

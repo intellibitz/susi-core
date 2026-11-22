@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-068",
-  "verdict": "not-delivered",
-  "evidence": "",
-  "missing": "Moved out of scope 2026-11-03 by CEO direction: staged canary/wave configuration rollout across many hosts is organisation-scale fleet administration sold in susi-commercial-apps (Fleet Command, crates/susi-fleet-command/src/fleet_rollout.rs). The Apache-2.0 substrate configures one host.",
-  "tracked_by": ["T-COMMERCIALSPLIT-1"],
-  "recorded_by": "COMMERCIALSPLIT",
-  "recorded_unix": 1793689364
-}

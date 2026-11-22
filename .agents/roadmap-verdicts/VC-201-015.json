@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-015",
-  "verdict": "delivered",
-  "evidence": "crates/susi-gawd/src/tests/vc_201_015_mastery.rs — transcripts can never promote (verified_execution=false; fabricated and conflicting transcripts fail closed), the full-gate command match is exact not substring, executed failures still block, and the gate executes on the production path: crates/susi-gawd/src/repo_gate.rs run_repository_gate launches fmt/clippy/test for real, called from crates/susi-gawd/src/patch_cycle.rs (susi patch / gmcp apply_patch_cycle) on the self-build repo where a caller-supplied test_command cannot bypass it (production_patch_path_executes_the_gate).",
-  "missing": "",
-  "tracked_by": [],
-  "recorded_by": "DEEPSEEK",
-  "recorded_unix": 1791215116
-}

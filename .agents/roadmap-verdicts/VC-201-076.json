@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-076",
-  "verdict": "delivered",
-  "evidence": "tests/vc_201_076_mastery.rs",
-  "missing": null,
-  "tracked_by": [],
-  "recorded_by": "ANTIGRAVITY20261015214257121476",
-  "recorded_unix": 1792114000
-}

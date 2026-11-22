@@ -7,120 +7,6 @@
   "vectors": [
     {
       "depends_on": [],
-      "id": "VC-200-001",
-      "mastery_target": "P2P Non-blocking Swarm",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-200-001.json, T-DEEPSEEK-49, 2026-10-04): federated cross-node consensus runs on the production supervisor path \u2014 durable pinned-electorate quorum commits, sealed and replicated HMAC-signed CommitRecords, term ordering, anti-entropy repair, compaction, leader election, and endorsement-gated membership consensus (vc_200_001_* tests, swarm_gap_durable_quorum_*, member_signing). Delivery history: PARTIAL: UDP LAN discovery, TCP JSON-RPC peer dispatch, and trust-score ranking already worked. Closed the routing gap the code itself flagged (\"bloom-filters of peer registries for perfect routing\"): peers now exchange a real 256-bit `CapabilityBloom` of their registered tool names during ping/pong, and `rank_peers_for_goal` scores peers by goal/capability overlap instead of trust alone (`src/gawd/amas.rs`). As of 2026-09-22 (EV-2022922-101), added a real quorum-commit primitive: `SusiSupervisor::quorum_majority` (`src/gawd/amas.rs`) checks the shared mission blackboard \u2014 which already holds both local agent outputs and dispatched peer-node outputs under `PeerNode_<id>` keys \u2014 for a strict majority of independently-produced entries that exact-match after normalization, and commits that value directly (a new `QUORUM_COMMIT` A2A action, distinct from the pre-existing `STATE_CONVERGENCE` rank-leader/LLM-synthesis paths) instead of only ever picking one rank-leader's answer or asking an LLM to reconcile. Remaining gap narrowed (cluster-key membership landed): peers now exchange an HMAC-SHA256-signed ping/pong (`SUSI_PING_SIG`/`SUSI_PONG_SIG`, susi-peer-v1) keyed by a shared 32-byte secret at ~/.susi/cluster.key (0600, `susi_config::cluster_key`); a pong must echo the requester's nonce, so a spoofed or replayed UDP answer can never promote a peer past `PeerAdmission::Discovered`. Verified peers persist in ~/.susi/peers.json and rehydrate as `Explicit` on restart. As of 2026-09-23, the quorum vote tolerates mid-vote churn via a pinned electorate (the Raft configuration-entry concept applied to one consensus round): supervise_mission snapshots the voter set at broadcast \u2014 local fleet names + PeerNode_<id> keys for every Explicit peer actually dispatched \u2014 and quorum_majority counts only pinned members, thresholding against the electorate's full size rather than the respondents. A peer dying mid-vote now shrinks the response set instead of silently lowering the quorum bar, and a peer admitted after the broadcast can never tilt the count. Commit replication landed (kernel-ABI commit_log module, vendored to all planes): every QUORUM_COMMIT is sealed into a CommitRecord (pinned electorate, tally, quorum threshold, SHA-256 value hash, HMAC-SHA256 signature under cluster.key), appended to ~/.susi/commit_log.jsonl, and pushed to each voting peer via the governed commit_record tool \u2014 receivers verify signature + quorum consistency before appending, so forged or below-quorum records fail closed. A coordinator crash mid-round no longer loses the decision, and commit_log exposes the ledger for audit. Leader election + per-coordinator ordering landed: SusiSupervisor::elect_leader is a deterministic bully election over the verified roster (highest trust, node_id tie-break) \u2014 every member converges on the same leader without a round-trip, and Discovered/inactive nodes can never lead. CommitRecord carries seq (per-coordinator monotonic, signed) and leader (elected at commit time); the commit_record receiver runs missing_seqs gap detection and surfaces replication gaps in the tool response, and susi commits shows SEQ per row. Anti-entropy repair landed: commit_record receivers that detect a seq gap resolve the coordinator's address through the new gawd.cluster.peers roster topic and pull missing records via commit_log_fetch, verifying each signature before append \u2014 lost replication now self-heals, and a peer that can't reach the coordinator surfaces the gap rather than hiding it. Append is now idempotent with equivocation detection: re-delivered records no-op (replication retries can't corrupt the count-based seq assignment), and a different cluster-signed record claiming an already-held (coordinator, seq) slot is refused as equivocation rather than silently ordering both. Term ordering landed: ~/.susi/term.json holds {term, leader}, bumped by claim_leadership on leader transitions and signed into every CommitRecord; commit_record rejects stale-term pushes (Raft's AppendEntries term check), adopts newer terms (step-down rule), and flags same-term leader conflicts \u2014 terms gate new writes while anti-entropy still fills old-term history. State-machine replay landed: commit_log::replay() folds the ledger into ClusterState (max term, leader, per-coordinator high-water seqs, anomalies) so any node holding the same records derives the same consensus view, and susi commits audit/replay plus the new `susi os` unified substrate view surface it to operators. What remains vs full Raft/Paxos: log-matching prevLogIndex/term check landed (each CommitRecord signs prev_epoch \u2014 its predecessor's epoch \u2014 and receivers refuse a divergent link as fork evidence while replay flags residual chain-breaks); Membership-change consensus landed 2026-09-24: roster deltas are committed to the replicated ledger as leader-signed `member_add`/`member_remove`/`member_unban` records (CommitRecord.kind \u2014 Raft's config-entry analog, sealed by susi peers add/remove/unban, pushed through the commit_record tool path, and applied to peers.json/peers_banned.json on append since the ledger IS applied state). Every node also gained a stable persisted identity (~/.susi/node_id, wire_node_id()) \u2014 previously all members shared the hardcoded susi-daemon-node id, collapsing per-coordinator seq namespaces and making elections non-deterministic; signed pings now carry the real node_id (7-field wire, 6-field back-compat + peers-add legacy fallback). Replay folds membership deltas into ClusterState.roster/banned so identical logs derive identical membership. Leader-proposed membership landed 2026-09-24: privileged records (member deltas, both rekey phases) are only applied when sealed by a coordinator claiming its own leadership (record.leader == record.coordinator) \u2014 Raft's leader-proposed configuration-entry rule; non-leader members delegate member_add through the member_propose tool. Ledger compaction landed the same day: commit_log::compact() folds the live ledger into commit_snapshot.json (high-water marks + derived state) and archives pre-snapshot records to commit_log.archive.jsonl, retaining per-coordinator anchor records so sealing/anti-entropy stay snapshot-unaware; replay seeds from the snapshot so compacted and uncompacted views are identical, commit_log_fetch + anti-entropy serve the archive, and below-floor arrivals dedup against it (identical \u2192 no-op, divergent \u2192 equivocation). Auto-compacts in the scout sweep at >2048 records; susi commits compact is the manual form. What remains vs full Raft/Paxos: no commit-index/apply phase (the ledger IS the applied state \u2014 a deliberate simplification, not a gap), and no true joint-consensus for membership transitions: under a shared symmetric key, multi-signatures are cryptographically meaningless (every member signs identically), so Raft's C_old,new safety needs per-member identity (PKI) to mean anything \u2014 leader-proposal + term gates bound a stale leader's divergence but cannot fully serialize overlapping config changes. The honest next step toward it was per-member signing keys \u2014 now landed (EV: tests/member_signing.rs): every node holds an Ed25519 identity at ~/.susi/node.key (0600); every sealed record carries member_sig (signature over the record HMAC), and a v2 handshake dialect (SUSI_PING_SIG2/PONG_SIG2, tried first with v1 fallback) attests each responder's pubkey so rosters bind member\u2192key on verified pong or committed member_add (member_pubkey, first-write-wins, key_bound_at=record.committed_at). Once bound, intake refuses records from that coordinator without a valid member_sig \u2014 a stolen cluster.key can no longer mint records as a bound member; pre-binding history still converges (committed_at < key_bound_at). Residuals documented in ARCHITECTURE.md: the pre-binding window, backdated committed_at, and proposer-attested member_pubkey are bounded but nonzero until binding is itself consensus-checked \u2014 the remaining step toward genuine joint consensus. As of 2026-09-24, the identity stack is complete end-to-end: endorsement-gated privileged records (bound-majority Ed25519 endorsements over `susi-endorse-v1:{signature}` \u2014 a stolen cluster.key alone can no longer add, remove, or rekey members), subject-signed key-binding attestations (v3 pong carries `bind_sig` over `susi-bind-v1:{node}:{pubkey}`; `member_add` intake refuses a `member_pubkey` without `subject_sig`), sequence floors (`key_bound_seq` closes the backdated-committed_at forgery window), body-bound v2 request signing (`susi-peer-req-v2` binds method:path:ts:nonce:sha256(body) over the exact wire bytes), pairwise confidentiality (X25519 ECDH + ChaCha20-Poly1305 on requests AND responses, fail-closed on downgrade), and persistent replay resistance (FileLock-serialized seen_nonces.jsonl, incremental tail-fold, 50k cap). Operator surfaces: `peers status` cluster-wide term/leader/epoch view with split-brain flags, `peers probe` non-destructive handshake diagnostics, subject-attestation + endorsement markers in `peers list`/`commits show`. State boundedness: every append-only file is now capped (ledger compaction+archive, context_graph 16MiB auto-compact with incremental replay, seen_nonces window+50k, reasoning_experience 4MB tail-cap, receipt_archive 16MB\u00d78 generations, supervisor/service logs single-gen rotation). Hot paths cache by mtime: roster rows, config, cluster.key/node.key/node_id/api_token/term.json \u2014 per-request file reads are down to stats. Identity files (cluster.key, node_id) are installed in full by staged hard-link; an empty file from an interrupted first start is regenerated instead of stranding the node in unsigned mode with an ephemeral id. The ban list fails closed everywhere it is consulted: a damaged peers_banned.json refuses admission and is never rewritten by a committed membership change. The verified roster is edited row by row and never rewritten from a damaged read, so one torn file or foreign row cannot erase every member.",
-      "type": "SWARM",
-      "vector": "Federated Cross-Node Consensus"
-    },
-    {
-      "depends_on": [
-        "VC-201-008"
-      ],
-      "id": "VC-200-002",
-      "mastery_target": "Autonomous Trait Patching",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-200-002.json, T-DEEPSEEK-50, 2026-10-04): under the documented reinterpretation - literal Rust trait patching is impossible in safe Rust - the hot-patch capability is delivered on the production path. ToolRegistry::execute_tool -> resolve_capability_gap -> ReflexSynthesizer::synthesize_capability_for (reached from crates/susi-gawd/src/evolution.rs and crates/susi-gawd/src/plane_handler.rs) asks the model for reflex source AND an intent-check spec, compiles to a staged name, runs the fixtures/invariants under the WASI sandbox via reflex_verify::run_checks, and publishes under the live reflex_<slug> name only when checks pass - wrong or crashing output stays unregistered. Verified by crates/susi-gawd/src/tests/vc_200_002.rs (6/6 passing: passing_fixtures_permit_registration, wrong_output_keeps_reflex_unregistered, execution_failure_is_a_failed_check, unverifiable_spec_is_rejected_at_parse, output_allowlist_bounds_every_observed_output, metamorphic_invariant_runs_when_declared) and exercised end to end by capability_gap_synthesizes_and_executes_reflex_through_execute_tool (crates/susi-daemon/tests/capability_gap_e2e.rs) through the real execute_tool path; hot-load needs no daemon restart (reflexes/*.wasm convention).",
-      "type": "CORE",
-      "vector": "Neural Self-Repair & Hot-Reload"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-201-001",
-      "mastery_target": "Create versioned coding, repair, orchestration, and local/cloud operations fixtures with input hashes and held-out splits; replay the same revision with recorded seeds and no evaluator-data exposure to the candidate.",
-      "priority": "P0",
-      "progress": "DELIVERED: graded intent ladder delivered (T-DEEPSEEK-200): versioned .agents/intent-ladder.json, bounded hermetic start-up slice + daily full run + 'susi admin intent-ladder', independent outcome checks, durable scorecard. Corpus structure verified (hash checks, typed splits, revision-bound replay). Production eval caller delivered (T-DEEPSEEK-234): 'susi tasks eval-corpus' loads a corpus, checks contamination, judges the candidate against the held-out suite, and records durable JSONL promotion evidence under .susi/eval_evidence.jsonl.",
-      "type": "RSI_EVALUATION",
-      "vector": "Version the RSI evaluation corpus"
-    },
-    {
-      "depends_on": [
-        "VC-201-001"
-      ],
-      "id": "VC-201-002",
-      "mastery_target": "Benchmark the installed release as an unchanged reference and candidates on the isolated dev instance; record commit, hardware, runtime, dataset, success rate, latency, tokens, and cost with reproducible commands.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::baseline_capture): the installed release captured as an unchanged reference with candidates measured on the isolated dev instance, recording commit, hardware, runtime, dataset, success, latency, tokens and cost with reproducible commands. Verified by `crates/susi-gawd/src/tests/vc_201_002.rs`: release_baseline_unchanged_reference, candidate_runs_on_dev_instance, records_required_fields_for_comparison. Evidence: T-CLAUDE-114.",
-      "type": "RSI_EVALUATION",
-      "vector": "Capture a reproducible released baseline"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-002"
-      ],
-      "id": "VC-201-003",
-      "mastery_target": "Publish separate quality, reliability, latency, resource, and operator-effort measures with predeclared comparison thresholds; report uncertainty and never equate task count with a percentage improvement.",
-      "priority": "P0",
-      "progress": "DELIVERED: five gated dimensions with uncertainty bands, predeclared spec bounds, sample floor, task-count-is-not-a-percent \u2014 and the scorecard gates the production eval-corpus promotion path via the durable ExperimentLog. Verified by crates/susi-gawd/src/tests/vc_201_003_mastery.rs (7 tests).",
-      "type": "RSI_EVALUATION",
-      "vector": "Define a measurable improvement scorecard"
-    },
-    {
-      "depends_on": [
-        "VC-201-001"
-      ],
-      "id": "VC-201-004",
-      "mastery_target": "Each evaluation receipt identifies source revision, binary or Wasm digest, suite revision, environment, and actual exit status; a changed artifact or missing receipt invalidates the comparison.",
-      "priority": "P0",
-      "progress": "DELIVERED: evaluation receipts bind source revision, artifact digest, suite revision, environment and actual exit status; a changed artifact or a missing receipt invalidates the comparison. Verified by `crates/susi-gawd/src/tests/vc_201_004.rs`: receipt_identifies_revision_digest_suite_env_exit, changed_artifact_invalidates_comparison, missing_receipt_invalidates. Evidence: T-CLAUDE-116.",
-      "type": "RSI_EVALUATION",
-      "vector": "Bind evaluation receipts to candidate artifacts"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-004"
-      ],
-      "id": "VC-201-005",
-      "mastery_target": "Run the evaluator with held-out inputs and write permissions unavailable to the candidate; demonstrate that a patch altering its own expected results cannot satisfy the promotion gate.",
-      "priority": "P0",
-      "progress": "DELIVERED: judging is separated from generation \u2014 the gate evaluates actual output against corpus-verified held-out truth, invented expectations and write-flagged runs fail closed, and the eval-corpus production path (where the candidate is inert data) runs it end to end with durable experiment evidence. Verified by crates/susi-gawd/src/tests/vc_201_005_mastery.rs (5 tests).",
-      "type": "RSI_EVALUATION",
-      "vector": "Separate candidate generation from judging"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-002"
-      ],
-      "id": "VC-201-006",
-      "mastery_target": "Compare baseline and candidate over repeated paired trials with configured confidence and minimum sample counts; noisy or undersampled results return inconclusive rather than improved.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::paired_regression): paired-trial regression decisions at a configured confidence with a minimum sample count; a noisy pair or an undersampled run returns inconclusive rather than improved. Verified by `crates/susi-gawd/src/tests/vc_201_006.rs`: clear_improvement_decides_improved, noisy_pair_is_inconclusive, undersampled_is_inconclusive. Evidence: T-CLAUDE-354.",
-      "type": "RSI_EVALUATION",
-      "vector": "Add paired statistical regression decisions"
-    },
-    {
-      "depends_on": [
-        "VC-201-004",
-        "VC-201-005"
-      ],
-      "id": "VC-201-007",
-      "mastery_target": "Extend the existing compile-and-probe path with independent intent fixtures, malformed-input checks, and output assertions before registration; reject an executable signature-echo or semantically wrong reflex.",
-      "priority": "P0",
-      "progress": "DELIVERED: reflex intent probes now compile candidates to wasm32-wasip1 in private staging, execute the artifact through the native sandbox, reject compilation and execution failures, detect signature echo from observed output, exercise malformed inputs, and assert expected output. Functional synthesis invokes the independent compiled probe after its intent checks and before publication. Verified by `crates/susi-gawd/src/reflex_intent.rs`, `crates/susi-gawd/src/reflex_synth.rs`, `crates/susi-gawd/src/tests/vc_201_007.rs` and `crates/susi-gawd/src/tests/vc_201_007_mastery.rs` (cargo test -p susi-gawd vc_201_007 --locked). Evidence: T-DEVIN20261002053148-19.",
-      "type": "RSI_EVALUATION",
-      "vector": "Verify synthesized reflex intent correctness"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-004"
-      ],
-      "id": "VC-201-008",
-      "mastery_target": "Attach independently reviewed invariants to eligible pure reflexes and state machines using proptest; minimized counterexamples reproduce against the exact failing artifact.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::intent_invariants): eligible pure reflexes and state machines carry allowlisted property and metamorphic invariants, and a minimized counterexample reproduces against the exact failing artifact. Verified by `crates/susi-gawd/src/tests/vc_201_008.rs`: allowlist_rejects_unknown, counterexample_reproduces, metamorphic_whitespace_holds. Evidence: T-CLAUDE-355.",
-      "type": "RSI_EVALUATION",
-      "vector": "Generate property and metamorphic intent checks"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-005"
-      ],
       "id": "VC-201-009",
       "mastery_target": "Track evaluation-data access and overlaps between training, memory, and held-out fixtures; a contaminated run is excluded from improvement evidence with an inspectable reason.",
       "priority": "P1",
@@ -129,96 +15,7 @@
       "vector": "Detect evaluation contamination"
     },
     {
-      "depends_on": [
-        "VC-201-003",
-        "VC-201-006",
-        "VC-201-007",
-        "VC-201-009"
-      ],
-      "id": "VC-201-010",
-      "mastery_target": "Expose candidate-versus-baseline metrics and receipt links through CLI and machine-readable output; failed, inconclusive, and rejected trials remain visible alongside successful ones.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::rsi_comparisons): candidate-versus-baseline comparisons publish every outcome, so failed, inconclusive and rejected trials stay visible alongside successful ones. Verified by `crates/susi-gawd/src/tests/vc_201_010.rs`: publishes_all_outcomes, with the evidence-ranking companion `crates/susi-gawd-agents/src/brain_ranking.rs` (powerful_cloud_brain_ranking_is_task_class_specific, powerful_cloud_brain_ranking_self_reported_never_counts, powerful_cloud_brain_ranking_current_failure_excludes_leadership). Evidence: T-CLAUDE-357, T-CODEX-25.",
-      "type": "RSI_EVALUATION",
-      "vector": "Publish evidence-backed RSI experiment comparisons"
-    },
-    {
-      "depends_on": [
-        "VC-201-004"
-      ],
-      "id": "VC-201-011",
-      "mastery_target": "Implement proposed, isolated, evaluated, rejected, and promotion-ready states with durable transitions; kill-and-resume tests neither skip evaluation nor duplicate an applied transition.",
-      "priority": "P0",
-      "progress": "DELIVERED: durable per-experiment lifecycle (Proposed->Isolated->Evaluated->Rejected/PromotionReady) with kill-and-resume, duplicate-edge refusal and a failed-leg exit \u2014 and a production caller: the eval-corpus path advances each candidate's experiment under .susi/experiments/. Verified by crates/susi-gawd/src/tests/vc_201_011_mastery.rs (5 tests).",
-      "type": "RSI_EXECUTION",
-      "vector": "Persist the self-improvement experiment lifecycle"
-    },
-    {
-      "depends_on": [
-        "VC-201-003",
-        "VC-201-011"
-      ],
-      "id": "VC-201-012",
-      "mastery_target": "Turn recurring typed failures into deduplicated proposals ranked by measured frequency, user impact, and expected evaluation cost; one failure pattern produces one active proposal with receipt links.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::gap_priority): recurring typed failures become deduplicated proposals ranked by measured impact, with one active proposal per failure pattern and rejected repeats blocked. Verified by `crates/susi-gawd/src/tests/vc_201_012.rs`: dedupes_and_ranks_by_impact, with companions `crates/susi-gawd/src/brain_gap_dedup.rs` (recurrence_linked_followup, rejected_repeat_blocked, concurrent_no_duplicate, ranking_records_uncertainty), `brain_gap_tasks.rs` (gap_becomes_published_task, hypothesis_cannot_publish) and `cloud_rsi.rs` (proposals_dedups_existing_and_batch, proposals_fabricated_evidence_and_bad_vector_rejected). Evidence: T-CLAUDE-358, T-CODEX-16, T-CODEX-29, T-CODEX-30, T-CODEX-31. Extended (T-DEEPSEEK-201): a ladder failure becomes a repair task whose acceptance is the failing intent, wired into both scheduled runs. Verified by `crates/susi-gawd/src/tests/gap_task_from_failure.rs`.",
-      "type": "RSI_EXECUTION",
-      "vector": "Prioritize capability gaps by observed impact"
-    },
-    {
-      "depends_on": [
-        "VC-201-011"
-      ],
-      "id": "VC-201-013",
-      "mastery_target": "Create a candidate checkout with explicit path and command scope for each experiment; concurrent experiments preserve user changes and cannot write the installed release or another experiment's workspace.",
-      "priority": "P0",
-      "progress": "DELIVERED: apply_patch_cycle stages each isolated candidate in a PatchFence workspace (a full copy under root/patches/<patch-id>-<nonce>), applies and runs the declared test command or the mandatory repository gate inside it, and promotes the declared files into the live tree only on pass under a fresh staleness check and transaction; a failed run leaves the workspace byte-identical and the fence retained as evidence. cloud_rsi::apply_plan always isolates model-authored patches by brief.task_id, so the autonomous path is fenced by construction; susi patch accepts the isolate field from the request file. Mastery tests pin fenced execution, promotion-on-pass, failure isolation, disjoint sibling workspaces, and path confinement. Limitation: the fence is a filesystem namespace, not a syscall sandbox.",
-      "type": "RSI_EXECUTION",
-      "vector": "Fence autonomous patches into isolated workspaces"
-    },
-    {
-      "depends_on": [
-        "VC-201-011",
-        "VC-201-013"
-      ],
-      "id": "VC-201-014",
-      "mastery_target": "Reserve and debit tokens, wall time, subprocesses, and cloud spend across retries and delegated descendants; exhausting a budget durably stops new work and cancels eligible children.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::experiment_budget): cumulative experiment budgets reserve and debit across retries, and exhaustion durably stops new work and cancels eligible children. Verified by `crates/susi-gawd/src/tests/vc_201_014.rs`: reserve_and_debit_across_retries, exhaustion_stops_new_work_and_cancels_children; companions in `crates/susi-gawd/src/cloud_rsi_lifecycle.rs` (spend_cap_refuses_overspend, cancel_and_reject_are_terminal). Evidence: T-CLAUDE-121.",
-      "type": "RSI_EXECUTION",
-      "vector": "Enforce cumulative RSI experiment budgets"
-    },
-    {
-      "depends_on": [
-        "VC-201-004",
-        "VC-201-013"
-      ],
-      "id": "VC-201-015",
-      "mastery_target": "Run cargo fmt --all --check, cargo clippy --workspace --all-targets --locked -- -D warnings, and cargo test --workspace --locked against the candidate; missing, skipped, or failing checks prevent promotion readiness.",
-      "priority": "P0",
-      "progress": "DELIVERED: promotion readiness requires executed fmt/clippy/workspace-test reports \u2014 transcripts are diagnostic-only and fail closed on conflicts, the gate command match is exact, and the production patch path executes run_repository_gate on the self-build repo (override commands cannot bypass). Verified by crates/susi-gawd/src/tests/vc_201_015_mastery.rs (6 tests).",
-      "type": "RSI_EXECUTION",
-      "vector": "Gate self-patches on the full repository checks"
-    },
-    {
-      "depends_on": [
-        "VC-201-007",
-        "VC-201-011",
-        "VC-201-013"
-      ],
-      "id": "VC-201-016",
-      "mastery_target": "Store source, compiler, Wasm digest, intent tests, and grants per reflex revision; pinned callers retain their revision while revocation blocks new execution and rollback restores a previously verified artifact.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::reflex_revisions): reflex revisions are versioned and revocable - a pinned caller keeps its revision across revocation, and rollback restores the previously verified artifact. Verified by `crates/susi-gawd/src/tests/vc_201_016.rs`: pin_survives_revoke_for_caller, rollback_restores_pin. Evidence: T-CLAUDE-359.",
-      "type": "RSI_EXECUTION",
-      "vector": "Version and revoke generated reflexes"
-    },
-    {
-      "depends_on": [
-        "VC-201-006",
-        "VC-201-014",
-        "VC-201-015"
-      ],
+      "depends_on": [],
       "id": "VC-201-017",
       "mastery_target": "Compare a candidate on ~/.susi-dev and ports 9190-9194 using an isolated evaluation workload; crossing a declared regression limit stops the trial without replacing the installed release.",
       "priority": "P1",
@@ -227,22 +24,7 @@
       "vector": "Run candidate canaries on the dev instance"
     },
     {
-      "depends_on": [
-        "VC-201-015",
-        "VC-201-017"
-      ],
-      "id": "VC-201-018",
-      "mastery_target": "A passing experiment produces a reviewable release candidate and evidence manifest; only susi release and scripts/susi-release-sync.sh promote tagged builds, and attempts to install target/ binaries into ~/.susi/bin are rejected.",
-      "priority": "P0",
-      "progress": "DELIVERED: a PromotionReady experiment now produces its reviewable release candidate and evidence manifest under .susi/release-candidates/<id>.json on the production evaluate_and_record path; the manifest binds eval evidence, corpus revision, measured scorecard, the predeclared promotion spec and ALLOWED_PROMOTERS, and the recorded decision is decide_promotion's own. produce_release_candidate requires a real verified Verification; decide_promotion trims evidence/digest before the emptiness check; rejects_target_install checks the destination component-wise and treats a relative dest as forbidden; the release-sync path builds in a private release-src tree so target/ binaries cannot reach ~/.susi/bin. Residual: deliver_candidate's PR/release automation has no production caller.",
-      "type": "RSI_EXECUTION",
-      "vector": "Connect RSI promotion to release-only self-build"
-    },
-    {
-      "depends_on": [
-        "VC-201-010",
-        "VC-201-011"
-      ],
+      "depends_on": [],
       "id": "VC-201-019",
       "mastery_target": "Store failure causes, counterexamples, and proposal lineage in scoped experiment memory; repeated proposals must address the previous rejection or explicitly declare new evidence.",
       "priority": "P1",
@@ -251,351 +33,7 @@
       "vector": "Learn from failed and rejected experiments"
     },
     {
-      "depends_on": [
-        "VC-201-010",
-        "VC-201-014",
-        "VC-201-018",
-        "VC-201-019"
-      ],
-      "id": "VC-201-020",
-      "mastery_target": "Run at least three successive candidate generations on a fixed held-out suite with unchanged gates; publish each generation's deltas, budget, and rejection history and stop on non-improvement or regression.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::rsi_generations): successive generations are validated on a fixed held-out suite with unchanged gates - at least three generations are required before a stop is allowed, and a regression stops the run. Verified by `crates/susi-gawd/src/tests/vc_201_020.rs`: requires_three_generations_then_can_stop, regression_stops, with companions `crates/susi-gawd/src/cloud_rsi_e2e.rs` (successive_generations_measured_improvement, report_never_counts_suggestions_as_progress, unverified_generation_claims_no_improvement) and `brain_gap_e2e.rs` (observable_gap_mints_executable_roadmap_task, concurrent_discovery_single_record). Evidence: T-CLAUDE-362, T-CODEX-22, T-CODEX-34, T-DEVIN-3.",
-      "type": "RSI_EXECUTION",
-      "vector": "Validate multiple generations of recursive improvement"
-    },
-    {
       "depends_on": [],
-      "id": "VC-201-021",
-      "mastery_target": "Persist task inputs, dependencies, outputs, and terminal states for supported mission types; restarting between dependency completion and dispatch resumes runnable work without treating unfinished nodes as complete.",
-      "priority": "P0",
-      "progress": "DELIVERED: mission DAG inputs, dependencies, outputs and terminal states persist, and a restart between dependency completion and dispatch resumes runnable work without treating an unfinished node as complete. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_021.rs`: persist_and_resume_runnable_after_restart, running_not_treated_as_complete_on_reload, refuse_dispatch_before_deps, plus the mission_dag_persist_wiring check. Evidence: T-CLAUDE-124, T-INTELLIBITZ-5.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Persist executable mission DAG state"
-    },
-    {
-      "depends_on": [
-        "VC-201-021"
-      ],
-      "id": "VC-201-022",
-      "mastery_target": "Assign expiring ownership and monotonic fencing tokens to dispatched tasks; a recovered or partitioned worker with an old token cannot publish authoritative task completion.",
-      "priority": "P0",
-      "progress": "DELIVERED: dispatched tasks carry expiring ownership and monotonic fencing tokens; an expired owner, a wrong owner or a stale fence cannot publish authoritative completion after reassignment. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_022.rs`: dispatch_assigns_expiring_ownership_and_fence, expired_or_wrong_owner_rejected, stale_fence_cannot_complete_after_reassign, plus the task_lease_dispatch_wiring check. Evidence: T-CLAUDE-125, T-CODEX-11, T-INTELLIBITZ-20, T-INTELLIBITZ-21, T-INTELLIBITZ-6.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Fence swarm task ownership with durable leases"
-    },
-    {
-      "depends_on": [
-        "VC-201-021",
-        "VC-201-022"
-      ],
-      "id": "VC-201-023",
-      "mastery_target": "Declare read-only, idempotent, reconcilable, and non-retryable tool actions; crash tests retry only supported actions and surface uncertain external effects for reconciliation.",
-      "priority": "P0",
-      "progress": "DELIVERED: tool actions declare read-only, idempotent, reconcilable and non-retryable classes; crash replay retries only supported classes and surfaces uncertain external effects for reconciliation. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_023.rs`: retry_only_supported_classes, idempotent_retries_cleanly, non_retryable_surfaces_uncertain_external, plus the side_effects_dispatch_wiring check. Evidence: T-CLAUDE-126, T-INTELLIBITZ-7.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Classify and reconcile task side effects"
-    },
-    {
-      "depends_on": [
-        "VC-201-021"
-      ],
-      "id": "VC-201-024",
-      "mastery_target": "Use measured CPU, GPU memory, model readiness, and tool grants to admit runnable DAG nodes; oversubscribed fixtures queue work and never exceed declared resource reservations.",
-      "priority": "P1",
-      "progress": "DELIVERED: DAG admission uses measured CPU, GPU memory and model readiness, with oversubscribed work queued and the declared reservation never exceeded. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_024.rs`: queues_when_oversubscribed, never_exceeds_reservation, plus the resource_schedule_dispatch_wiring check, the measured-capacity admission in `crates/susi-gawd-swarm/src/capacity_admission.rs` (measures_real_host, model_readiness_is_measured, unmeasured_gpu_fails_closed), and parallel_working_models_* (bounded_concurrency_queues_fairly, shared_account_is_one_quota_pool). Evidence: T-CLAUDE-363, T-CODEX-9, T-INTELLIBITZ-8.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Schedule by live resource and capability constraints"
-    },
-    {
-      "depends_on": [
-        "VC-201-021",
-        "VC-201-024"
-      ],
-      "id": "VC-201-025",
-      "mastery_target": "Apply configurable per-workspace concurrency and queue limits with aging or weighted fairness; sustained load from one mission cannot indefinitely starve another admitted mission.",
-      "priority": "P1",
-      "progress": "DELIVERED: bounded fair queues apply configurable concurrency and queue limits - aging prevents starvation and an over-full queue is rejected rather than growing without bound. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_025.rs`: aging_prevents_starvation, rejects_when_queue_full, plus the fair_queue_dispatch_wiring check and parallel_model_admission_* (fifo_queue_no_starvation, bounded_queue_rejects_overflow, exhausted_account_never_blocks_others). Evidence: T-CLAUDE-364, T-CODEX-10, T-INTELLIBITZ-18.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Add bounded fair queues for concurrent missions"
-    },
-    {
-      "depends_on": [
-        "VC-201-014",
-        "VC-201-021",
-        "VC-201-022"
-      ],
-      "id": "VC-201-026",
-      "mastery_target": "Carry cancellation and remaining deadlines through local workers, external agents, peer dispatch, and model calls; integration tests terminate cancellable descendants and report any irreversibly running remote job.",
-      "priority": "P0",
-      "progress": "DELIVERED: cancellation and remaining deadlines propagate through the swarm, cancellable descendants are terminated, and an irreversibly running remote job is reported rather than claimed stopped. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_026.rs`: cancels_cancellable_descendants_and_reports_irreversible, deadline_remaining_propagates, with cancel_terminates_* companions and the cancel_propagate_dispatch_wiring check. Evidence: T-CLAUDE-127, T-INTELLIBITZ-9.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Propagate cancellation through the entire swarm"
-    },
-    {
-      "depends_on": [
-        "VC-201-021",
-        "VC-201-024"
-      ],
-      "id": "VC-201-027",
-      "mastery_target": "Choose implementer, verifier, and specialist roles using measured task suitability and granted capabilities; controlled benchmarks report when extra agents improve outcomes and when single-agent execution is cheaper.",
-      "priority": "P1",
-      "progress": "DELIVERED: implementer, verifier and specialist roles are selected from the native fleet by measured task suitability, an independent verifier is required, and the case where a single agent is cheaper is reported rather than hidden. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_027.rs`: picks_independent_verifier_and_specialist, requires_independent_verifier, reports_when_single_agent_cheaper, plus native_role_select_wiring, parallel_roadmap_e2e_* (moved to susi-frontier-lab with the roadmap agents, 2026-11-08, T-SWARMMOVE-1) and `crates/susi-gawd-swarm/src/brain_coordination.rs` (powerful_cloud_brain_parallel_*). Evidence: T-CLAUDE-365, T-CODEX-15, T-CODEX-24, T-CODEX-27, T-INTELLIBITZ-10.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Select complementary swarm roles from evidence"
-    },
-    {
-      "depends_on": [
-        "VC-201-005",
-        "VC-201-021"
-      ],
-      "id": "VC-201-028",
-      "mastery_target": "Bind review conclusions to tool receipts and reviewer provenance; duplicate outputs or the implementer's own unsupported assertion cannot satisfy an independent verification requirement.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-08, susi-frontier-lab::agent_integration with roadmap_agents, T-SWARMMOVE-1; its seven swarm_gap_verified_closure regressions run there): native worker closure now requires a test-shaped acceptance with nonzero observed tests, exact source revision provenance, dependency clearance, an authenticated independent verifier, and a canonical review receipt binding reviewer, implementer, task, tool, argv digest, result digest, and commit SHA. Review receipts are stored under the fenced job ledger; dispatch output alone cannot finish work, and the MissionDag Independent Verify node now consumes the same bound conclusion path. Verified by seven nonzero production-entry regressions in `crates/susi-gawd-swarm/src/tests/swarm_gap_verified_closure.rs` covering missing gates, zero-test acceptance, forged receipts, reviewer aliases/self-review, SHA drift, failed acceptance, and genuine stored closure. Evidence: T-CODEXSWARMGAPS-8.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Require independent evidence for swarm verification"
-    },
-    {
-      "depends_on": [
-        "VC-201-021",
-        "VC-201-023",
-        "VC-201-028"
-      ],
-      "id": "VC-201-029",
-      "mastery_target": "Stage agent patches against a known base and detect overlapping changes before applying them; conflicting edits produce a reviewable conflict while unrelated user modifications are preserved.",
-      "priority": "P1",
-      "progress": "DELIVERED: the persisted MissionDag production entry now runs every mutating node in its own fenced, synced worker scope, executes tool calls only inside that scope, folds changes back sequentially with compare-and-swap conflict detection, quarantines stale scopes, and preserves unrelated/dirty workspace edits. The existing task-queue lifecycle supplies claimed isolated worktrees and verified integration; this dispatch boundary now consumes the same isolation contract. Verified by nonzero production-entry regressions in `crates/susi-gawd-swarm/src/tests/swarm_gap_workspace_isolation.rs`: parallel_dag_writers_use_private_scopes, conflicting_dag_writers_never_overwrite, stale_scope_is_quarantined_and_dirty_primary_survives, and unrelated_scopes_merge_without_index_loss. Evidence: T-CODEXSWARMGAPS-2.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Resolve concurrent workspace edits transactionally"
-    },
-    {
-      "depends_on": [
-        "VC-201-021",
-        "VC-201-022",
-        "VC-201-023",
-        "VC-201-026"
-      ],
-      "id": "VC-201-030",
-      "mastery_target": "Provide CLI and API views of blocked, running, cancelled, uncertain, and completed DAG nodes with recovery actions; a restart drill resumes only supported work and never reports partial success as full completion.",
-      "priority": "P1",
-      "progress": "DELIVERED: mission resume exposes blocked, running, cancelled, uncertain and completed node views with recovery actions, and a partial run is never reported as full completion. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_030.rs`: all_completed_is_full_success, partial_never_reports_full_success, cancelled_uncertain_views, plus the mission_resume_cli_wiring check, `crates/susi-gawd-swarm/src/jobs_status.rs` (parallel_jobs_status_partial_never_reports_success) and `worker_recovery.rs`. 2026-11-17: core's unreached worker_recovery.rs was removed (T-CORESIZEVAULT-7); a copy compiles in susi-commercial-apps susi-frontier-lab migrated. Evidence: T-CLAUDE-367, T-CODEX-12, T-CODEX-14, T-CODEX-28, T-CODEX-33, T-INTELLIBITZ-12.",
-      "type": "SWARM_EXECUTION",
-      "vector": "Expose durable mission resume and partial outcomes"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-201-031",
-      "mastery_target": "Build a deterministic model of the existing signed roster and commit rules with reordered messages, partitions, and restarts; preserve discovered counterexamples and document the exact safety properties the implementation satisfies.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::membership_model): a deterministic model of the signed roster and commit rules, checked over exhaustive message schedules; reordered claims do not inflate terms, and a partition that reconnects adopts the higher term without split brain. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_031.rs`: exhaustive_message_schedules_preserve_sp3, reordered_claims_same_leader_no_term_inflation, partition_allows_divergent_terms_reconnect_adopts_higher, leadership_change_bumps_term, safety_properties_documented. Evidence: T-CLAUDE-129, T-CURSOR-1.",
-      "type": "FEDERATION",
-      "vector": "Model-check membership and term transitions"
-    },
-    {
-      "depends_on": [
-        "VC-201-031"
-      ],
-      "id": "VC-201-032",
-      "mastery_target": "Extend existing member signatures and endorsements with serialized old/new electorate transitions; overlapping add/remove operations cannot commit disjoint active rosters under the documented fault model.",
-      "priority": "P0",
-      "progress": "DELIVERED: joint-consensus membership transitions require a quorum from both the old and the new electorate, so overlapping add/remove operations cannot commit disjoint active rosters. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_032.rs`: joint_quorum_required_from_old_and_new, overlapping_disjoint_rosters_cannot_both_commit, serialized_same_new_roster_ok, plus the joint_consensus_membership_wiring check. Evidence: T-CLAUDE-130, T-INTELLIBITZ-13.",
-      "type": "FEDERATION",
-      "vector": "Implement joint-consensus membership transitions"
-    },
-    {
-      "depends_on": [
-        "VC-201-031",
-        "VC-201-032"
-      ],
-      "id": "VC-201-033",
-      "mastery_target": "Commit node-key rotation and revocation with old/new key authorization and quorum checks; revoked credentials fail after restart while historical signed records remain verifiable.",
-      "priority": "P0",
-      "progress": "DELIVERED: node-key rotation and revocation commit with quorum; revoked credentials fail after restart while historical signed records remain verifiable. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_033.rs`: rotation_requires_quorum, revoke_fails_after_restart_history_verifiable, enrollment_requires_token_and_mtls, plus the node_enrollment_production check. Evidence: T-CLAUDE-131, T-INTELLIBITZ-14.",
-      "type": "FEDERATION",
-      "vector": "Revoke compromised peer identities durably"
-    },
-    {
-      "depends_on": [
-        "VC-201-031"
-      ],
-      "id": "VC-201-034",
-      "mastery_target": "Advertise supported wire and ledger versions with explicit minimum security requirements; mixed-version tests accept compatible peers and reject unsupported or insecure downgrades with actionable errors.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::federation_compat): federation advertisement negotiates supported wire and ledger versions against explicit minimum security requirements - a compatible peer is accepted and an unsupported or insecure downgrade is rejected. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_034.rs`: accepts_compatible_peer, rejects_unsupported_and_insecure_downgrade. Evidence: T-CLAUDE-368.",
-      "type": "FEDERATION",
-      "vector": "Negotiate federation protocol compatibility"
-    },
-    {
-      "depends_on": [
-        "VC-201-022",
-        "VC-201-031",
-        "VC-201-032"
-      ],
-      "id": "VC-201-035",
-      "mastery_target": "Tie task leases and authoritative mission writes to accepted leadership epochs; partition and reconnect tests reject stale-coordinator writes and preserve the surviving mission state.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::coordinator_fence): task leases and authoritative mission writes are tied to accepted leadership epochs - a stale coordinator after failover and a wrong coordinator in the same epoch are both rejected. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_035.rs`: rejects_stale_coordinator_after_failover, wrong_coordinator_same_epoch_rejected. Evidence: T-CLAUDE-369.",
-      "type": "FEDERATION",
-      "vector": "Fence coordinator failover during live missions"
-    },
-    {
-      "depends_on": [
-        "VC-201-031",
-        "VC-201-032"
-      ],
-      "id": "VC-201-036",
-      "mastery_target": "Bootstrap a new peer from a signed snapshot manifest plus verified ledger tail; reject tampered state, missing anchors, and roster histories that cannot establish the snapshot's authority.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::snapshot_bootstrap): peer bootstrap accepts a signed snapshot manifest with a verified ledger tail and rejects tampered state, missing anchors and roster histories that cannot establish the snapshot's authority. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_036.rs`: accepts_signed_snapshot, rejects_tampered_missing_unauthorized. Evidence: T-CLAUDE-370.",
-      "type": "FEDERATION",
-      "vector": "Authenticate snapshot-based peer bootstrap"
-    },
-    {
-      "depends_on": [
-        "VC-201-031",
-        "VC-201-036"
-      ],
-      "id": "VC-201-037",
-      "mastery_target": "Add bounded batches, rate limits, and resumable cursors to existing ledger repair; a lagging peer converges after interruption without unbounded memory or starving foreground missions.",
-      "priority": "P1",
-      "progress": "DELIVERED: anti-entropy catch-up runs in bounded batches under a rate limit with disk-persisted resumable cursors, so an interrupted sweep resumes and a lagging peer still converges without starving foreground work. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_037.rs`: converges_in_bounded_batches, rate_limit_starves_nothing_and_still_converges, interrupted_sweep_resumes_from_cursor, cursor_roundtrips_through_disk, admit_gate_filters_without_stalling_cursor. Evidence: T-CLAUDE-371.",
-      "type": "FEDERATION",
-      "vector": "Bound anti-entropy catch-up under sustained load"
-    },
-    {
-      "depends_on": [
-        "VC-201-033",
-        "VC-201-034"
-      ],
-      "id": "VC-201-038",
-      "mastery_target": "Support pinned remote endpoints and authenticated relay or direct transport through the existing peer contract; reconnect tests preserve identity, confidentiality, replay checks, and operator egress policy.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::wan_peers): pinned WAN peers and relays are admitted only within the configured egress policy, and a replayed nonce or a wrong endpoint, transport or identity is refused. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_038.rs`: pinned_direct_peer_admits_and_reconnects, replay_nonce_is_refused, wrong_endpoint_transport_or_identity_is_refused, egress_policy_bounds_pinned_endpoints_and_relays. Evidence: T-CLAUDE-372.",
-      "type": "FEDERATION",
-      "vector": "Admit explicitly configured WAN peers"
-    },
-    {
-      "depends_on": [
-        "VC-201-024",
-        "VC-201-034",
-        "VC-201-038"
-      ],
-      "id": "VC-201-039",
-      "mastery_target": "Score eligible peers using dataset location, verified capabilities, available resources, and residency constraints; a local-only dataset cannot be moved or routed off its permitted hosts.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::locality_placement): federated placement scores peers by data locality, verified capability, resource and residency gates; an unverified capability is rejected rather than scored, and a local-only dataset never moves off its permitted hosts. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_039.rs`: locality_score_prefers_data_on_host, local_only_dataset_never_moves_off_permitted_hosts, region_residency_and_resource_gates, unverified_capability_is_rejected_not_scored. Evidence: T-CLAUDE-373.",
-      "type": "FEDERATION",
-      "vector": "Place federated tasks by data locality"
-    },
-    {
-      "depends_on": [
-        "VC-201-032",
-        "VC-201-033",
-        "VC-201-034",
-        "VC-201-035",
-        "VC-201-036",
-        "VC-201-037",
-        "VC-201-038",
-        "VC-201-039"
-      ],
-      "id": "VC-201-040",
-      "mastery_target": "Exercise partitions, clock skew, duplicate delivery, stale keys, failed rekeys, mixed versions, and crash recovery against real dev nodes; archive traces and explicitly enumerate unsupported failure guarantees.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command): the multi-node fault matrix covers partitions, clock skew, duplicate delivery, stale keys, failed rekeys, mixed versions and crash recovery; every guard holds, traces are archived, and unsupported guarantees are enumerated explicitly. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_040.rs`: matrix_covers_the_full_fault_catalogue, every_guard_holds, trace_archive_roundtrips, unsupported_guarantees_are_enumerated. Evidence: T-CLAUDE-374.",
-      "type": "FEDERATION",
-      "vector": "Run a multi-node federation fault matrix"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-201-041",
-      "mastery_target": "Unify actual CPU, RAM, GPU, VRAM, disk, model, and runtime observations with timestamps and provenance; unavailable probes are unknown rather than zero or fabricated readiness.",
-      "priority": "P0",
-      "progress": "DELIVERED: production local_ecosystem report composes ResourceInventory (per-field Observation provenance + timestamps; unmeasured = Unknown) plus a sanitized hardware section \u2014 HardwareProfile::report_json stamps observed_unix, attaches provenance, and publishes null instead of fabricated zeros for cpus/ram_gb/gpu_vram_gb/disk_gb. Mastery: vc_201_041_mastery across susi-vendor-models, susi-gemi-models and susi-daemon. Residuals: in-process consumers still see the raw cached profile; string fields report empty not null on probe failure.",
-      "type": "LOCAL_HOSTING",
-      "vector": "Publish an observed local AI resource inventory"
-    },
-    {
-      "depends_on": [
-        "VC-201-041"
-      ],
-      "id": "VC-201-042",
-      "mastery_target": "Exercise discover, load, ready, infer, cancel, unload, and health behavior for supported native and HTTP-managed runtimes; unsupported operations return typed errors and process presence alone cannot establish readiness.",
-      "priority": "P1",
-      "progress": "DELIVERED: lifecycle contract now drives both runtime classes \u2014 HTTP-managed daemons via local_ecosystem::scan (T-212), native susi-gemi engines + InferenceHost via native_lifecycle::infer_via_contract on the production local-inference path (T-231).",
-      "type": "LOCAL_HOSTING",
-      "vector": "Conform local runtimes to one lifecycle contract"
-    },
-    {
-      "depends_on": [
-        "VC-201-024",
-        "VC-201-041",
-        "VC-201-042"
-      ],
-      "id": "VC-201-043",
-      "mastery_target": "Coordinate model loads and inference reservations using measured memory headroom; concurrent load and out-of-memory tests release reservations and preserve a responsive control plane.",
-      "priority": "P0",
-      "progress": "DELIVERED: production AdmissionController (persisted_default) derives limits from measured host capacity; the nvidia-smi accelerator probe plus AccelPool headroom rule gates admit and probe; unmeasured VRAM fails closed with SUSI_ADMIT_* operator escapes; concurrent reservations release on Ticket drop and persist across controller reload. Mastery: vc_201_043_mastery (5 tests). Residuals: NVIDIA-only probe, logical reservations, fixed 5% headroom. Moved 2026-11-17: controller and suite run in susi-commercial-apps susi-frontier-lab (T-CORESIZEVAULT-4); core keeps accel_reserve.",
-      "type": "LOCAL_HOSTING",
-      "vector": "Reserve accelerator memory before model admission"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-042"
-      ],
-      "id": "VC-201-044",
-      "mastery_target": "Extend managed installation with resumable content verification and staging; interrupted or checksum-mismatched downloads never appear as ready models and disk-full failures leave recoverable state.",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-201-044.json, T-DEEPSEEK-253): transactional_download::Store::publish stages, verifies checksums, and resumes/recovers from interrupted downloads; resumable_downloads.rs adds range requests and checksum verification. A checksum mismatch quarantines the artifact and it never appears ready; an interrupted download preserves recoverable state (crates/susi-vendor-models/src/tests/vc_201_044_mastery.rs).",
-      "type": "LOCAL_HOSTING",
-      "vector": "Publish model downloads transactionally"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-042",
-        "VC-201-043"
-      ],
-      "id": "VC-201-045",
-      "mastery_target": "Measure representative candidate formats and quantizations on the actual host with correctness and memory checks; recommendations identify their measurements and reject unsupported format/backend combinations.",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-201-045.json, T-DEEPSEEK-254): the benchmark harness records tokens/sec and latency per candidate format/quantization, and an unsupported format/backend combination fails rather than silently running (crates/susi-gemi/src/tests/vc_201_045_mastery.rs: vc_201_045_mastery_benchmark_records_tps_and_latency_per_candidate, vc_201_045_mastery_unsupported_format_backend_combination_fails, vc_201_045_format_and_quantization_benchmark_matrix).",
-      "type": "LOCAL_HOSTING",
-      "vector": "Benchmark model and quantization placement choices"
-    },
-    {
-      "depends_on": [
-        "VC-201-024",
-        "VC-201-025",
-        "VC-201-042",
-        "VC-201-043"
-      ],
-      "id": "VC-201-046",
-      "mastery_target": "Introduce bounded batching only for backends that support it, with per-request deadlines and cancellation; load tests demonstrate throughput changes without violating configured latency or memory limits.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-gpu-fabric): bounded inference batching for capable backends verified by tests/vc_201_046_mastery.rs. Unsupported backends rejected at construction, per-request deadlines and cancellation honored without hitting backend execution, max_wait_ms prevents starvation, queue depth strictly bounded by max_queue, and load tests prove batch collapse under configured limits. Tracked by T-AGENT202610180733582018588-4.",
-      "type": "LOCAL_HOSTING",
-      "vector": "Batch compatible local inference requests"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-042",
-        "VC-201-043"
-      ],
-      "id": "VC-201-047",
-      "mastery_target": "Extend current idle and pressure eviction with workload-aware prewarming and hysteresis; a mixed-workload benchmark measures cold starts and proves the cache avoids repeated load/evict oscillation.",
-      "priority": "P1",
-      "progress": "DELIVERED: workload-aware prewarming with hysteresis and residency tuning verified by tests/vc_201_047_mastery.rs. Sliding window frequency/recency ranking prunes stale events, damped eviction prevents cache oscillation under alternating load, and mixed-workload benchmark demonstrates 66% reduction in cold starts without cache thrashing. Tracked by T-AGENT202610180733582018588-5.",
-      "type": "LOCAL_HOSTING",
-      "vector": "Tune model residency from measured demand"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-043"
-      ],
       "id": "VC-201-048",
       "mastery_target": "Use available thermal and power telemetry with explicit unknown states and operator limits; simulated pressure throttles or reroutes eligible work while preserving local-only requirements.",
       "priority": "P1",
@@ -604,24 +42,7 @@
       "vector": "Make placement respect host thermal and power limits"
     },
     {
-      "depends_on": [
-        "VC-201-030",
-        "VC-201-041",
-        "VC-201-042"
-      ],
-      "id": "VC-201-049",
-      "mastery_target": "Quiesce supported jobs, checkpoint resumable work, and re-probe runtimes after resume or driver reset; interrupted requests report their actual outcome and stale GPU readiness is discarded.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-gpu-fabric::workload_drain): drain quiesces and checkpoints resumable work, resume re-probes and replays checkpoints, stale GPU readiness is discarded, and an interrupted request reports its actual outcome; draining an empty workload is safe. Verified by `crates/susi-vendor-models/src/tests/vc_201_049.rs`: drain_quiesces_and_checkpoints_resumable, resume_reprobes_and_replays_checkpoints, stale_gpu_readiness_is_discarded_on_drain, interrupted_requests_report_their_actual_outcome, drain_on_empty_workload_is_safe. Evidence: T-CLAUDE-378.",
-      "type": "LOCAL_HOSTING",
-      "vector": "Drain local AI workloads for suspend and maintenance"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-042",
-        "VC-201-044"
-      ],
+      "depends_on": [],
       "id": "VC-201-050",
       "mastery_target": "Import a checksummed bundle of supported binaries, models, and extension metadata into an isolated host; a network-disabled drill boots, serves a local mission, and diagnoses missing artifacts without cloud fallback.",
       "priority": "P1",
@@ -631,57 +52,6 @@
     },
     {
       "depends_on": [],
-      "id": "VC-201-051",
-      "mastery_target": "Execute opt-in credentialed and fixture-backed checks for authentication, streaming, tool calls, embeddings, usage, and errors; capability claims include provider/model/version, observation time, and unsupported cases.",
-      "priority": "P0",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-201-051.json, T-DEEPSEEK-214, 2026-10-04): susi admin provider-contract runs the fixture-backed checks for all six probe kinds and, when SUSI_PROVIDER_PROBE=1, the read-only credentialed probes per configured endpoint (auth + error envelope exercised; generation kinds honestly Unsupported).",
-      "type": "CLOUD_HOSTING",
-      "vector": "Probe cloud provider contracts reproducibly"
-    },
-    {
-      "depends_on": [
-        "VC-201-014",
-        "VC-201-051"
-      ],
-      "id": "VC-201-052",
-      "mastery_target": "Reserve estimated spend before requests and reconcile provider-reported usage afterward across parallel agents and retries; unknown prices or missing usage follow explicit policy and cannot silently bypass a hard budget.",
-      "priority": "P0",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-201-052.json, T-INTELLIBITZWT20261005035445-8): crates/susi-gawd-swarm/src/cloud_failover.rs calls reserve_dispatch before the request and commit after taking provider-reported usage; a hard budget being exceeded refuses dispatch rather than silently bypassing it (crates/susi-gawd-swarm/src/tests/vc_201_052_mastery.rs, tests/vc_201_052_reserved_before_dispatch_and_reconciled_after.rs).",
-      "type": "CLOUD_HOSTING",
-      "vector": "Reserve and reconcile cloud inference spend"
-    },
-    {
-      "depends_on": [
-        "VC-201-025",
-        "VC-201-051",
-        "VC-201-052"
-      ],
-      "id": "VC-201-053",
-      "mastery_target": "Share request/token quotas, Retry-After handling, and circuit-breaker state across local workers; concurrent throttling tests bound retries and prevent a failing provider from causing retry storms.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command): shared quota, Retry-After and circuit-breaker state bound retries - the rate-limit scheduler waits for reset or Retry-After, quota inventory is account-shared and clock-skew tolerant, and lockout recovery is bounded exponential with a shared half-open probe budget. Verified by `crates/susi-gemi/src/tests/rate_limit_scheduler.rs` (ready_when_remaining_positive, remaining_zero_waits_for_reset, retry_after_delays), `crates/susi-vendor-models/src/cloud_quota.rs` (cloud_quota_inventory_account_shared_quota, clock_skew_tolerance, free_only_tier, is_bounded) and `crates/susi-gawd-swarm/src/cloud_lockout.rs` (core copy removed 2026-11-17, T-CORESIZEVAULT-7; it compiles in susi-commercial-apps susi-frontier-lab migrated) (cloud_lockout_recovery_backoff_is_bounded_exponential, half_open_probe_budget_is_shared, is_bounded, backwards_clock_never_extends). Evidence: T-CLAUDE-37, T-CODEX-2, T-CODEX-5.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Coordinate provider quotas and retry budgets"
-    },
-    {
-      "depends_on": [
-        "VC-201-039",
-        "VC-201-051"
-      ],
-      "id": "VC-201-054",
-      "mastery_target": "Attach verified or operator-attested region metadata with provenance to cloud targets; placement rejects unknown or disallowed regions for constrained workloads before any payload is sent.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::region_eligibility): cloud targets carry verified or operator-attested region metadata, and placement rejects an unknown or disallowed region before any payload is sent. Verified by `crates/susi-gemi/src/tests/vc_201_054.rs`: allows_attested_allowed_region, rejects_disallowed_region, rejects_unknown_region_before_payload; companion eco_data_residency. Evidence: T-CLAUDE-135, T-CLAUDE-324.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Enforce provider region and residency eligibility"
-    },
-    {
-      "depends_on": [
-        "VC-201-023",
-        "VC-201-051",
-        "VC-201-052",
-        "VC-201-054"
-      ],
       "id": "VC-201-055",
       "mastery_target": "Extend the existing provisioning path with desired/observed state, stable operation IDs, health checks, and rollback for an explicitly supported backend; repeated apply and crash recovery do not create duplicate resources.",
       "priority": "P1",
@@ -691,21 +61,6 @@
     },
     {
       "depends_on": [
-        "VC-201-024",
-        "VC-201-052",
-        "VC-201-055"
-      ],
-      "id": "VC-201-056",
-      "mastery_target": "Scale an admitted deployment using queue depth, latency, min/max replicas, and stabilization windows; load tests show bounded scale decisions and scale-down drains in-flight requests.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::autoscale): managed endpoint autoscaling is bounded by max replicas and the spend cap, scales out on queue depth and latency, drains in-flight requests before scaling in, and recovers below the minimum. Verified by `crates/susi-vendor-cloud/src/tests/vc_201_056.rs`: scale_out_on_queue_depth_and_latency, scale_bounded_by_max_and_spend_cap, scale_in_waits_for_drain_and_stabilization, recovers_below_minimum. Evidence: T-CLAUDE-379.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Autoscale managed endpoints within spend limits"
-    },
-    {
-      "depends_on": [
-        "VC-201-023",
-        "VC-201-030",
         "VC-201-055"
       ],
       "id": "VC-201-057",
@@ -716,453 +71,7 @@
       "vector": "Recover supported work from preemptible capacity"
     },
     {
-      "depends_on": [
-        "VC-201-051",
-        "VC-201-052",
-        "VC-201-053",
-        "VC-201-054"
-      ],
-      "id": "VC-201-058",
-      "mastery_target": "Extend routing tests across local OOM, provider outages, authentication failure, and exhausted quotas; fallback preserves capability, privacy, deadline, and budget constraints or returns an explicit failure.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::failover_policy / production_lifecycle): the guarded production lifecycle entry point now synchronizes before claims, persists restartable mission phases, dispatches bounded isolated workers through the coordinator, requires verified integration, waits for remote publication before finishing, synchronizes after merge, and releases ownership only after convergence. Pending and uncertain publication remain claimed and are surfaced truthfully. Verified by five nonzero `swarm_gap_production_lifecycle_*` regressions in `crates/susi-gawd-swarm/src/production_lifecycle.rs` covering two-worker publication, coordinator failover/restart context, conflicting scopes, cancellation, and unconfirmed remote merge. Evidence: T-CODEXSWARMGAPS-9.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Validate policy-preserving local/cloud failover"
-    },
-    {
-      "depends_on": [
-        "VC-201-052",
-        "VC-201-055"
-      ],
-      "id": "VC-201-059",
-      "mastery_target": "Tag owned resources with mission and deployment identities and reconcile them against authoritative state; dry-run and apply tests remove only expired SUSI-owned resources and preserve explicitly retained assets.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::orphan_gc): orphan collection removes only expired SUSI-owned resources, keeps the resource of a live deployment, and a dry run reports the identical set without deleting. Verified by `crates/susi-vendor-cloud/src/tests/vc_201_059.rs`: deletes_only_expired_susi_owned_orphans, live_deployment_also_keeps_resource, dry_run_reports_identical_set_without_deleting. Evidence: T-CLAUDE-382.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Collect orphaned managed cloud resources"
-    },
-    {
-      "depends_on": [
-        "VC-201-051",
-        "VC-201-055",
-        "VC-201-056",
-        "VC-201-058",
-        "VC-201-059"
-      ],
-      "id": "VC-201-060",
-      "mastery_target": "Round-trip supported model endpoints, runtime requirements, secret references, and placement policies between local and supported cloud targets; compatibility checks surface nonportable settings before any changes.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-gpu-fabric::deployment_spec): DeploymentSpec is a closed, versioned JSON artifact that round-trips model endpoints, runtime requirements, secret references, and placement policies through export_spec/restore_spec. restore_for_target performs pure pre-change compatibility checks for endpoint protocols, secret stores, accelerators, and local/cloud placement constraints. Verified by `crates/susi-vendor-models/src/tests/vc_201_060_mastery.rs` (cargo test -p susi-vendor-models vc_201_060 --locked). Evidence: T-DEVIN20261002053148-33.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Export and restore portable AI deployment specifications"
-    },
-    {
       "depends_on": [],
-      "id": "VC-201-061",
-      "mastery_target": "Describe models, runtimes, providers, peers, tools, and policy using validated references and explicit schema versions; invalid relationships fail before mutation and unknown preserved keys survive round-trips.",
-      "priority": "P0",
-      "progress": "DELIVERED: a versioned desired-state contract validates references and schema version before any mutation, and unknown preserved keys survive a round-trip. Verified by `crates/susi-config/src/tests/desired_state.rs`: valid_document_passes, wrong_schema_version_rejected, unknown_requirement_fails_before_mutation, unknown_keys_survive_round_trip; companion zc_setting_registry. Evidence: T-CLAUDE-136, T-CLAUDE-153.",
-      "type": "CONFIGURATION",
-      "vector": "Define a versioned desired-state configuration contract"
-    },
-    {
-      "depends_on": [
-        "VC-201-061"
-      ],
-      "id": "VC-201-062",
-      "mastery_target": "Expose the resolved value and origin of each setting across defaults, packs, host overrides, workspace overrides, and environment; secret values are redacted and precedence fixtures match runtime behavior.",
-      "priority": "P0",
-      "progress": "DELIVERED: `explain_key` reports each setting's resolved value and origin across the layers the runtime actually resolves \u2014 environment > host `config.json` > compile-time bundled defaults \u2014 with secret-shaped values redacted, and the reported precedence matches `SusiConfig::load` + env-aware accessors on the same fixture. Refuted on record 2026-10-03 (the reported stack advertised Pack and Workspace layers that no runtime resolver reads, and unparseable env values were reported as effective where accessors parse-fail); corrected by T-DEVIN20261002053148-3, which removed the fictional pack/workspace layers from explain and marks set-but-rejected env overrides `effective: false` so they never win. Packs remain extension bundles and workspace `.susi/` holds runtime state, not config \u2014 the corrected layer model is documented in `crates/susi-config/src/explain.rs`. Verified by `crates/susi-config/src/tests/vc_201_062_mastery.rs` (pack_file_is_not_reported_as_a_layer, workspace_config_is_not_reported_as_a_layer, unparseable_env_value_is_reported_but_never_wins, implemented_layers_agree_with_runtime, secret_values_redacted); verdict `.agents/roadmap-verdicts/VC-201-062.json`.",
-      "type": "CONFIGURATION",
-      "vector": "Explain effective configuration and provenance"
-    },
-    {
-      "depends_on": [
-        "VC-201-023",
-        "VC-201-061",
-        "VC-201-062"
-      ],
-      "id": "VC-201-063",
-      "mastery_target": "Produce a deterministic diff with preconditions and operation IDs using the same resolver as execution; applying a stale plan fails safely and replaying a successful apply does not repeat side effects.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::plan_apply): `ConfigStore::plan` produces a deterministic diff (BTreeMap order) with content-derived operation IDs \u2014 two plans changing the same key get distinct ids, so a later change is never mistaken for a replay \u2014 and every op records a precondition including must-stay-absent for insertions, so a stale plan over a concurrent write fails before mutating; literal replays of a successful apply are no-ops. Verified by `crates/susi-config/src/tests/vc_201_063_mastery.rs`: plan_is_deterministic_for_identical_inputs, stale_insertion_plan_fails_safely, second_change_to_same_key_applies, changed_key_precondition_fails_safely, literal_replay_repeats_no_side_effects. Refuted on first verification 2026-10-03 (insertions carried no precondition; op ids were `op-<key>` only) and repaired under T-DEVIN20261002053148-4; verdict `.agents/roadmap-verdicts/VC-201-063.json`.",
-      "type": "CONFIGURATION",
-      "vector": "Implement inspectable configuration plan and apply"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-063"
-      ],
-      "id": "VC-201-064",
-      "mastery_target": "Compare desired and observed state while distinguishing SUSI-owned resources from external resources; operator-selected repair changes only owned fields and reports conflicts without overwriting foreign state.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::managed_drift): managed drift distinguishes SUSI-owned from external resources, repairs missing and extra leaves in both directions under owned objects, reports foreign fields and refuses their repair as conflicts, and treats no-drift as nothing to repair. Initially refuted 2026-10-03: set_leaf converted a foreign scalar/array ancestor into an object to reach an owned leaf, overwriting external state. Fixed by T-DEVIN20261002053148-5: set_leaf now refuses when an existing non-object node blocks the path, reconcile records the selection as a conflict, and foreign state stays byte-identical. Verified by `crates/susi-config/src/tests/vc_201_064_mastery.rs` (vc_201_064_mastery_owned_leaf_under_foreign_scalar_is_refused, vc_201_064_mastery_owned_leaf_under_foreign_array_is_refused, plus foreign reporting, sibling preservation, and no-drift cases); verdict `.agents/roadmap-verdicts/VC-201-064.json`.",
-      "type": "CONFIGURATION",
-      "vector": "Detect and reconcile managed configuration drift"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-063"
-      ],
-      "id": "VC-201-065",
-      "mastery_target": "Version migrations with durable backups and validation before activation; termination between each write either restores the previous usable configuration or resumes a verifiable migration.",
-      "priority": "P0",
-      "progress": "DELIVERED: daemon boot runs migrate_state_dir on the global dir before any schema-dependent access and aborts on failure; state.schema.json is read at runtime; backup dirs are secs+pid+nanos unique so same-second retries cannot clobber preserved bytes. Mastery: vc_201_065_mastery in susi-config + susi-daemon. Residuals: interrupted runs orphan backup dirs; retry backups preserve healed config; only config.json/state.schema.json are in the rollback window.",
-      "type": "CONFIGURATION",
-      "vector": "Migrate configuration with crash recovery"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-062"
-      ],
-      "id": "VC-201-066",
-      "mastery_target": "Replace plaintext deployment credentials with secret references resolved only at the authorized execution boundary; plan, export, tracing, and errors never disclose resolved values.",
-      "priority": "P0",
-      "progress": "DELIVERED: deployment credentials are scoped references resolved only at the authorized boundary \u2014 `credential_ref` refuses embedded plaintext at the config boundary, `key://`/`ENV_NAME`/`api_key_env` refs resolve through `resolve_key_ref`, `secret://` refs resolve only through a `ScopeBoundary` the vault owner issues (`&mut` issuance; `resolve` takes no scope argument), and `ResolvedSecret` cannot be displayed or serialized. `redact_for_export` masks `resolved=` material and credential-named fields in JSON/kv/header shapes including whitespace-containing bodies, `SecretVault::redact_for_export` scrubs stored bodies wherever they appear, and `ConfigPlan::render` and `redact_credentials` run through it. Initially refuted 2026-10-03 (mechanism had no production callers, redaction masked only the whitespace-delimited resolved= token, scope was a caller-asserted string); fixed by T-DEVIN20261002053148-8. Verified by crates/susi-config/src/tests/vc_201_066_mastery.rs.",
-      "type": "CONFIGURATION",
-      "vector": "Resolve secrets through scoped references"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-062",
-        "VC-201-063"
-      ],
-      "id": "VC-201-067",
-      "mastery_target": "Support explicit development, staging, and production profiles with inspectable inheritance; a dev mission cannot accidentally resolve production endpoints or credentials from ambient configuration.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command): ProfileSet validates the full graph before resolution, refuses dev\u2192production inheritance (directly and transitively), cycles and unknown parents, records per-key provenance and the resolution chain, applies earlier-listed sibling parents on key collisions, and loads from path or workspace via ProfileSet::load and ProfileSet::load_workspace_or_default \u2014 verified by tests/vc_201_067_mastery.rs.",
-      "type": "CONFIGURATION",
-      "vector": "Separate workspace and environment configuration profiles"
-    },
-    {
-      "depends_on": [
-        "VC-201-063",
-        "VC-201-064",
-        "VC-201-065",
-        "VC-201-067"
-      ],
-      "id": "VC-201-068",
-      "mastery_target": "Apply a pinned configuration revision to selected canary nodes, verify health, then advance bounded waves; a failing wave pauses rollout and exposes rollback state per node.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-03, T-COMMERCIALSPLIT-1): staged multi-host configuration rollout is organisation-scale fleet administration in susi-commercial-apps (Fleet Command); the open substrate configures one host.",
-      "type": "CONFIGURATION",
-      "vector": "Roll configuration changes across a fleet in stages"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-051",
-        "VC-201-062",
-        "VC-201-063",
-        "VC-201-066"
-      ],
-      "id": "VC-201-069",
-      "mastery_target": "Guide discovery and configuration of an available local runtime, an optional cloud provider, tools, and policy through validated plans; the completion check runs a real mission and reports missing prerequisites.",
-      "priority": "P1",
-      "progress": "DELIVERED: the setup workflow validates and applies bundled defaults, tools and policy, gates cloud opt-in on consent and a discovered API key, reports missing runtime/key prerequisites, and runs an isolated first-party mission probe when ready. Verified by `crates/susi-config/src/tests/vc_201_069_mastery.rs`: vc_201_069_mastery_completion_reports_missing_runtime_and_key, vc_201_069_mastery_seeds_bundled_defaults_and_validated_surfaces, vc_201_069_mastery_completion_runs_a_real_first_party_mission, vc_201_069_mastery_cloud_opt_in_requires_a_key, vc_201_069_mastery_plan_validation_rejects_missing_surfaces, vc_201_069_mastery_consent_gating_and_rerun_are_idempotent. Evidence: T-DEVIN20261002053148-35.",
-      "type": "CONFIGURATION",
-      "vector": "Provide an end-to-end ecosystem setup workflow"
-    },
-    {
-      "depends_on": [
-        "VC-201-060",
-        "VC-201-061",
-        "VC-201-065",
-        "VC-201-066"
-      ],
-      "id": "VC-201-070",
-      "mastery_target": "Export versioned configuration, artifact references, and encrypted secret material only when explicitly included; restore to a clean dev instance verifies references and reports unavailable external resources.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command::state_backup): backup and restore uses versioned authenticated encryption, requires explicit secret-section inclusion, reports unavailable requested resources, and verifies file/artifact references before returning restored state. Verified by `crates/susi-config/src/tests/vc_201_070_mastery.rs`: explicit inclusion, wrong-key authentication, known-plaintext resistance, missing-resource reporting, dangling-reference refusal, version checks, and dry-run refusal. Evidence: T-DEVIN20261002053148-34.",
-      "type": "CONFIGURATION",
-      "vector": "Back up and restore ecosystem configuration"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-062"
-      ],
-      "id": "VC-201-071",
-      "mastery_target": "Map existing MacPolicy and daemon CapabilityPolicy decisions into one authoritative evaluation contract while preserving layer responsibilities; conflicting rules deny consistently across tool, peer, and model entry points.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::capability_contract): MacPolicy and daemon CapabilityPolicy decisions are mapped into one authoritative evaluation contract (`LayerDecision::from_mac`, `LayerDecision::from_token`, `LayerDecision::from_daemon_capability`). Unknown fabricated layers are rejected, the mandatory MAC layer is enforced, entry-point specific restrictions are evaluated, and conflicting rules deny consistently across tool, peer, and model entry points. Refuted on record 2026-10-03, delivered by T-DEVIN20261002053148-27. Verified by `crates/susi-core/src/tests/vc_201_071_mastery.rs`: vc_201_071_mastery_fabricated_layer_denied, vc_201_071_mastery_missing_mac_layer_denied, vc_201_071_mastery_entry_point_enforced, vc_201_071_mastery_derived_from_mac_and_token, vc_201_071_mastery_deny_wins_and_empty_denies. Verdict `.agents/roadmap-verdicts/VC-201-071.json`.",
-      "type": "GOVERNANCE",
-      "vector": "Unify capability-policy decision semantics"
-    },
-    {
-      "depends_on": [
-        "VC-201-071"
-      ],
-      "id": "VC-201-072",
-      "mastery_target": "Bind credentials to workspace, mission, capabilities, audience, and expiry; an agent cannot reuse a token for a different mission or broader tool scope and cancellation revokes eligible credentials.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-03, T-COMMERCIALSPLIT-1): per-key gateway credentials with quotas, bindings and audit are team spend governance in susi-commercial-apps (Fleet Command); the open substrate keeps one bearer token per host.",
-      "type": "GOVERNANCE",
-      "vector": "Issue scoped expiring workload credentials"
-    },
-    {
-      "depends_on": [
-        "VC-201-038",
-        "VC-201-054",
-        "VC-201-071"
-      ],
-      "id": "VC-201-073",
-      "mastery_target": "Propagate local-only, workspace-private, and approved-cloud labels through inference, MCP, A2A, generated tools, and artifacts; indirect delegation cannot strip a label to bypass an egress denial.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::prompt_secret_scan): (verdict .agents/roadmap-verdicts/VC-201-073.json, T-DEVIN20261002053148-32, 2026-10-04): classification labels (local-only, workspace-private, approved-cloud) are propagated and enforced at egress boundaries; held credentials under arbitrary key names (including passwords and short tokens) and obfuscated secrets are detected; and the default prompt scan policy fails closed (Block). Verified by crates/susi-core/src/tests/vc_201_073_mastery.rs.",
-      "type": "GOVERNANCE",
-      "vector": "Enforce data classifications at every egress boundary"
-    },
-    {
-      "depends_on": [
-        "VC-201-005",
-        "VC-201-071",
-        "VC-201-073"
-      ],
-      "id": "VC-201-074",
-      "mastery_target": "Mark retrieved content and tool output as untrusted data and require policy checks for consequential actions; adversarial fixtures cannot turn embedded instructions into new permissions or secret disclosure.",
-      "priority": "P0",
-      "progress": "DELIVERED: retrieved content and tool output are marked as untrusted data and enforced via typed policy checks at consequential action sinks across swarm AMA/AMAS, cloud recovery, A2A executor, and GMCP tool boundaries; adversarial permission-widening and command injection fixtures are refused and errors/traces sanitized without credential or payload leakage. Verified by crates/susi-core/src/tests/vc_201_074_mastery.rs. Evidence: T-ANTIGRAVITY20261015214257121476-26.",
-      "type": "GOVERNANCE",
-      "vector": "Test resistance to tool-output prompt injection"
-    },
-    {
-      "depends_on": [
-        "VC-201-007",
-        "VC-201-016",
-        "VC-201-071",
-        "VC-201-072"
-      ],
-      "id": "VC-201-075",
-      "mastery_target": "Derive each reflex's filesystem, network, memory, fuel, and time grants from its parent mission; malicious generated code is contained and cannot acquire permissions through registration or delegation.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::wasm_grants): Each reflex's filesystem, network, memory, fuel, and time grants are derived from its parent mission. GrantSet caps and limits are encapsulated and private so reflex code cannot self-grant or widen permissions; child caps are strictly intersected with parent capabilities; resource limits (memory, fuel, timeout) are clamped to parent bounds and enforced. Initially refuted on record 2026-10-03, fixed and delivered by T-DEVIN20261002053148-28. Verified by `crates/susi-core/src/tests/vc_201_075_mastery.rs`: vc_201_075_mastery_reflex_cannot_self_grant, vc_201_075_mastery_derived_from_parent_mission, vc_201_075_mastery_resource_limits_clamped_and_enforced, vc_201_075_mastery_nominal_attenuation_holds. Verdict `.agents/roadmap-verdicts/VC-201-075.json`.",
-      "type": "GOVERNANCE",
-      "vector": "Attenuate grants for generated Wasm capabilities"
-    },
-    {
-      "depends_on": [
-        "VC-201-051",
-        "VC-201-061",
-        "VC-201-071"
-      ],
-      "id": "VC-201-076",
-      "mastery_target": "Bind admitted extension manifests and managed adapter artifacts to checksums, signatures where available, and explicit trust policy; a changed artifact is quarantined until re-admitted.",
-      "priority": "P1",
-      "progress": "DELIVERED: admitted extension manifests and managed adapter artifacts are bound to sha256 checksums, optional Ed25519 signatures are verified over file bytes, a changed or tampered artifact is quarantined on load failure, quarantine state is persisted, and explicit readmit_pack verifies signatures and re-admits updated digests \u2014 verified by tests/vc_201_076_mastery.rs.",
-      "type": "GOVERNANCE",
-      "vector": "Verify extension and adapter supply-chain provenance"
-    },
-    {
-      "depends_on": [
-        "VC-201-066",
-        "VC-201-072"
-      ],
-      "id": "VC-201-077",
-      "mastery_target": "Roll credentials and transport certificates with bounded overlap and explicit revocation; interrupted rotation recovers and expired credentials cannot trigger plaintext or unauthenticated fallback.",
-      "priority": "P1",
-      "progress": "DELIVERED: cluster-key and transport-certificate rotation support bounded overlap and explicit revocation; staged credentials past age bounds refuse activation and self-heal from torn/corrupted stages; expired or absent certificates under https_only drop remote connections without unauthenticated or plaintext fallback. Verified by `tests/vc_201_077_mastery.rs` and `crates/susi-config/src/tests/vc_201_077_mastery.rs`. Evidence: T-ANTIGRAVITY20261015214257121476-23.",
-      "type": "GOVERNANCE",
-      "vector": "Rotate secrets and certificates without silent downgrade"
-    },
-    {
-      "depends_on": [
-        "VC-201-025",
-        "VC-201-043",
-        "VC-201-071",
-        "VC-201-072"
-      ],
-      "id": "VC-201-078",
-      "mastery_target": "Enforce per-tenant workspace paths, memory namespaces, tool grants, queues, and budgets in the supported isolation mode; cross-tenant read and resource-exhaustion tests establish the documented boundary.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-03, T-ENTERPRISEMOVE-1): multi-tenant isolation is an organisation-scale capability in susi-commercial-apps; the open substrate serves one owner and rejects tenant-scoped requests.",
-      "type": "GOVERNANCE",
-      "vector": "Isolate tenant resource and data access"
-    },
-    {
-      "depends_on": [
-        "VC-201-004",
-        "VC-201-071",
-        "VC-201-072"
-      ],
-      "id": "VC-201-079",
-      "mastery_target": "Provide redacted exports with chain anchors, signature metadata, and a verification command; truncation, tampering, missing segments, and unknown keys produce distinct failures without exposing secrets.",
-      "priority": "P1",
-      "progress": "DELIVERED: serialized audit evidence file exports (susi-audit-evidence/v1) with length commitments, chain anchors, key-id signature metadata, and CLI verification (`susi admin audit-evidence export` / `verify`); distinct failures for truncation, tampering, missing segments, and unknown keys produce non-zero exit codes without exposing secrets. Verified by `tests/vc_201_079_cli_verify.rs` and `crates/susi-gawd/src/tests/vc_201_079.rs`. Verdict `.agents/roadmap-verdicts/VC-201-079.json`.",
-      "type": "GOVERNANCE",
-      "vector": "Export independently verifiable audit evidence"
-    },
-    {
-      "depends_on": [
-        "VC-201-026",
-        "VC-201-068",
-        "VC-201-071",
-        "VC-201-072"
-      ],
-      "id": "VC-201-080",
-      "mastery_target": "Persist and distribute a scoped stop that rejects new work and cancels eligible running tasks even after restart; status identifies unreachable peers and external actions that cannot be recalled.",
-      "priority": "P0",
-      "progress": "DELIVERED: EmergencyStopBus enforces scoped stops at admission, registers task scopes, rejects tampered persisted files via SHA-256 HMAC integrity signatures, and is wired into SwarmTaskManager production task admission. Verified by crates/susi-core/src/tests/vc_201_080_mastery.rs (T-DEVIN20261002053148-29).",
-      "type": "GOVERNANCE",
-      "vector": "Apply an operator emergency stop across the fleet"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-071"
-      ],
-      "id": "VC-201-081",
-      "mastery_target": "Attach workspace, source receipt, source revision, data classification, expiry, and owner to durable memory; reads reject expired or unauthorized records and distinguish evidence from model-generated assertions.",
-      "priority": "P0",
-      "progress": "DELIVERED: Provenance attaches workspace, receipt, revision, classification, and owner; reads enforce expiry and authorization; evidence is distinguished from model assertions; wired to ArchivedReceipt. Verified by crates/susi-core/src/tests/vc_201_081_mastery.rs (T-DEVIN20261002053148-30).",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Define authoritative memory provenance and retention"
-    },
-    {
-      "depends_on": [
-        "VC-201-001",
-        "VC-201-081"
-      ],
-      "id": "VC-201-082",
-      "mastery_target": "Use a versioned relevance and grounded-answer suite to compare retrieval/index revisions; a larger index or higher recall alone cannot hide regression in answer correctness or private-data isolation.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::retrieval_eval): (verdict .agents/roadmap-verdicts/VC-201-082.json, T-DEVIN20261002053148-11, 2026-10-04): retrieval evaluation gates memory and index candidate promotion; candidate suites older than baseline are rejected as stale; unmeasured/NaN metrics are rejected; answer correctness and private isolation regressions are blocked despite higher recall. Verified by crates/susi-core/src/tests/vc_201_082_mastery.rs.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Evaluate retrieval quality before promoting memory changes"
-    },
-    {
-      "depends_on": [
-        "VC-201-073",
-        "VC-201-081"
-      ],
-      "id": "VC-201-083",
-      "mastery_target": "Delete selected records from authoritative memory, semantic indexes, caches, and supported replicas with durable tombstones; interrupted deletion resumes and retrieval cannot resurrect deleted content.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::memory_tombstone): (verdict .agents/roadmap-verdicts/VC-201-083.json, T-DEVIN20261002053148-12, 2026-10-04): deletion propagates into derived stores (authoritative, semantic indexes, caches, and replicas) with durable tombstones; late writes after deletion are refused so derived stores cannot be repopulated; interrupted deletion resumes; tombstones persist across restarts; and retrieval cannot resurrect deleted content. Verified by crates/susi-core/src/tests/vc_201_083_mastery.rs.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Propagate memory deletion into derived stores"
-    },
-    {
-      "depends_on": [
-        "VC-201-033",
-        "VC-201-073",
-        "VC-201-081",
-        "VC-201-083"
-      ],
-      "id": "VC-201-084",
-      "mastery_target": "Synchronize scoped records with provenance, conflict handling, and deletion semantics over authenticated peers; disconnected replicas converge without exporting local-only memory or reviving tombstoned records.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::memory_replicate): (verdict .agents/roadmap-verdicts/VC-201-084.json, T-DEVIN20261002053148-13, 2026-10-04): scoped records synchronize with natural provenance ordering where newer writes outrank older writes; export_for_peers carries tombstone records so deletion propagates across peer export/merge; peer authentication is verified on export and merge; disconnected replicas converge without exporting local-only memory or reviving tombstoned records. Verified by crates/susi-core/src/tests/vc_201_084_mastery.rs.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Replicate only policy-eligible swarm memory"
-    },
-    {
-      "depends_on": [
-        "VC-201-016",
-        "VC-201-076",
-        "VC-201-081"
-      ],
-      "id": "VC-201-085",
-      "mastery_target": "Package approved reflexes, prompts, fixtures, and capability requirements with immutable versions and signatures; importing a skill verifies provenance and tests before granting it executable status.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::skill_artifacts): (verdict .agents/roadmap-verdicts/VC-201-085.json, T-DEVIN20261002053148-14, 2026-10-04): skill artifacts are packaged with immutable versions and HMAC cryptographic signatures binding the full payload (reflexes, prompts, fixtures, capabilities); signature verification enforces key material; packaged fixtures are executed and unparseable fixtures are rejected before granting executable status. Verified by crates/susi-core/src/tests/vc_201_085_mastery.rs.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Share verified skills as versioned artifacts"
-    },
-    {
-      "depends_on": [
-        "VC-201-026",
-        "VC-201-071",
-        "VC-201-076"
-      ],
-      "id": "VC-201-086",
-      "mastery_target": "Probe admitted MCP servers for initialization, discovery, cancellation, timeouts, malformed responses, and credential isolation; compatibility status records tested behavior rather than catalog membership.",
-      "priority": "P1",
-      "progress": "DELIVERED: MCP compatibility is now established by an executable transport probe: initialize negotiation validates server identity and capabilities, discovery walks paginated tools/list responses, initialized and cancellation notifications are sent, deadlines and malformed-response handling are checked, and probe requests are credential-free. McpSpecProfile records the tested protocol version, capabilities, discovered tools and per-check results instead of catalog membership. Since 2026-11-17 (T-CORESIZEFIX-2, Mandate 84) this runs in intellibitz/susi-commercial-apps: `crates/susi-ecosystem-hub/src/mcp_probe.rs`, `mcp_profile.rs` and `src/tests/vc_201_086_mastery.rs` (cargo test -p susi-ecosystem-hub vc_201_086 --locked); core removed its copy, which nothing in core called. Evidence: T-DEVIN20261002053148-39.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Publish executable MCP lifecycle conformance"
-    },
-    {
-      "depends_on": [
-        "VC-201-022",
-        "VC-201-023",
-        "VC-201-026",
-        "VC-201-072"
-      ],
-      "id": "VC-201-087",
-      "mastery_target": "Exercise task identity, status, cancellation, artifact ownership, and retry semantics through supported adapters; duplicate deliveries and unknown remote outcomes cannot silently produce duplicate authoritative completion.",
-      "priority": "P1",
-      "progress": "DELIVERED: Task identity, status, cancellation, artifact ownership and retry semantics are exercised through supported adapters; duplicate deliveries and unknown remote outcomes are idempotent at the protocol level. Verified by `crates/susi-gawd-a2a/src/mastery_tests/vc_201_087_mastery.rs` (vc_201_087_mastery_task_identity_is_preserved, status_transitions_are_accurate, failure_status_is_distinct, cancellation_produces_canceled_state, events_published_for_recovery, unknown_outcome_handled_by_event_publishing, duplicate_delivery_idempotent_at_protocol_level).",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Normalize A2A and external-agent recovery contracts"
-    },
-    {
-      "depends_on": [
-        "VC-201-051",
-        "VC-201-061",
-        "VC-201-076",
-        "VC-201-086",
-        "VC-201-087"
-      ],
-      "id": "VC-201-088",
-      "mastery_target": "Join provider, model, MCP, A2A, and extension probe results by exact version with freshness windows; operators can filter verified, stale, failed, and untested combinations.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-frontier-lab::eco_compat_gate): the compatibility gate admits a compatible component and refuses an unknown component, an unrecorded version and any pair without a common protocol, warning on a superseded pin. Verified by `crates/susi-gemi/src/eco_compat_gate.rs`: allows_compatible_component, refuses_unknown_component, refuses_unrecorded_version, refuses_without_common_protocol, warns_on_superseded_pin, with the inventory companions eco_schema, eco_matrix and eco_coverage. Evidence: T-CLAUDE-252, T-CLAUDE-258, T-CLAUDE-261, T-CLAUDE-346.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Maintain a live ecosystem compatibility inventory"
-    },
-    {
-      "depends_on": [
-        "VC-201-061",
-        "VC-201-063",
-        "VC-201-076",
-        "VC-201-086"
-      ],
-      "id": "VC-201-089",
-      "mastery_target": "Install an adapter revision beside the active one, run contract checks, and switch only after success; a failed upgrade preserves the working revision and in-flight session ownership.",
-      "priority": "P1",
-      "progress": "DELIVERED: production adapter upgrades run contract validation beside the active revision before switching; downgrades and contract failures roll back while preserving active revision and session ownership (`susi-agents::adapter_upgrade::upgrade_adapter`). Verified by `crates/susi-core/src/tests/vc_201_089_mastery.rs` and `crates/susi-agents/src/adapter_upgrade.rs`. Verdict `.agents/roadmap-verdicts/VC-201-089.json`.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Sandbox and roll back adapter upgrades"
-    },
-    {
-      "depends_on": [
-        "VC-201-030",
-        "VC-201-073",
-        "VC-201-081",
-        "VC-201-086",
-        "VC-201-087"
-      ],
-      "id": "VC-201-090",
-      "mastery_target": "Run an evidence-backed workspace task using local retrieval, an allowed model target, an MCP tool, and a delegated agent when policy permits; demonstrate offline, denied-egress, and failed-dependency outcomes.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::vertical_workflow): one vertical workflow completes online using an MCP tool and a delegated agent, and the offline, denied-egress and failed-dependency outcomes are demonstrated. Verified by `crates/susi-core/src/tests/vc_201_090.rs`: online_completes_with_mcp_and_delegate, offline_denied_and_dependency_failures. Evidence: T-CLAUDE-392.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Deliver one vertical workflow across the AI ecosystem"
-    },
-    {
-      "depends_on": [
-        "VC-201-004",
-        "VC-201-021",
-        "VC-201-051"
-      ],
-      "id": "VC-201-091",
-      "mastery_target": "Carry mission, task, placement, experiment, and deployment IDs through bounded redacted logs, metrics, and traces; one failed distributed request can be followed end to end without recording credentials.",
-      "priority": "P0",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-sovereign-rag::otel_export): (verdict .agents/roadmap-verdicts/VC-201-091.json, T-DEVIN20261002053148-31, 2026-10-04): bounded, redacted observability carrying mission/routing/provider spans end to end; credentials (Authorization headers, api_key, token, secret) are redacted before export; Http export actually transmits over the shared HTTP transport when egress permits; OtelSpan carries typed status_code and status_message for distributed failure tracking; and file export is bounded by generational rotation. Verified by crates/susi-core/src/tests/vc_201_091_mastery.rs.",
-      "type": "OPERATIONS",
-      "vector": "Correlate observability across models, tools, and peers"
-    },
-    {
-      "depends_on": [
-        "VC-201-003",
-        "VC-201-030",
-        "VC-201-091"
-      ],
       "id": "VC-201-092",
       "mastery_target": "Measure availability, task success, queue delay, inference latency, and recovery duration from actual events; publish windows and denominators with explicit unknowns when samples are insufficient.",
       "priority": "P1",
@@ -1172,11 +81,7 @@
     },
     {
       "depends_on": [
-        "VC-201-040",
-        "VC-201-049",
-        "VC-201-055",
-        "VC-201-070",
-        "VC-201-091"
+        "VC-201-055"
       ],
       "id": "VC-201-093",
       "mastery_target": "Restore configuration, workflow state, keys under explicit policy, and required ledger history to isolated nodes; verify audit continuity and report measured recovery time and data loss against declared targets.",
@@ -1186,41 +91,7 @@
       "vector": "Exercise disaster recovery from authoritative backups"
     },
     {
-      "depends_on": [
-        "VC-201-025",
-        "VC-201-043",
-        "VC-201-053",
-        "VC-201-091",
-        "VC-201-092"
-      ],
-      "id": "VC-201-094",
-      "mastery_target": "Load-test simultaneous missions, streaming calls, peer repair, and model churn with recorded hardware; report saturation points and verify overload rejection preserves health and cancellation responsiveness.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command): capacity_limits migrated to susi-commercial-apps (susi-fleet-command).",
-      "type": "OPERATIONS",
-      "vector": "Benchmark and enforce control-plane capacity limits"
-    },
-    {
-      "depends_on": [
-        "VC-201-040",
-        "VC-201-058",
-        "VC-201-080",
-        "VC-201-091"
-      ],
-      "id": "VC-201-095",
-      "mastery_target": "Inject network loss, disk-full, runtime crashes, corrupt state, and revoked credentials in isolated dev deployments; verify bounded recovery, explicit degraded states, and preservation of privacy and budget constraints.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-fleet-command): isolated development-deployment chaos drills inject disk-full, runtime crashes, corrupt state and revoked credentials; each reports an explicit degraded state, recovers within a bounded transition budget, preserves redacted diagnostics and failed-operation spend, and leaves a peer deployment independent. Verified by `crates/susi-gawd-swarm/src/tests/vc_201_095_mastery.rs`: vc_201_095_mastery and vc_201_095_mastery_failed_writes_do_not_spend_budget. Evidence: T-DEEPSEEK-220.",
-      "type": "OPERATIONS",
-      "vector": "Run repeatable ecosystem chaos drills"
-    },
-    {
-      "depends_on": [
-        "VC-201-022",
-        "VC-201-023",
-        "VC-201-031",
-        "VC-201-071"
-      ],
+      "depends_on": [],
       "id": "VC-201-096",
       "mastery_target": "Verify bounded critical primitives for lease fencing, budget transitions, and policy precedence with documented assumptions; CI retains counterexamples and reports proof bounds instead of claiming whole-system correctness.",
       "priority": "P1",
@@ -1230,22 +101,7 @@
     },
     {
       "depends_on": [
-        "VC-201-015",
-        "VC-201-076"
-      ],
-      "id": "VC-201-097",
-      "mastery_target": "Run cargo-geiger and software-bill-of-materials generation for pinned feature sets, recording first-party exceptions and transitive changes; CI flags new exposure with an auditable review path.",
-      "priority": "P1",
-      "progress": "DELIVERED: unsafe-ratchet CI job runs `cargo geiger --forbid-only` + `cargo metadata` SBOM and gates through the unsafe_ratchet binary (production caller of ratchet_unsafe); pinned baseline .agents/baseline/unsafe-default.json records features=default, 605 exposure entries and 871 SBOM entries; transitive changes reported via sbom_changes; --write-baseline + committed diff is the auditable review path. Mastery: vc_201_097_mastery_* (3 tests).",
-      "type": "OPERATIONS",
-      "vector": "Ratchet dependency unsafe exposure and provenance"
-    },
-    {
-      "depends_on": [
-        "VC-201-041",
-        "VC-201-042",
-        "VC-201-050",
-        "VC-201-065"
+        "VC-201-050"
       ],
       "id": "VC-201-098",
       "mastery_target": "Run supported Linux, macOS, and Windows install, start, stop, upgrade, and local-runtime smoke cases in isolated environments; the published matrix distinguishes tested features from unsupported GPU or sandbox paths.",
@@ -1255,13 +111,7 @@
       "vector": "Verify host-platform lifecycle compatibility"
     },
     {
-      "depends_on": [
-        "VC-201-030",
-        "VC-201-040",
-        "VC-201-062",
-        "VC-201-088",
-        "VC-201-091"
-      ],
+      "depends_on": [],
       "id": "VC-201-099",
       "mastery_target": "Expose actual workload, resource, provider, configuration, federation, and evidence state through consistent CLI/API views; drill-down explains blocked work and actions obey the same grants and preconditions as automation.",
       "priority": "P1",
@@ -1270,112 +120,7 @@
       "vector": "Provide a unified operator control surface"
     },
     {
-      "depends_on": [
-        "VC-201-010",
-        "VC-201-018",
-        "VC-201-020",
-        "VC-201-040",
-        "VC-201-050",
-        "VC-201-058",
-        "VC-201-068",
-        "VC-201-070",
-        "VC-201-078",
-        "VC-201-080",
-        "VC-201-090",
-        "VC-201-092",
-        "VC-201-093",
-        "VC-201-094",
-        "VC-201-095",
-        "VC-201-096",
-        "VC-201-097",
-        "VC-201-098",
-        "VC-201-099"
-      ],
-      "id": "VC-201-100",
-      "mastery_target": "On isolated local and explicitly configured cloud environments, configure the ecosystem, run and recover a swarm mission, evaluate a self-patch, and promote only through the tagged release path; publish reproducible scorecard deltas and remaining limitations, including a 2x improvement claim only if its predeclared metric and evidence support it.",
-      "priority": "P1",
-      "progress": "DELIVERED: the release path consumes explicit local and cloud qualification evidence, requires configured environments, mission success and recovery, self-patch evaluation, privacy and budget preservation, and tagged promotion; it publishes deterministic scorecard deltas and limitations and only makes a 2x claim from predeclared metrics. Verified by `crates/susi-gawd/src/tests/vc_201_100_mastery.rs`: vc_201_100_mastery, vc_201_100_mastery_requires_explicit_cloud_and_preserves_limitations, vc_201_100_mastery_release_path_consumes_explicit_evidence. Evidence: T-DEEPSEEK-222.",
-      "type": "OPERATIONS",
-      "vector": "Qualify a complete RSI swarm AI operating-layer release"
-    },
-    {
       "depends_on": [],
-      "id": "VC-202-001",
-      "mastery_target": "Every configured provider credential is enumerated, probed with the cheapest possible call, and classified live / expired / unauthorized / rate-limited / unknown with the evidence recorded; keys are never deleted, and one report answers which credentials work today without spending meaningfully to find out.",
-      "priority": "P0",
-      "progress": "DELIVERED: credential_scout enumerates every configured remote-cloud credential, probes each with the cheapest authenticated call (GET {base}/models), classifies live/expired/unauthorized/rate-limited/unknown, records fingerprinted evidence (record_probe feeds failover; ScoutReport::format is the single report), and marks keys without ever deleting them. Wired into register_configured_cloud_endpoints (scout_configured_once, 300s interval-gated). Verified by vc_202_001_mastery_* (4/4) and verdict .agents/roadmap-verdicts/VC-202-001.json.",
-      "type": "CONFIGURATION",
-      "vector": "Provider credential inventory and liveness scouting"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-202-002",
-      "mastery_target": "Per-model input, output, cache-hit and cache-miss rates plus measured latency and throughput; the expected cost of a call and of a whole task is computed from token counts and the realised cache hit rate, so two models are comparable in the only currency that matters here - cost per verified useful outcome.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-87, T-88): catalog entries carry cache-hit/miss rates; a call and a whole task are priced by class-scaled token profile; Ranked.expected_cost_usd feeds selection, max_cost drops over-cap providers, the ladder names the figure. Cost-per-verified-outcome ranking remains T-98; realised cache telemetry is a follow-on.",
-      "type": "OPERATIONS",
-      "vector": "Model and provider cost model with cache accounting"
-    },
-    {
-      "depends_on": [
-        "VC-202-001",
-        "VC-202-002"
-      ],
-      "id": "VC-202-003",
-      "mastery_target": "A scheduled scout probes candidate models with a deterministic micro-benchmark, ranks them per task class by expected cost per verified useful outcome rather than by reputation, promotes the leader automatically, and records the decision with its evidence; a failed or unfunded model never leads, and the candidate set keeps itself current: a model that appeared since the last scout is discovered and probed rather than waiting for a human to add it, and one that was retired stops being preferred.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-98 ranking + T-99 probe + T-107 scheduled scout + T-128 catalogue diff): the daemon maintenance tick runs a brain_scout subject on the shared probe scheduler (default 6h), probing every registered provider through the dispatch arbiter, recording verified outcomes, snapshotting per-class leaders and the catalogue (membership + price) into an append-only journal, and reporting LeaderChanged/ProviderDied/ModelAppeared/ModelRetired/ModelPriceChanged drift \u2014 retired models marked Gone, never deleted.",
-      "type": "RSI_EVALUATION",
-      "vector": "The brain scouts and ranks itself by cost per verified outcome"
-    },
-    {
-      "depends_on": [
-        "VC-202-002",
-        "VC-202-003"
-      ],
-      "id": "VC-202-004",
-      "mastery_target": "Each task class declares the minimum capability its work needs; routing selects the cheapest model above that floor, falls back model then provider then local, and records the reason for every step down the ladder - so cost pressure can never quietly send hard work to a weak model.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-100 floor as data + floor-before-price; T-101 routing ladder): every step down the model->provider->local cascade records candidate, outcome and reason \u2014 cooldowns, arbitration/quota refusals included \u2014 and persists one JSON line per decision (routing_trace.jsonl). Below-floor candidates sort last on the live cascade.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Capability floors and a routing ladder per task class"
-    },
-    {
-      "depends_on": [
-        "VC-202-002"
-      ],
-      "id": "VC-202-005",
-      "mastery_target": "Hourly, daily, per-mission and per-task spend ceilings are enforced before a call is made, over-budget work degrades to a cheaper rung or stops with a typed refusal, and every unit of spend is attributable to an agent, mission and task.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-102): hourly/daily/mission/task/per-vendor ceilings refuse before dispatch inside try_providers; refusals are typed BudgetRefusals on the routing ladder, over-budget work degrades to a cheaper rung or local, and every attempted call records agent/mission/task-attributed spend to usage.json. Spend is estimated-at-dispatch until providers report realised usage.",
-      "type": "GOVERNANCE",
-      "vector": "A budget governor with ceilings that refuse before spending"
-    },
-    {
-      "depends_on": [
-        "VC-202-002"
-      ],
-      "id": "VC-202-006",
-      "mastery_target": "Agent context is assembled with stable prefixes and cache-safe ordering so repeated turns hit the provider's prompt cache; the hit rate and the realised saving are measured and reported, and a context shape that defeats caching is a defect with evidence rather than an accident.",
-      "priority": "P0",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-006.json, T-DEEPSEEK-103, 2026-10-05): cache-first context assembly on the production chat path \u2014 the GEMI plane's gemi.context.assemble arm hoists instruction turns to a stable head so every next turn shares a byte-identical prefix; each assembled context journals its measured cacheable fraction and priced hit-vs-miss saving (context_cache.jsonl), cache-defeating shapes (late instructions, no instruction block, sub-threshold prefix) are journaled defects, and susi brain cache reports the measured hit rate and saving. Provider-reported usage still pending \u2014 the journal marks every saving estimate.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Cache-first context assembly"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-202-007",
-      "mastery_target": "A natural-language intent is turned into a typed DAG whose nodes are real susi leaf operations with declared inputs, outputs and costs, executed with per-node provenance; an intent the system cannot serve is refused with what is missing, never approximated silently.",
-      "priority": "P0",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-007.json, T-DEEPSEEK-226, 2026-10-05): the typed intent DAG is on the production mission path \u2014 solve_planned_mission consults Planner::plan on the whole intent and every decomposed step, executes leaf-expressible work via intent_plan::execute with per-node NodeProvenance recorded as PLAN_NODE_EXECUTED interactions, refuses command-shaped input (PLAN_REFUSAL/PLAN_STEP_REFUSED), and routes non-leaf steps through a named PLAN_STEP_ROUTE instead of the old silent single-goal fallback. Leaf vocabulary: the registered ops (list_dir, view_file, grep_search, find_files, write_file, exec_command).",
-      "type": "CORE",
-      "vector": "Intent becomes a typed, executable DAG"
-    },
-    {
-      "depends_on": [
-        "VC-202-003",
-        "VC-202-007"
-      ],
       "id": "VC-202-008",
       "mastery_target": "susi writes new roadmap vectors and queue tasks - scopes, acceptance, dependencies and rationale included - from its own analysis of failures and gaps, and those artifacts pass the same schema and queue gates as human-authored ones, under a reviewed rate limit.",
       "priority": "P1",
@@ -1384,62 +129,13 @@
       "vector": "The system authors its own backlog"
     },
     {
-      "depends_on": [
-        "VC-202-007"
-      ],
-      "id": "VC-202-009",
-      "mastery_target": "Missions and their leaf workers are admitted under CPU, GPU, memory and disk quotas, scheduled without starvation or oversubscription, and queued or preempted with observable reasons - so six agents plus their builds cannot starve the machine or each other.",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-009.json, T-DEEPSEEK-255): crates/susi-gawd-swarm/src/parallel_admission.rs's AdmissionController/LocalCapacity/Ticket/Backpressure admit missions under CPU/GPU/memory/disk quotas, with a fair queue that prevents starvation and idempotent readmission (crates/susi-gawd-swarm/src/tests/vc_202_009_mastery.rs: vc_202_009_mastery_resource_quotas_prevent_oversubscription, vc_202_009_mastery_fair_queue_prevents_starvation, vc_202_009_mastery_idempotent_readmission). Moved 2026-11-17: the controller and this suite run in susi-commercial-apps susi-frontier-lab (T-CORESIZEVAULT-4).",
-      "type": "OPERATIONS",
-      "vector": "Mission admission and resource arbitration"
-    },
-    {
       "depends_on": [],
-      "id": "VC-202-010",
-      "mastery_target": "Daemon, watcher, brain scout and every other long-lived process runs under supervision with health checks, bounded restart, logs and a status surface; a killed component recovers without a human, and no unsupervised background process remains.",
-      "priority": "P1",
-      "progress": "DELIVERED (T-DEEPSEEK-230): every long-lived in-process worker now spawns through service_supervision::Supervisor \u2014 zero bare thread::spawn/thread::Builder in production susi-daemon (mastery scan). Exit/panic triggers bounded restart via per-worker factories; stale heartbeat or a dead watchdog cell marks a worker hung (reported, never cloned); restarts log to supervisor.log; the status surface is supervision.json + susi os. The swarm watchdog now has a cell per worker, pinged by worker heartbeats; susi-host pings from the os tick. Leaf services remain process-supervised; the leaf monitor itself is a supervised worker. Verified by .agents/roadmap-verdicts/VC-202-010.json.",
-      "type": "OPERATIONS",
-      "vector": "Every long-lived component is supervised"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-202-011",
-      "mastery_target": "Workspace and mission state survives process restart and host reboot; a mission's state can be snapshotted and restored, and a failed mission rolls back to a known-good state without touching another mission's state.",
-      "priority": "P1",
-      "progress": "DELIVERED: restart survival (T-DEEPSEEK-93) plus snapshot/restore/rollback (T-DEEPSEEK-94): the production dispatch path snapshots the pre-resume record before the recovery transaction, rollback_mission restores nodes/outputs/journal to the known-good snapshot scoped to one mission id (a sibling mission is untouched), the clean-failure report names the available snapshot, gawd.mission.rollback exposes rollback on the plane bus, and susi status reports failed missions that still have a restore point.",
-      "type": "CORE",
-      "vector": "Durable state, snapshot and rollback"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-202-012",
-      "mastery_target": "A2A, MCP, HTTP and adapter capabilities are reachable through one typed interface with discovery, permissions, timeouts and cost attribution, so a new capability is added as data rather than as code in a new place.",
-      "priority": "P1",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-012.json): CapabilityBus (discovery, permission/timeout/cost contract) delivered by T-DEEPSEEK-95. Production caller delivered (T-INTELLIBITZWT20261005035445-2): CapabilityRegistry::dispatch_capability discovers a live registered tool through typed_bus() and invokes it (already MAC-enforced) under the bus's contract, exposed on 'susi os capabilities' / 'susi os capabilities invoke'. Remaining: only the Mcp surface dispatches today (A2a/Adapter discover but cannot invoke yet); cost_micros is still hardcoded to 0, so budget enforcement has no real cost model behind it.",
-      "type": "FEDERATION",
-      "vector": "One capability bus for every external surface"
-    },
-    {
-      "depends_on": [
-        "VC-202-002"
-      ],
       "id": "VC-202-013",
       "mastery_target": "Each mission yields a trace linking intent to plan to node to model to tokens to cost to outcome, queryable per agent and per task, and the audit trail is append-only and survives restarts.",
       "priority": "P1",
       "progress": "PARTIAL (refuted on record in .agents/roadmap-verdicts/VC-202-013.json): MissionTrace links intent, plan, agents, cluster-membership node, active task_id, and live model_calls (populated on every spend_tracker::record dispatch via mission_trace::record_active_model_call) durably to outcome, queryable per agent and per task via read_all_for_agent and read_all_for_task. Verified by `crates/susi-core/src/mission_trace.rs` and `crates/susi-gemi/src/spend_tracker.rs`.",
       "type": "OPERATIONS",
       "vector": "Every decision is observable and costed"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-202-014",
-      "mastery_target": "Secrets never appear in logs, traces or evidence; egress is allow-listed per mission; and each agent acts only within the authority of its own token, with every refusal recorded.",
-      "priority": "P0",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-014.json, T-DEEPSEEK-228, 2026-10-05): the per-mission egress gate is on the production dispatch path \u2014 ToolRegistry::execute_tool resolves the acting mission's evidence session, mints its posture-bounded token set (a mission can only narrow the process posture, never widen it), checks the mission's own tokens at dispatch, and consults its EgressGate on every egress-class call; missions declare allow-lists in {workspace}/.susi/mission-egress.json (absent = permissive default, malformed = fail closed) or via declare_mission_egress. EgressRefusal{mission,host,reason} and AuthorityRefusal{mission,tool,reason} are recorded per mission and surface on the mission report via the tools.mission.refusals topic (REFUSALS_RECORDED interaction). Secret redaction at the logging/capture/context-graph/untrusted-content/fleet/admin choke points unchanged.",
-      "type": "GOVERNANCE",
-      "vector": "Secrets, egress and per-agent authority"
     },
     {
       "depends_on": [
@@ -1455,279 +151,6 @@
     },
     {
       "depends_on": [
-        "VC-202-007",
-        "VC-202-013"
-      ],
-      "id": "VC-202-016",
-      "mastery_target": "A single surface exposes missions, the queue, brain status, cost and approvals on local and configured cloud environments, so an intent enters and returns a result or a typed refusal without the user choosing a subsystem first.",
-      "priority": "P2",
-      "progress": "DELIVERED (verdict .agents/roadmap-verdicts/VC-202-016.json, T-DEEPSEEK-97, 2026-10-04): susi status is one deterministic surface over missions in flight, the scheduled queue, brain status and the model it would serve, measured token spend, and pending broker approvals \u2014 all read from persisted stores, never LLM-narrated, and answering with the daemon down. CLI done; TUI/web follow-on open.",
-      "type": "CORE",
-      "vector": "One entry point over the whole OS"
-    },
-    {
-      "depends_on": [
-        "VC-202-013"
-      ],
-      "id": "VC-202-017",
-      "mastery_target": "Every action that changes state or spends money - task and claim transitions, commits, pushes and merges, model calls, tool executions, file writes, egress attempts, approvals, secret access - emits exactly one structured audit record (actor, action kind, target, outcome, duration, cost, correlation and a redaction marker) through a single dispatch point, reusing the existing signed audit log rather than creating a second one. Coverage is made checkable rather than aspirational: an exhaustive action enum plus an architecture test that fails if any other path mutates state.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-DEEPSEEK-108): production state-changing actions use an exhaustive typed audit schema and one guarded gawd.audit.action dispatch into the existing signed SusiAuditLogger; payloads are digest-only and denial outcomes are retained.",
-      "type": "OPERATIONS",
-      "vector": "Every state-changing action is audited through one choke point"
-    },
-    {
-      "depends_on": [
-        "VC-202-014",
-        "VC-202-017"
-      ],
-      "id": "VC-202-018",
-      "mastery_target": "A stated policy separates the audit tier - durable, signed and payload-free, holding what happened but never what was said or read - from the trace tier, which is levelled, opt-in per subsystem, rotated and TTL'd under a measured bytes-per-day budget. Proven with canaries: a secret, a prompt and a tool output must not reach the audit tier, and trace redaction is structural rather than a filter. Retention and size caps actually prune, and the measured cost of observation is attributed like any other spend.",
-      "priority": "P0",
-      "progress": "DELIVERED: tier split (T-DEEPSEEK-110) - payload-free signed audit via typed AuditDetails, opt-in levelled rotated TTL'd bytes/day-bounded trace, canaries proven. Retention + measured observation cost (T-DEEPSEEK-111) - audit segments rotate at a byte cap with signed tip attestation, archives prune by days and total bytes, trace prunes by a tier-wide cap, and every write lands an agent-attributed observation record published by susi status.",
-      "type": "GOVERNANCE",
-      "vector": "Two tiers of observation: payload-free audit, opt-in bounded trace"
-    },
-    {
-      "depends_on": [
-        "VC-202-017"
-      ],
-      "id": "VC-202-019",
-      "mastery_target": "Each audit record is chained to its predecessor under the existing audit key, a verification command detects a mutated, removed or reordered record, and the chain head is anchored periodically so the history is evidence rather than a file the system could rewrite. A read surface answers what an agent did, what happened in a mission, which actions of a kind ran in a window, and what each cost.",
-      "priority": "P1",
-      "progress": "MOVED TO COMMERCIAL (2026-11-07, susi-ceo-autopilot): ActionHistory in susi-gawd chains each audit record to its predecessor under HMAC-SHA256 audit keys, captures periodic chain head anchors to prevent rewriting history, provides multi-dimensional interrogation surfaces (agent, mission, kind/window, cost accounting), and detects mutated, removed, reordered, truncated, or unauthenticated records. Verified by tests/vc_202_019_mastery.rs. Evidence: T-ANTIGRAVITY20261015214257121476-25.",
-      "type": "OPERATIONS",
-      "vector": "The action history is tamper-evident and interrogable"
-    },
-    {
-      "depends_on": [
-        "VC-202-001"
-      ],
-      "id": "VC-202-020",
-      "mastery_target": "Availability is tracked as its own axis: each model and key is healthy, cooling after a rate limit with Retry-After respected, degraded after timeouts or 5xx, key-dead, or out of quota - while capability is measured only from task outcomes. Per-key rate and concurrency limits are arbitrated across all agents and delegated fan-out, and a refutation test proves that a storm of 429s and timeouts leaves the capability ranking untouched.",
-      "priority": "P0",
-      "progress": "DELIVERED: typed ModelHealth per scope on the production dispatch path (JobOutcome::target_health, Retry-After honoured, persisted across restarts); capability ranking provably untouched by 429/timeout storms; process-global per-key rate+concurrency arbitration (susi-gemi key_arbitration::try_acquire) admits every production provider.generate \u2014 the failover cascade skips saturated keys, probe helpers refuse on denial. The susi-gemi dispatch cascade now keeps Err outcomes off the capability record entirely (only actual answers count; refutation-tested over a 40-failure storm).",
-      "type": "OPERATIONS",
-      "vector": "Model health is a separate axis from model capability"
-    },
-    {
-      "depends_on": [
-        "VC-202-002"
-      ],
-      "id": "VC-202-021",
-      "mastery_target": "Every key - and every agent seat, which is a subscription rather than a token meter - carries its billing mode - pay-as-you-go, subscription, free tier or prepaid balance - with the marginal cost semantics that follow: zero until the cap for a subscription, a depleting stock for prepaid, price per token for pay-as-you-go, and data plus rate cost for a free tier. Quota windows (rolling hours, daily, weekly) are tracked with remaining allowance and reset time, so ranking uses the expected marginal cost of the next call plus the scarcity of a nearly-exhausted cap rather than a naive price per token.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-232 quota windows + T-120 marginal-cost ranking): Store::rank orders by the scarcity-adjusted marginal cost per verified outcome \u2014 billing mode (metered/subscription/free-tier/prepaid, declared via SUSI_BILLING or seat specs) sets the marginal number, the tightest remaining-cap fraction scales it via a scarcity penalty, and an exhausted cap can never lead. spend_tracker::record depletes declared caps from real dispatch; the failover order feeds quota headroom into the same rank. Process-local limits recorded in the verdict.",
-      "type": "OPERATIONS",
-      "vector": "Billing mode and quota windows enter the cost model"
-    },
-    {
-      "depends_on": [
-        "VC-202-003",
-        "VC-202-004"
-      ],
-      "id": "VC-202-022",
-      "mastery_target": "The primary brain is elected from the fully-working, available candidates by expected cost per verified outcome, with the evidence recorded and re-election on health or price change. The primary then uses the other working workers - model APIs or agent seats, whichever the ranking prefers on marginal cost - as secondaries - chosen per task class, with bounded fan-out, per-result provenance and synthesis by the primary - and when no secondary is available or worth its cost, the primary does the work itself as a first-class, tested path rather than a degraded one. A primary that times out mid-mission fails over and resumes from durable state instead of restarting.",
-      "priority": "P0",
-      "progress": "DELIVERED (T-125 matrix + T-121 election + T-123 solo + T-129 agent seats + T-122 orchestration + T-126 verification + T-93 durable resume + T-124 failover): per-(provider,class) measured matrix; scout elects+journals a primary per class; missions persist a first-class solo verdict. gemi.orchestrate.mission elects the primary, assigns each goal to a working floor-meeting secondary whose scarcity-adjusted marginal cost never exceeds doing the work on the primary, bounds fan-out by remaining rate allowance, verifies delegated results by risk tier with rescue-on-refute, records per-result provenance (goal/class/provider/cost/outcome + why a goal stayed home), synthesizes on the primary, and journals the topology to orchestrations.jsonl. Missions survive restart: interrupted Running nodes fold back inside the recovery transaction with the resume point recorded, and a mid-mission primary failure fails over \u2014 the next fully-working candidate is elected, completed work is never re-served, and the switch plus per-model cost is journaled.",
-      "type": "CLOUD_HOSTING",
-      "vector": "Primary election and orchestration topology"
-    },
-    {
-      "depends_on": [
-        "VC-202-022"
-      ],
-      "id": "VC-202-023",
-      "mastery_target": "Work a secondary produced is verified to a depth set by its risk, the cost of that verification enters the routing decision, and an unverified delegation is never presented as though the primary had done it. Verification is where a cheap secondary stops being a quality leak: the mission's result is only as good as what the primary checked.",
-      "priority": "P1",
-      "progress": "DELIVERED (T-126): orchestrated delegations are verified to a depth set by the goal's risk \u2014 deterministic check for reflex/chat, an independent working model verifier for code/reasoning; the verifier's marginal cost is inside the delegation bound, a goal with no independent checker is never delegated (HeldBack::NoVerifier), a REFUTED result is rescued by the primary and never presented as its own, and the journaled topology names who produced what and who checked it.",
-      "type": "RSI_EVALUATION",
-      "vector": "Delegated work is verified proportionally to risk"
-    },
-    {
-      "depends_on": [
-        "VC-202-011",
-        "VC-202-017"
-      ],
-      "id": "VC-202-024",
-      "mastery_target": "After susi starts it observes the local and cloud AI estate on its own schedule, diffs it against declared desired state and acts - inside declared autonomy tiers, where reversible low-blast-radius changes are automatic and irreversible or costly ones are dry-run, approved and reversible - so the user declares outcomes and never runs a procedure. The loop runs above a reasoning-grade capability floor for estate operations, every autonomous change is audited and can be rolled back, and a failure the OS could have fixed never reaches the user.",
-      "priority": "P0",
-      "progress": "DELIVERED: unattended estate reconciliation (T-DEEPSEEK-160), autonomy tiers with blast-radius defaults, dry-run rehearsal and one-shot approval grants (T-DEEPSEEK-161), and a reasoning-grade capability floor for the estate-operations task class that the routing ladder reads before price (T-DEEPSEEK-162).",
-      "type": "OPERATIONS",
-      "vector": "The estate is observed, reconciled and managed unattended"
-    },
-    {
-      "depends_on": [],
-      "id": "VC-203-001",
-      "mastery_target": "A machine-readable requirements ledger covers every applicable MCP 2025-11-25 and 2026-07-28 MUST, SHOULD, error, deprecation, security rule, official extension, and implementation claim. Every row traces to an owner, production path, positive and negative test, evidence artifact, and disposition; automated upstream drift detection fails closed on an unclassified change.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-18): all GMCP-203-001-* requirements shipped on the production path and proven by gmcp_vc_203_001_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-001.json and .agents/gmcp/evidence/VC-203-001.jsonl",
-      "type": "GOVERNANCE",
-      "vector": "Normative requirements ledger and standards drift"
-    },
-    {
-      "depends_on": [
-        "VC-203-001"
-      ],
-      "id": "VC-203-002",
-      "mastery_target": "GMCP implements the complete JSON-RPC substrate for every supported revision: identifiers and batches where applicable, notifications, cancellation, progress tokens, typed standard and MCP errors, required resultType, per-request protocol/capability metadata, trace context, and deterministic unsupported-version behavior. Malformed, duplicated, reordered, oversized, and adversarial messages fail predictably without corrupting another request.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-18): every GMCP-203-002-* requirement shipped on the production path and proven by gmcp_vc_203_002_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-002.json and .agents/gmcp/evidence/VC-203-002.jsonl",
-      "type": "CORE",
-      "vector": "JSON-RPC, protocol metadata, errors, cancellation, and negotiation"
-    },
-    {
-      "depends_on": [
-        "VC-203-002"
-      ],
-      "id": "VC-203-003",
-      "mastery_target": "For MCP 2026-07-28 and later GMCP is genuinely stateless at the protocol layer: no initialize ceremony or session identifier is required, every request carries and validates version plus client capabilities, every result identifies the server, server/discover is complete and cacheable, and explicit handles bind all cross-call state. Concurrent requests from changing clients cannot leak negotiated state.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-18): every GMCP-203-003-* requirement shipped on the production path and proven by gmcp_vc_203_003_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-003.json and .agents/gmcp/evidence/VC-203-003.jsonl",
-      "type": "CORE",
-      "vector": "Modern stateless lifecycle and server discovery"
-    },
-    {
-      "depends_on": [
-        "VC-203-002",
-        "VC-203-003"
-      ],
-      "id": "VC-203-004",
-      "mastery_target": "GMCP interoperates with pinned older MCP revisions through isolated compatibility adapters for initialize/initialized, ping, legacy HTTP+SSE, resource subscriptions, roots, sampling, elicitation, logging, and legacy task shapes without weakening the modern path. Version selection is deterministic, downgrade is visible, every deprecated feature has telemetry and a tested removal policy, and no legacy state crosses tenant or connection boundaries.",
-      "priority": "P1",
-      "progress": "DELIVERED (2026-10-26): every GMCP-203-004-* requirement shipped on the production path and proven by gmcp_vc_203_004_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-004.json and .agents/gmcp/evidence/VC-203-004.jsonl",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "Legacy lifecycle compatibility and governed deprecation"
-    },
-    {
-      "depends_on": [
-        "VC-203-002",
-        "VC-203-003"
-      ],
-      "id": "VC-203-005",
-      "mastery_target": "GMCP serves and consumes MCP over stdio with byte-accurate framing, bounded lines/messages, strict stdout protocol purity, stderr diagnostics, environment and working-directory control, graceful cancellation and shutdown, child-tree cleanup, backpressure, timeout handling, and Windows/Unix parity. Crash, hang, malformed output, descriptor leak, and hostile child fixtures all recover without stranding resources.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-26): every GMCP-203-005-* requirement shipped on the production path and proven by gmcp_vc_203_005_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-005.json and .agents/gmcp/evidence/VC-203-005.jsonl",
-      "type": "LOCAL_HOSTING",
-      "vector": "Production-grade stdio transport"
-    },
-    {
-      "depends_on": [
-        "VC-203-002",
-        "VC-203-003"
-      ],
-      "id": "VC-203-006",
-      "mastery_target": "GMCP serves and consumes current Streamable HTTP over HTTP/1.1 and HTTP/2 with correct POST semantics, media negotiation, streaming and non-streaming responses, origin/host validation, protocol and method headers, cache controls, cancellation, backpressure, connection limits, TLS, proxy awareness, and graceful drain. Removed GET/SSE-resume/session behavior is rejected on the modern path and confined to explicit legacy adapters.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-26): every GMCP-203-006-* requirement shipped on the production path and proven by gmcp_vc_203_006_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-006.json and .agents/gmcp/evidence/VC-203-006.jsonl",
-      "type": "LOCAL_HOSTING",
-      "vector": "Production-grade Streamable HTTP transport"
-    },
-    {
-      "depends_on": [
-        "VC-203-005",
-        "VC-203-006"
-      ],
-      "id": "VC-203-007",
-      "mastery_target": "A stable transport SPI admits in-process, Unix-domain socket, named-pipe, WebSocket or future transports without changing protocol semantics. A common conformance harness proves ordering, cancellation, limits, identity propagation, observability, shutdown, and error equivalence across adapters, while experimental transports are capability-negotiated and never silently presented as standard MCP.",
-      "priority": "P1",
-      "progress": "DELIVERED (2026-11-15): every GMCP-203-007-* requirement shipped on the production path (crates/susi-gmcp/src/server.rs, StdioGate, BoundedLines, GmcpService) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_007_mastery; see .agents/roadmap-verdicts/VC-203-007.json and .agents/gmcp/evidence/VC-203-007.jsonl. Bounds stated in the verdict: server role only on byte-pipe SPI and Streamable HTTP; client transport role, named pipes, and WebSocket have no adapter in core.",
-      "type": "CORE",
-      "vector": "Transport adapter SPI and embedded/in-process operation"
-    },
-    {
-      "depends_on": [
-        "VC-203-001",
-        "VC-203-002"
-      ],
-      "id": "VC-203-008",
-      "mastery_target": "Every MCP primitive and content variant is represented losslessly, including annotations, icons, resource links and embedded resources, binary media, extensions, cache scope/TTL, audience and priority metadata, and JSON Schema 2020-12 input/output contracts. Round-trip fixtures preserve unknown extension fields; schema limits, external-reference policy, Unicode, URI and MIME validation, and canonical serialization are exhaustively tested.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-18): all GMCP-203-008-* requirements shipped on the production path and proven by gmcp_vc_203_008_mastery; verdict and evidence in .agents/roadmap-verdicts/VC-203-008.json and .agents/gmcp/evidence/VC-203-008.jsonl",
-      "type": "CORE",
-      "vector": "Complete schemas, primitives, content, and metadata model"
-    },
-    {
-      "depends_on": [
-        "VC-203-003",
-        "VC-203-008"
-      ],
-      "id": "VC-203-009",
-      "mastery_target": "Tool discovery, deterministic pagination/filtering, list-change signaling, invocation, structured and unstructured results, output-schema validation, annotations, icons, errors, cancellation, progress, caching, idempotency declarations, and concurrent execution all work through the production registry. Tool identity and schema changes are versioned, calls are policy-gated, and success is impossible when declared output contracts are violated.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-27): every GMCP-203-009-* requirement shipped on the production tool registry path (crates/susi-gmcp/src/tool_registry.rs) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_009_mastery; see .agents/roadmap-verdicts/VC-203-009.json and .agents/gmcp/evidence/VC-203-009.jsonl",
-      "type": "CORE",
-      "vector": "Complete tool server surface"
-    },
-    {
-      "depends_on": [
-        "VC-203-003",
-        "VC-203-008"
-      ],
-      "id": "VC-203-010",
-      "mastery_target": "Static and templated resources support deterministic discovery, URI completion, text and binary reads, metadata, pagination/filtering, cache semantics, list and update notifications, modern filtered subscriptions, authorization, cancellation, and bounded streaming. URI-template matching, traversal, races, stale cache, not-found semantics, MIME handling, and large-resource behavior pass positive and adversarial fixtures.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-12): every GMCP-203-010-* requirement shipped on the production protocol path (crates/susi-gmcp/src/protocol.rs) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_010_mastery and the wire-level suite crates/susi-gmcp/src/tests/resource_surface.rs; see .agents/roadmap-verdicts/VC-203-010.json and .agents/gmcp/evidence/VC-203-010.jsonl. Bounds stated in the verdict: reads are single responses of at most 8 MiB, the access guard is an embedder hook, listings page but do not filter.",
-      "type": "CORE",
-      "vector": "Complete resource server surface"
-    },
-    {
-      "depends_on": [
-        "VC-203-003",
-        "VC-203-008"
-      ],
-      "id": "VC-203-011",
-      "mastery_target": "Prompt discovery/get and argument completion implement all current schemas, roles, embedded content, pagination/filtering, list changes, cache semantics, validation, cancellation, authorization, and deterministic ranking. Prompt templates are immutable per advertised version, untrusted substitutions remain data, and injection, oversized expansion, missing argument, localization, and concurrent-update cases are proven.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-15): every GMCP-203-011-* requirement shipped on the production path (crates/susi-gmcp/src/protocol.rs, catalog.rs, content.rs, jsonrpc_gate.rs, mcp/http.rs) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_011_mastery; see .agents/roadmap-verdicts/VC-203-011.json and .agents/gmcp/evidence/VC-203-011.jsonl. Bounds stated in the verdict: static use_tool prompt completion (GetPromptResult.resultType = complete) without remote HTTP prompt mutation endpoints; Unix-domain socket parity gated #[cfg(unix)].",
-      "type": "CORE",
-      "vector": "Complete prompt and completion server surface"
-    },
-    {
-      "depends_on": [
-        "VC-203-005",
-        "VC-203-006",
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-011"
-      ],
-      "id": "VC-203-012",
-      "mastery_target": "Modern subscriptions/listen filters and acknowledgement metadata work for tools, prompts, resources and resource updates, with bounded fan-out, ordering guarantees, cancellation, reconnect policy, backpressure and authorization re-checks. Progress and operational log notifications correlate to the originating request, obey requested levels and redaction, and never become an unbounded covert channel.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-15): every GMCP-203-012-* requirement shipped on the production path (crates/susi-gmcp/src/protocol.rs, jsonrpc_gate.rs, mcp/http.rs, mcp/model.rs, mcp/service.rs, mcp/transport.rs) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_012_mastery; see .agents/roadmap-verdicts/VC-203-012.json and .agents/gmcp/evidence/VC-203-012.jsonl. Bounds stated in the verdict: stateless subscription streams across disconnects requiring client re-listen/refresh; SEP-2577 deprecation-window operational logs gated on explicit io.modelcontextprotocol/logLevel or legacy logging/setLevel; Unix-domain socket parity gated #[cfg(unix)].",
-      "type": "CORE",
-      "vector": "Subscriptions, notifications, progress, and operational messages"
-    },
-    {
-      "depends_on": [
-        "VC-203-003",
-        "VC-203-008"
-      ],
-      "id": "VC-203-013",
-      "mastery_target": "The model-request/tool-response flow fully implements input_required, typed inputRequests, retry with inputResponses, nested elicitation, sampling and roots compatibility, cancellation, deadlines, progress, partial failure, and explicit handle ownership. Every human or model decision is attributable, policy-checked and resumable, and replays cannot duplicate side effects or hijack another principal's handle.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-10-27): every GMCP-203-013-* requirement shipped on the production protocol path (crates/susi-gmcp/src/protocol.rs) with contract, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_013_mastery; see .agents/roadmap-verdicts/VC-203-013.json and .agents/gmcp/evidence/VC-203-013.jsonl",
-      "type": "CORE",
-      "vector": "MRTR, elicitation, sampling, and roots interaction model"
-    },
-    {
-      "depends_on": [
-        "VC-203-003",
-        "VC-203-013",
-        "VC-203-016"
-      ],
-      "id": "VC-203-014",
-      "mastery_target": "The official Tasks extension is implemented on both client and server for get, update, cancel, notifications, state transitions, expiry, retries, ownership and server-directed execution. Durable tasks survive process restart exactly once, compose with MRTR and progress, enforce terminal-state invariants, and reject stale, cross-user, forged or replayed task handles.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-15): every GMCP-203-014-* requirement shipped on the production path (crates/susi-gmcp/src/mcp/{task_manager,model,service,message,http,transport}.rs; crates/susi-gmcp/src/{protocol,jsonrpc_gate,extensions,eco_mcp_features}.rs; crates/susi-wire-client/src/mcp.rs; src/cli/mcp_cli.rs) with contract, production, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_014_mastery; see .agents/roadmap-verdicts/VC-203-014.json and .agents/gmcp/evidence/VC-203-014.jsonl. Bounds stated in the verdict: direct Unix-domain socket adapter tests compiled under #[cfg(unix)]; non-resumable in-flight tasks interrupted by ungraceful process termination reconcile deterministically once to failed (-32603) on restart while settled terminal payloads replay within ttlMs without re-executing side effects; multi-node distributed task replication remains out of scope.",
-      "type": "CORE",
-      "vector": "Official Tasks extension and durable long-running work"
-    },
-    {
-      "depends_on": [
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-016",
         "VC-203-019"
       ],
       "id": "VC-203-015",
@@ -1738,41 +161,7 @@
       "vector": "MCP Apps extension and secure interactive UI"
     },
     {
-      "depends_on": [
-        "VC-203-001",
-        "VC-203-003",
-        "VC-203-008"
-      ],
-      "id": "VC-203-016",
-      "mastery_target": "Namespaced MCP extensions can be discovered, negotiated, configured, versioned, isolated and disabled through one typed framework without forking core protocol code. Unknown extensions round-trip safely, required unsupported extensions fail explicitly, official and experimental status is visible, collision and downgrade rules are enforced, and a watch process opens roadmap work for every newly published official extension.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-15): every GMCP-203-016-* requirement shipped on the production path (crates/susi-gmcp/src/extensions.rs, content.rs, protocol.rs, jsonrpc_gate.rs, server.rs, stdio.rs, tools/control_plane.rs; crates/susi-config/src/extensions.rs; crates/susi-wire-client/src/mcp.rs; src/cli/extensions_cli.rs) with contract, production, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_016_mastery; see .agents/roadmap-verdicts/VC-203-016.json and .agents/gmcp/evidence/VC-203-016.jsonl. Bounds stated in the verdict: direct Unix-domain socket adapter tests compiled under #[cfg(unix)]; official extension watch inspects compiled OFFICIAL_EXTENSIONS; downstream Tasks (VC-203-014) and MCP Apps (VC-203-015) remain tracked under their own vectors.",
-      "type": "GOVERNANCE",
-      "vector": "First-class extension framework and extension governance"
-    },
-    {
-      "depends_on": [
-        "VC-203-004",
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-011",
-        "VC-203-012",
-        "VC-203-013",
-        "VC-203-016"
-      ],
-      "id": "VC-203-017",
-      "mastery_target": "GMCP is a full host, not only a tool caller: one API and CLI can connect to any supported server, discover capabilities, call tools, read and subscribe to resources, get prompts and completions, handle MRTR callbacks, tasks, Apps, authorization, notifications, progress and cancellation. Multiple servers operate concurrently with isolated identities, policies and state, and every callback surface is exercised against real reference servers.",
-      "priority": "P0",
-      "progress": "DELIVERED (2026-11-16): every GMCP-203-017-* requirement shipped on the production path (crates/susi-wire-client/src/{host,mcp}.rs, crates/susi-tools/src/{mcp_budget,client,config,leading_mcp}.rs, crates/susi-core/src/mcp_client.rs, src/cli/mcp_cli.rs, crates/susi-cli-defs/src/mcp.rs) with contract, production, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_017_mastery; see .agents/roadmap-verdicts/VC-203-017.json and .agents/gmcp/evidence/VC-203-017.jsonl. Bounds stated in the verdict: Susi Core ships the complete headless MCP protocol host, session/transport engine, MRTR callback broker, Official Tasks handle store, headless MCP Apps ui:// CSP/domain validator, and susi mcp CLI with zero vendor MCP SDK crates while interactive WebView/graphical Apps surfaces live in Susi Commercial Apps; direct Unix-domain socket host/server checks compile under #[cfg(unix)].",
-      "type": "CORE",
-      "vector": "Complete MCP client and host"
-    },
-    {
-      "depends_on": [
-        "VC-203-005",
-        "VC-203-006",
-        "VC-203-017"
-      ],
+      "depends_on": [],
       "id": "VC-203-018",
       "mastery_target": "The client runtime pools only security-equivalent connections, honors ttlMs and cacheScope, invalidates on notifications, applies deadline and cancellation budgets, retries only safe operations with jitter and circuit breaking, and enforces per-server plus global concurrency and memory bounds. Reconnect, half-open, duplicate-response, slowloris, crash-loop and thundering-herd tests prove deterministic recovery without duplicate side effects.",
       "priority": "P0",
@@ -1782,8 +171,6 @@
     },
     {
       "depends_on": [
-        "VC-203-013",
-        "VC-203-017",
         "VC-203-024"
       ],
       "id": "VC-203-019",
@@ -1795,23 +182,6 @@
     },
     {
       "depends_on": [
-        "VC-203-008",
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-011",
-        "VC-203-013",
-        "VC-203-016"
-      ],
-      "id": "VC-203-020",
-      "mastery_target": "A stable Susi-shaped authoring SDK builds local MCP servers, tools, resources, prompts, subscriptions, MRTR handlers, tasks and extensions with schema derivation, typed context, middleware, testing fixtures and hot reload. Plugins declare permissions and compatibility, initialize transactionally, unload without leaks, preserve no vendor types across the boundary, and ship runnable minimal through production examples.",
-      "priority": "P1",
-      "progress": "DELIVERED (2026-11-16): every GMCP-203-020-* requirement shipped on the production path (crates/susi-gmcp/src/sdk.rs, crates/susi-gmcp/src/sdk/examples.rs, crates/susi-gmcp/src/protocol.rs, crates/susi-gmcp/src/extensions.rs, crates/susi-config/src/extensions.rs, src/cli/extensions_cli.rs, crates/susi-gmcp/examples/01_minimal_tool.rs..06_production_plugin_server.rs) with contract, production, integration, adversarial, interop, and operations evidence retained, proven by gmcp_vc_203_020_mastery; see .agents/roadmap-verdicts/VC-203-020.json and .agents/gmcp/evidence/VC-203-020.jsonl. Bounds stated in the verdict: Core ships the protocol-generic server authoring SDK and fail-closed plugin/extension-pack host lifecycle with zero bundled vendor plugin packs (DEFAULT_PACK_ID = \"default\"; curated packs live in Susi Commercial Apps); in-process plugin attachment is cooperative Rust-level isolation rather than an OS syscall sandbox.",
-      "type": "MEMORY_AND_ECOSYSTEM",
-      "vector": "GMCP server authoring SDK and plugin lifecycle"
-    },
-    {
-      "depends_on": [
-        "VC-203-017",
         "VC-203-018",
         "VC-203-024"
       ],
@@ -1824,10 +194,6 @@
     },
     {
       "depends_on": [
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-011",
-        "VC-203-012",
         "VC-203-021"
       ],
       "id": "VC-203-022",
@@ -1839,7 +205,6 @@
     },
     {
       "depends_on": [
-        "VC-203-020",
         "VC-203-022"
       ],
       "id": "VC-203-023",
@@ -1850,9 +215,7 @@
       "vector": "Service adapters and generated MCP surfaces"
     },
     {
-      "depends_on": [
-        "VC-203-017"
-      ],
+      "depends_on": [],
       "id": "VC-203-024",
       "mastery_target": "One deny-by-default policy engine mediates discovery, invocation, callbacks, data flow and installation using principal, server, capability, arguments, resource, destination, time, risk and provenance. Delegation uses attenuated capability grants, policy decisions explain their exact rule and version, TOCTOU is prevented by execution-time re-check, and exhaustive architecture tests prove no production bypass.",
       "priority": "P0",
@@ -1862,7 +225,6 @@
     },
     {
       "depends_on": [
-        "VC-203-006",
         "VC-203-024"
       ],
       "id": "VC-203-025",
@@ -1874,7 +236,6 @@
     },
     {
       "depends_on": [
-        "VC-203-017",
         "VC-203-025"
       ],
       "id": "VC-203-026",
@@ -1886,7 +247,6 @@
     },
     {
       "depends_on": [
-        "VC-203-016",
         "VC-203-025",
         "VC-203-026"
       ],
@@ -1913,7 +273,6 @@
     },
     {
       "depends_on": [
-        "VC-203-005",
         "VC-203-024",
         "VC-203-028"
       ],
@@ -1926,7 +285,6 @@
     },
     {
       "depends_on": [
-        "VC-203-001",
         "VC-203-028",
         "VC-203-029"
       ],
@@ -1939,8 +297,6 @@
     },
     {
       "depends_on": [
-        "VC-203-009",
-        "VC-203-017",
         "VC-203-019",
         "VC-203-024",
         "VC-203-030"
@@ -1954,7 +310,6 @@
     },
     {
       "depends_on": [
-        "VC-203-006",
         "VC-203-024",
         "VC-203-025",
         "VC-203-026",
@@ -1998,7 +353,6 @@
     },
     {
       "depends_on": [
-        "VC-203-001",
         "VC-203-030"
       ],
       "id": "VC-203-035",
@@ -2023,7 +377,6 @@
     },
     {
       "depends_on": [
-        "VC-203-017",
         "VC-203-028",
         "VC-203-036"
       ],
@@ -2036,7 +389,6 @@
     },
     {
       "depends_on": [
-        "VC-203-017",
         "VC-203-030",
         "VC-203-035",
         "VC-203-036",
@@ -2077,7 +429,6 @@
     },
     {
       "depends_on": [
-        "VC-203-014",
         "VC-203-018",
         "VC-203-033",
         "VC-203-039",
@@ -2106,9 +457,6 @@
     },
     {
       "depends_on": [
-        "VC-203-005",
-        "VC-203-006",
-        "VC-203-007",
         "VC-203-029",
         "VC-203-036",
         "VC-203-039"
@@ -2122,7 +470,6 @@
     },
     {
       "depends_on": [
-        "VC-203-017",
         "VC-203-019",
         "VC-203-040",
         "VC-203-043"
@@ -2136,12 +483,7 @@
     },
     {
       "depends_on": [
-        "VC-203-004",
-        "VC-203-012",
-        "VC-203-013",
-        "VC-203-014",
         "VC-203-015",
-        "VC-203-017",
         "VC-203-025",
         "VC-203-026",
         "VC-203-027",
@@ -2175,7 +517,6 @@
     },
     {
       "depends_on": [
-        "VC-203-020",
         "VC-203-036",
         "VC-203-043",
         "VC-203-044",
@@ -2191,26 +532,9 @@
     },
     {
       "depends_on": [
-        "VC-203-001",
-        "VC-203-002",
-        "VC-203-003",
-        "VC-203-004",
-        "VC-203-005",
-        "VC-203-006",
-        "VC-203-007",
-        "VC-203-008",
-        "VC-203-009",
-        "VC-203-010",
-        "VC-203-011",
-        "VC-203-012",
-        "VC-203-013",
-        "VC-203-014",
         "VC-203-015",
-        "VC-203-016",
-        "VC-203-017",
         "VC-203-018",
         "VC-203-019",
-        "VC-203-020",
         "VC-203-021",
         "VC-203-022",
         "VC-203-023",

@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-066",
-  "verdict": "delivered",
-  "evidence": "crates/susi-config/src/tests/vc_201_066_mastery.rs vc_201_066_mastery_export_redaction_covers_every_shape vc_201_066_mastery_scope_is_a_held_capability vc_201_066_mastery_config_credentials_are_references_not_bodies vc_201_066_mastery_reference_display_and_wrong_scope_hold",
-  "missing": "",
-  "tracked_by": [],
-  "recorded_by": "DEVIN20261002053148",
-  "recorded_unix": 1791061539
-}
