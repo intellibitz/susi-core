@@ -29,5 +29,6 @@
   "reuse": {
     "decision": "existing",
     "searched": "This changes rules and removes a limit; it builds nothing new. Looked at what already holds each rule: AGENTS.md, README.md, docs/lean-core.md and the documents that repeat the limit; tests/lean_core_ceilings.rs, tests/architecture_tests.rs and tests/no_github_coupling.rs (extended in place, same matcher); .cargo/config.toml (the core-size alias keeps its name); .githooks (the existing run-susi lookup gains one program name; mandate-checks takes the same edit as the shared copy)."
-  }
+  },
+  "progress": " 2026-11-22: this task's acceptance passes on Linux at core main f0dbfadfe (Susi Core's Linux gates ran the whole suite: 436 passed, none failed). It is not closed because `susi-tools tasks close` runs the acceptance on the machine that closes, and Susi Core does not build on Windows, where the tool runs; closing needs the tool on Linux (recorded in Susi's task T-CLAUDE-33)."
 }

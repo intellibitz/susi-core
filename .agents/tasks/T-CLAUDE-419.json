@@ -13,5 +13,6 @@
     ]
   },
   "created_by": "CLAUDE",
-  "created_unix": 1795163754
+  "created_unix": 1795163754,
+  "progress": " 2026-11-22: this task's acceptance passes on Linux at core main f0dbfadfe (Susi Core's Linux gates ran the whole suite: 436 passed, none failed). It is not closed because `susi-tools tasks close` runs the acceptance on the machine that closes, and Susi Core does not build on Windows, where the tool runs; closing needs the tool on Linux (recorded in Susi's task T-CLAUDE-33)."
 }
