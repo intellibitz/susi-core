@@ -10,203 +10,71 @@
     )
 )]
 
-//! Native Susi launcher, installation owner and public command contract.
+//! `susi`, Susi Core's program: an MCP server over standard input and output, a local daemon
+//! that serves it over HTTP, and its own installation. Every command here works on its own;
+//! until 2026-11-22 the program also listed 55 commands that only handed their work to a
+//! runtime host of the private product, and those left with that host.
 #![allow(missing_docs)]
 
 mod cli;
 mod daemon;
-mod dev_instance;
-use clap::{CommandFactory, FromArgMatches};
-use cli::defs::Cli;
-use std::env;
-use std::io::{self, IsTerminal, Write};
+
 use std::path::PathBuf;
+use std::process::ExitCode;
 
-fn bare_terminal_invocation(has_command: bool, has_intent: bool, stdin_is_terminal: bool) -> bool {
-    !has_command && !has_intent && stdin_is_terminal
-}
+const USAGE: &str = "\
+susi: Susi Core, the local-first AI OS socket (Apache-2.0)
 
-/// Usage for bare `susi`, plus where the conversation now lives.
-fn print_bare_usage(tree: &mut clap::Command) -> std::process::ExitCode {
-    let mut stdout = io::stdout();
-    let printed = write!(stdout, "{}", tree.render_help())
-        .and_then(|()| {
-            writeln!(
-                stdout,
-                "\nGive Susi one goal: susi \"<what you want done>\" (or pipe it on stdin).\n\
-                 The interactive conversation lives in the Susi desktop app."
-            )
-        })
-        .and_then(|()| stdout.flush());
-    if printed.is_err() {
-        return std::process::ExitCode::FAILURE;
-    }
-    std::process::ExitCode::SUCCESS
-}
+Usage:
+  susi mcp serve [--root <dir>]   an MCP server over standard input and output, with
+                                  read-only file tools confined to <dir> (default: here)
+  susi start [--root <dir>]       start the local daemon in the background: GET /health,
+                                  POST /mcp (bearer token in $SUSI_HOME/api_token)
+  susi status                     say whether the daemon is running
+  susi stop                       stop the daemon
+  susi install                    install this program into $SUSI_HOME/bin (~/.susi/bin)
+  susi --version | --help
 
-/// Parse argv against `tree`. The clap tree is large; `main` builds it once
-/// and the same tree then serves the intent guard, the near-miss check and
-/// bare usage (D-SP-1), instead of rebuilding it for each. Errors, `--help`
-/// and `--version` exit exactly as `Cli::parse` would.
-fn parse_cli(tree: &mut clap::Command) -> Cli {
-    let mut matches = tree.get_matches_mut();
-    Cli::from_arg_matches_mut(&mut matches).unwrap_or_else(|error| error.format(tree).exit())
-}
+The daemon listens on 127.0.0.1, port 9090 + SUSI_PORT_OFFSET.
+";
 
 fn get_home_dir() -> PathBuf {
-    env::var_os("HOME")
-        .or_else(|| env::var_os("USERPROFILE"))
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
-/// The CLI's clap command tree is large, and a debug build spends enough stack
-/// constructing it to exhaust the default Windows main-thread reserve before
-/// the first line of output — the symptom is an immediate
-/// `thread 'main' has overflowed its stack`, not a clap error. The surface's
-/// size must never decide whether the binary starts, so the CLI runs on a
-/// thread with a generous stack. The value is virtual address space, not
-/// committed memory, so it costs nothing on a platform that never needs it.
-const CLI_STACK_BYTES: usize = 16 * 1024 * 1024;
-
-/// Refuse harness-owned subcommands when a worker shell invokes the CLI: the
-/// tool spawns it with `SUSI_WORKER_GUARD=1`. The args are matched as words, so
-/// passing `workflow` and `finish` separately is caught too.
-fn guarded_worker_invocation(args: &[String]) -> bool {
-    if std::env::var_os("SUSI_WORKER_GUARD").is_none() {
-        return false;
-    }
-    let words: Vec<String> = args
-        .iter()
-        .filter(|arg| !arg.starts_with('-'))
-        .map(|arg| arg.to_ascii_lowercase())
-        .collect();
-    words.windows(2).any(|pair| {
-        matches!(pair[0].as_str(), "workflow" | "tasks")
-            && matches!(
-                pair[1].as_str(),
-                "finish" | "sync" | "start" | "claim" | "close" | "release" | "renew" | "abandon"
-            )
-    })
+fn usage_error(message: &str) -> ExitCode {
+    eprintln!("susi: {message}\n\n{USAGE}");
+    ExitCode::from(2)
 }
 
-fn main() -> std::process::ExitCode {
-    if let Some(status) = susi_config::vault_exec::dispatch_gpg_program_multicall() {
-        return status;
-    }
-    if let Some(status) = cli::install_cli::installed_channel::dispatch() {
-        return status;
-    }
-    let Ok(args) = env::args_os()
+fn main() -> ExitCode {
+    susi_paths::stdio::install_broken_pipe_guard();
+    let words: Vec<String> = std::env::args_os()
         .skip(1)
-        .map(|arg| arg.into_string())
-        .collect::<Result<Vec<_>, _>>()
-    else {
-        eprintln!("command arguments must be valid UTF-8");
-        return std::process::ExitCode::from(2);
-    };
-    if guarded_worker_invocation(&args) {
-        eprintln!(
-            "refused: the harness owns susi workflow/tasks commands; leave the changes in the tree"
-        );
-        return std::process::ExitCode::from(2);
-    }
-    drop(args);
-    // Rendering one global info flag never needs to build the nested command parsers.
-    // Clap still owns argument handling, output, executable naming and the exit code.
-    let mut args = env::args_os().skip(1);
-    let flag = args.next();
-    if args.next().is_none() {
-        let command = match flag.as_deref().and_then(|arg| arg.to_str()) {
-            Some("--help" | "-h") => Some(cli::defs::RootInfo::command()),
-            Some("--version" | "-V") => Some(clap::Command::new("susi")),
-            _ => None,
-        };
-        if let Some(command) = command {
-            susi_paths::stdio::install_broken_pipe_guard();
-            command.version(env!("CARGO_PKG_VERSION")).get_matches();
-        }
-    }
-    match std::thread::Builder::new()
-        .name("susi-cli".to_string())
-        .stack_size(CLI_STACK_BYTES)
-        .spawn(run)
-    {
-        Ok(handle) => handle.join().unwrap_or(std::process::ExitCode::FAILURE),
-        // A host that refuses the thread still gets a working CLI for any
-        // command that fits the default stack.
-        Err(_) => run(),
-    }
-}
-
-/// The commands this program serves itself: the MCP server and the local daemon.
-fn own_command(words: &[std::ffi::OsString]) -> Option<std::process::ExitCode> {
-    let words: Vec<String> = words
-        .iter()
         .map(|w| w.to_string_lossy().into_owned())
         .collect();
-    let usage = |e: String| {
-        eprintln!("susi: {e}");
-        std::process::ExitCode::from(2)
-    };
-    let (command, rest): (&[&str], &[String]) = match words.as_slice() {
-        [a, b, rest @ ..] if a == "mcp" && b == "serve" => (&["mcp", "serve"], rest),
-        [a, b, rest @ ..] if a == "daemon" && b == "run" => (&["daemon", "run"], rest),
-        [a, rest @ ..] if a == "start" => (&["start"], rest),
-        [a, rest @ ..] if a == "status" => (&["status"], rest),
-        [a, rest @ ..] if a == "stop" => (&["stop"], rest),
-        _ => return None,
-    };
-    Some(match command {
-        ["mcp", "serve"] => daemon::root_arg(rest).map_or_else(usage, daemon::mcp_serve),
-        ["daemon", "run"] => daemon::root_arg(rest).map_or_else(usage, daemon::run),
-        ["start"] => daemon::root_arg(rest).map_or_else(usage, daemon::start),
-        ["status"] if rest.is_empty() => daemon::status(),
-        ["stop"] if rest.is_empty() => daemon::stop(),
-        _ => usage(format!("{} takes no options", command.join(" "))),
-    })
-}
-
-fn run() -> std::process::ExitCode {
-    susi_paths::stdio::install_broken_pipe_guard();
-    let words: Vec<_> = env::args_os().skip(1).collect();
-    if let Some(status) = own_command(&words) {
-        return status;
-    }
-    if bare_terminal_invocation(false, !words.is_empty(), io::stdin().is_terminal()) {
-        return print_bare_usage(&mut cli::defs::RootInfo::command());
-    }
-    // Concrete feature parsers live beside their implementations. Keep only
-    // installation and native delivery parsing in this bootstrap executable.
-    let first = words.first().and_then(|word| word.to_str());
-    let native_help = first == Some("help")
-        && words
-            .get(1)
-            .and_then(|word| word.to_str())
-            .is_some_and(|word| matches!(word, "install" | "install-release" | "local"));
-    if native_help || matches!(first, Some("install" | "install-release" | "local")) {
-        let mut command_tree = Cli::command().version(env!("CARGO_PKG_VERSION"));
-        let cli = parse_cli(&mut command_tree);
-        if let Some(status) = cli::install_cli::installed_channel::management(cli.command.as_ref())
-        {
-            return status;
+    let words_ref: Vec<&str> = words.iter().map(String::as_str).collect();
+    let options = |rest: &[String]| daemon::root_arg(rest);
+    match words_ref.as_slice() {
+        [] | ["--help" | "-h" | "help"] => {
+            print!("{USAGE}");
+            ExitCode::SUCCESS
         }
-        if let Some(cli::defs::Commands::Local { args }) = &cli.command {
-            return cli::local_delivery_cli::execute(args);
+        ["--version" | "-V"] => {
+            println!("susi {}", env!("CARGO_PKG_VERSION"));
+            ExitCode::SUCCESS
         }
-        if matches!(cli.command, Some(cli::defs::Commands::Install)) {
-            return cli::install_cli::execute();
+        ["mcp", "serve", ..] => {
+            options(&words[2..]).map_or_else(|e| usage_error(&e), daemon::mcp_serve)
         }
-    } else if first == Some("help") && words.len() == 1 {
-        let mut tree = cli::defs::RootInfo::command();
-        return match tree.print_long_help() {
-            Ok(()) => std::process::ExitCode::SUCCESS,
-            Err(error) => {
-                eprintln!("Unable to print help: {error}");
-                std::process::ExitCode::FAILURE
-            }
-        };
+        ["daemon", "run", ..] => options(&words[2..]).map_or_else(|e| usage_error(&e), daemon::run),
+        ["start", ..] => options(&words[1..]).map_or_else(|e| usage_error(&e), daemon::start),
+        ["status"] => daemon::status(),
+        ["stop"] => daemon::stop(),
+        ["install"] => cli::install_cli::execute(),
+        _ => usage_error(&format!("unknown command {:?}", words.join(" "))),
     }
-    let prepare_instance = || dev_instance::isolate_if_dev_build(&get_home_dir());
-    cli::runtime_forward::execute(&words, prepare_instance)
 }

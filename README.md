@@ -28,8 +28,9 @@ or marks.
 Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
 become `susi-core`; development-only code (`scripts/`, `toolchain/`, `fuzz/`)
-is still in this tree and will move to Susi Tools, which is being filled; every command but `help` and `install` forwards to a runtime
-host that no longer exists, so the program does not yet run on its own; and since
+is still in this tree and will move to Susi Tools, which is being filled; the
+program's own runtime is small (an MCP server and a local daemon) and grows one
+working capability at a time; and since
 2026-11-22 the product holds only its licence and vault core while its apps
 are rebuilt, so a capability core points to the product for has no
 implementation there today.
@@ -76,14 +77,14 @@ a symbolic link, is refused. The daemon listens on 127.0.0.1 only; `/health`
 needs no token, `/mcp` and `/shutdown` need the bearer token in
 `~/.susi/api_token` (made on first start, readable by its owner only).
 
-Not finished, said plainly: the other commands `susi --help` lists still hand
-their work to a runtime host (`SUSI_RUNTIME_HOST`) that no longer exists and
-stop with "no runtime host configured"; they go next, and the runtime grows
-one working capability at a time.
+That is the whole command list (`susi --help`). Until 2026-11-22 the program
+also listed 55 commands that only handed their work to a runtime host of the
+private product; they left with that host. The runtime grows from here one
+working capability at a time.
 ## Host contract
 
-This is the contract the runtime serves; today only port 9090 is served (/health and
-`/mcp`, see What runs today). External clients can trust these ports; the daemon never silently
+This is the contract the runtime serves; today only port 9090 is served (`/health`
+and `/mcp`, see What runs today). External clients can trust these ports; the daemon never silently
 drifts them. The black-box conformance checker that verified a running host
 ([docs/host-contract-conformance.md](docs/host-contract-conformance.md)) was
 part of the private product's tooling and was removed on 2026-11-22.

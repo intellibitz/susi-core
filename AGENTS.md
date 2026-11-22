@@ -34,8 +34,9 @@ something that is not finished, it says so.
   built core's release tools from a checkout of the private repository left on
   2026-11-22 with those tools, which are to be rebuilt in Susi Tools. Not done
   yet: core's release check for unsafe code still builds its tools from a Susi
-  release, and every command but `help` and `install` still forwards to a
-  runtime host that no longer exists, so core does not yet run on its own.
+  release. Core runs on its own since 2026-11-22: `susi mcp serve` and the
+  local daemon (`susi start`); the 55 commands that only forwarded to a runtime
+  host of the private product left that day.
 - **Nothing secret and nothing of the private product enters this
   repository**: no credential, key, licence material, private record or
   proprietary source, in any file or in the history.

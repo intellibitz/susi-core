@@ -503,7 +503,6 @@ dependencies = [
  "susi-gawd-swarm",
  "susi-gmcp",
  "susi-paths",
- "susi-vendor-clap",
  "susi-vendor-ed25519-dalek",
  "susi-vendor-serde",
  "susi-vendor-serde-json",

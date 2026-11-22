@@ -1,6 +1,4 @@
 //! Native, no-overwrite installation of the executable the user launched.
-#[path = "../installed_channel.rs"]
-pub(crate) mod installed_channel;
 use sha2::{Digest, Sha256};
 use std::{
     env, fs,
@@ -129,9 +127,9 @@ pub(crate) fn execute() -> ExitCode {
     match result {
         Ok(path) => {
             println!("Susi installed: {}", path.display());
-            println!("Open Susi and enter your first goal. Susi never downloads a model by itself: to answer locally, run `susi os manage model install starter` to download qwen2.5-0.5b-instruct-q4 (about 429 MB); cloud models work without a download.");
+            println!("Next: `susi mcp serve --root <folder>` for an MCP client, or `susi start --root <folder>` for the local daemon. Susi never downloads anything by itself.");
             if cfg!(debug_assertions) {
-                println!("This is a debug candidate; production qualification and promotion remain separate.");
+                println!("This is a debug build.");
             }
             ExitCode::SUCCESS
         }

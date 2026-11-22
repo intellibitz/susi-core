@@ -1149,18 +1149,9 @@ fn dev_builds_never_install_the_release_binary() {
         "dev self-install over ~/.susi/bin is forbidden (Mandate 48): {self_deploy:?}"
     );
 
-    let main = std::fs::read_to_string(root.join("src/main.rs")).unwrap();
-    let body = &main[main.find("fn main()").unwrap()..];
-    let isolate = body
-        .find("dev_instance::isolate_if_dev_build")
-        .unwrap_or(usize::MAX);
-    let local = body.find("local_delivery_cli::execute").unwrap();
-    let install = body.find("install_cli::execute").unwrap();
-    let runtime = body.find("cli::runtime_forward::execute").unwrap();
-    assert!(
-        local < isolate && install < isolate && isolate < runtime,
-        "native delivery/install dispatch must precede development isolation, which must precede runtime startup"
-    );
+    // The dispatch-order check (delivery and install before development isolation, isolation
+    // before handing work to a runtime host) left with the code it ordered on 2026-11-22: the
+    // program forwards nothing and has no development-instance switch any more.
 }
 
 /// Mandate 48 ("SUSI writes SUSI"): every code-writing path into a SUSI
@@ -1172,12 +1163,15 @@ fn self_build_contract_reaches_every_code_writing_path() {
     let root = workspace_root();
     let read = |rel: &str| std::fs::read_to_string(root.join(rel)).unwrap();
 
-    // Application code-writing paths are checked by commercial ownership_guards.
-    // Guarded local delivery (the `susi-dev` launcher and the tools it builds)
-    // moved to Susi Commercial Apps, which checks it there; core names it.
-    let delivery = read("src/cli/local_delivery_cli.rs");
-    assert!(delivery.contains("susi-dev"));
-    assert!(delivery.contains("tools/core-xtask"));
+    // Core writes code into no tree of its own: `susi install` copies the program without
+    // overwriting a different one, and nothing else here writes source. The `local`
+    // delivery command that named Susi's `susi-dev` launcher left on 2026-11-22.
+    let main = read("src/main.rs");
+    assert!(
+        !main.contains("local_delivery"),
+        "guarded local delivery must not return"
+    );
+    assert!(read("src/cli/install_cli.rs").contains("different_existing_binary_is_never_replaced"));
 }
 
 /// Mandate 49 regression guard: the worktree-workflow guard exists, is
@@ -1290,7 +1284,7 @@ fn compiled_workflow_policy_preserves_enforcement_boundaries() {
             "absence is never acceptance evidence",
             ".agents/schemas/evidence.schema.json",
         ),
-        (52, "SUSI_HOME", "src/dev_instance.rs"),
+        (52, "SUSI_HOME", "src/daemon.rs"),
         (
             56,
             "rank healthy providers ahead of recent failures",
@@ -3252,10 +3246,11 @@ fn core_cli_has_no_ui_subcommands() {
         !root.join("src/cli/shell_cli.rs").exists(),
         "the interactive shell module must not return to core"
     );
-    let defs = std::fs::read_to_string(root.join("src/cli/defs.rs")).expect("read defs.rs");
+    // Since 2026-11-22 the command list is the usage text in src/main.rs.
+    let defs = std::fs::read_to_string(root.join("src/main.rs")).expect("read main.rs");
     assert!(
-        defs.contains("enum Commands"),
-        "src/cli/defs.rs must define `enum Commands`; update scanner path if moved"
+        defs.contains("const USAGE"),
+        "src/main.rs must hold the command list in `USAGE`; update scanner path if moved"
     );
     for (number, line) in defs.lines().enumerate() {
         let trimmed = line.trim();
@@ -3267,15 +3262,13 @@ fn core_cli_has_no_ui_subcommands() {
             number + 1
         );
     }
-    for rel in ["src/cli/defs.rs"] {
-        let text = std::fs::read_to_string(root.join(rel)).expect("read CLI defs");
+    for rel in ["src/main.rs"] {
+        let text = std::fs::read_to_string(root.join(rel)).expect("read the command list");
         let mut visible_help_matches = 0usize;
         for (number, line) in text.lines().enumerate() {
             let trimmed = line.trim();
             let lower = trimmed.to_ascii_lowercase();
-            let visible_help = trimmed.starts_with("///")
-                || lower.contains("visible_alias")
-                || lower.contains("about =");
+            let visible_help = trimmed.starts_with("susi ") || trimmed.starts_with("///");
             if visible_help {
                 visible_help_matches += 1;
             }

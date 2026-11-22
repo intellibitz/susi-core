@@ -1110,7 +1110,7 @@ fn the_scan_reaches_test_build_and_tool_sources() {
         "tests/no_console_window.rs",
         "crates/susi-paths/src/console.rs",
         "crates/susi-core/src/bounded_cmd.rs",
-        "src/cli/runtime_forward.rs",
+        "src/daemon.rs",
     ] {
         assert!(files.contains(&expected), "{expected} must be scanned");
     }
