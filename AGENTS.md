@@ -39,7 +39,8 @@ something that is not finished, it says so.
   proprietary source, in any file or in the history.
 - **Development-only code never ships with production code.** Whatever is used
   only while developing, testing or releasing gets its home in Susi Tools. Not
-  done yet: Susi Tools holds no tooling; `scripts/`, `toolchain/` and `fuzz/`
+  done yet: Susi Tools holds one tool so far (a speed report, since
+  2026-11-22); `scripts/`, `toolchain/` and `fuzz/`
   are still in this repository; core's release tools are still built from the
   private repository; and the development program `susi-tools` does not yet
   come from the Susi Tools repository. Tests stay beside the code they test
@@ -76,10 +77,16 @@ waiting more than 10s for anything - test, releases whatever it is."
   core count on a large machine). It does not run doc-tests: run `cargo test
   --doc --workspace --offline --locked` beside it (core has none today).
   `cargo test --workspace` runs the same tests one program after another.
-- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2, core
-  `main` `7d9aa6b31`): the Linux gates take about 70 seconds warm, 56 of them
-  in `cargo test`; a brand-new agent's first run takes about 111 seconds. Not
-  done yet: the gates under 10 seconds.
+- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2): the
+  Linux gates take 16 to 19 seconds warm, three runs in a row at `ab6e16b96`,
+  9 to 12 of them in the tests (434 run, 14 ignored, the same tests
+  `cargo test` runs). They took about 70 seconds while the tests ran one
+  program at a time. The slowest single test takes 7.6 seconds
+  (`tests/functional_distillation.rs`, which builds core's release tools from
+  a checkout of the private repository), so it bounds the whole test run.
+  Not done yet: the gates under 10 seconds; the size step (2 to 3 seconds)
+  and the setup before the tests (2 to 6 seconds) still run one after the
+  other.
 
 ## Core boundary and size
 

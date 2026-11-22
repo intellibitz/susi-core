@@ -13,7 +13,7 @@ is the same page in all three):
 |------|------------|---------|
 | **Susi** | The product: commercial applications that run on this socket, sold under licence. It is the primary, and the other two derive from it. Its repository is `susi` (it was `susi-commercial-apps` until 2026-11-22), and older text here calls it Susi Commercial Apps. | No. Private and licensed. |
 | **Susi Core** (this repository) | The socket itself and its three core pillars: **GAWD** (agent coordination, A2A, ACP and parallel harness), **GEMI** (inference routing) and **GMCP** (MCP and governed tools). | Yes. Apache-2.0, all of it. |
-| **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Not yet. Apache-2.0 and built to be published; it is being assembled and holds no tooling today. |
+| **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Not yet. Apache-2.0 and built to be published; it is being assembled and holds one tool so far, a speed report. |
 
 Nothing in this repository is secret, and it builds and runs without the
 private product. A capability that lives in the product is not here: the core
@@ -28,7 +28,8 @@ or marks.
 Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
 become `susi-core`; development-only code (`scripts/`, `toolchain/`, `fuzz/`)
-is still in this tree and will move to Susi Tools, which holds no tooling yet;
+is still in this tree and will move to Susi Tools, whose only tool so far is a
+speed report;
 two test files still need a checkout of the private repository; and since
 2026-11-22 the product holds only its licence and vault core while its apps
 are rebuilt, so a capability core points to the product for has no
