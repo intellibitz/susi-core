@@ -118,7 +118,7 @@ fn graph_assertions_cannot_confuse_facades_with_runtime_packages() {
 
 #[test]
 fn retired_feature_requests_fail_explicitly_before_building() {
-    for package in ["susi", "susi-gemi", "susi-gemi-models"] {
+    for package in ["susi"] {
         for feature in ["cuda", "mkl"] {
             let output = Command::new(env!("CARGO"))
                 .args([

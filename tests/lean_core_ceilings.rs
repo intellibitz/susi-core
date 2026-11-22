@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const CLOSURE_ROOTS: [&str; 4] = ["susi-gawd", "susi-gemi", "susi-gmcp", "susi-harness"];
+const CLOSURE_ROOTS: [&str; 3] = ["susi-gawd-a2a", "susi-gawd-acp", "susi-gmcp"];
 
 /// Third-party (non-workspace) crates the four pillars compile. 2026-11-07:
 /// 331 before the lean-core program began, 313 after wave 1 (rayon, flume
@@ -174,16 +174,9 @@ const CARGO_LOCK_PACKAGES_BASELINE: usize = 181;
 /// `susi-leaf-services` and `susi-tools`).
 const DIRECT_FACADE_EDGES_BASELINE: usize = 9;
 /// The pillar crates whose shipped source size is reported.
-const PILLAR_CRATES: [&str; 8] = [
-    "susi-gawd",
-    "susi-gawd-swarm",
-    "susi-gawd-agents",
-    "susi-gawd-a2a",
-    "susi-gemi",
-    "susi-gemi-models",
-    "susi-gmcp",
-    "susi-harness",
-];
+/// 2026-11-22: 8 -> 3, when the six packages that only re-exported `susi-core` left
+/// (GEMI holds no code yet).
+const PILLAR_CRATES: [&str; 3] = ["susi-gawd-a2a", "susi-gawd-acp", "susi-gmcp"];
 
 /// Reviewed unsafe-exposure baseline files under `.agents/baseline/`. A file
 /// count, not a line count; like the counts above, a recorded baseline.
@@ -601,14 +594,11 @@ fn repository_size() -> RepositorySize {
         "lean-core categories: runtime_rust={first_party_runtime_rust}, vendor_facade_rust={vendor_facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, vendor={vendor_lines}, .agents={agents_lines} (append-only evidence={evidence_jsonl_lines}, unsafe_baselines={unsafe_baseline_files} / baseline {UNSAFE_BASELINE_FILE_COUNT})"
     );
     // A missing/empty inventory must not pass as a small measurement.
-    // Include ACP explicitly: the historical pillar report predates its crate.
-    for package in PILLAR_CRATES.iter().copied().chain([
-        "susi (root)",
-        "susi-gawd-acp",
-        "susi-core",
-        "susi-config",
-        "susi-daemon",
-    ]) {
+    for package in PILLAR_CRATES
+        .iter()
+        .copied()
+        .chain(["susi (root)", "susi-core", "susi-config"])
+    {
         assert!(
             runtime_by_package
                 .get(package)

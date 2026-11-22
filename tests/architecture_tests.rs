@@ -11,8 +11,7 @@
 //! - no workspace crate dependency cycles
 //! - every SUSI edge points down the AGENTS.md leaf order
 //! - forbidden edges (feature-plane isolation / error purity)
-//! - ratchets that only decrease (unwired daemon modules, cross-crate
-//!   source mounts)
+//! - ratchets that only decrease (cross-crate source mounts)
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
@@ -102,16 +101,8 @@ const LEAF_RANK: &[(&str, u8)] = &[
     // The GAWD ACP protocol crate depends on config. Core re-exports its API.
     ("susi-gawd-acp", 3),
     ("susi-core", 4),
-    ("susi-tools", 5),
-    ("susi-gemi-models", 6),
-    ("susi-gawd-agents", 6),
     ("susi-gmcp", 5),
-    ("susi-gawd-swarm", 7),
-    ("susi-gemi", 7),
     ("susi-gawd-a2a", 8),
-    ("susi-harness", 9),
-    ("susi-gawd", 9),
-    ("susi-daemon", 10),
     ("susi", 11),
 ];
 
@@ -319,56 +310,6 @@ fn layer_matrix_forbidden_edges() {
             ],
         ),
         (
-            "susi-tools",
-            &[
-                "susi-gawd",
-                "susi-gawd-agents",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-gmcp",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-gawd-agents",
-            &[
-                "susi-gawd",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-gmcp",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-gawd-swarm",
-            &[
-                "susi-gawd",
-                "susi-gawd-a2a",
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-gmcp",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
             "susi-gawd-a2a",
             &[
                 "susi-gawd",
@@ -382,54 +323,6 @@ fn layer_matrix_forbidden_edges() {
                 "susi-vendor-wasmtime",
             ],
         ),
-        (
-            "susi-gawd",
-            &[
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-gmcp",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-gemi-models",
-            &[
-                "susi-gemi",
-                "susi-gmcp",
-                "susi-gawd",
-                "susi-gawd-agents",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-gemi",
-            &[
-                "susi-gmcp",
-                "susi-gawd",
-                "susi-gawd-agents",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        ("susi-daemon", &["susi-sandbox"]),
         (
             "susi-config",
             &[
@@ -696,39 +589,6 @@ fn ureq_types_stay_inside_http_transport() {
     }
 }
 
-/// Model-plane crates (gemi-models) must not declare Hugging Face HTTP or
-/// tokenizer vendor crates: downloads go through `susi-http-transport`,
-/// tokenizers through `susi-vendor-candle`.
-#[test]
-fn gemi_models_must_not_declare_vendor_http_or_tokenizers() {
-    let root = workspace_root();
-    let text = std::fs::read_to_string(root.join("crates/susi-gemi-models/Cargo.toml"))
-        .expect("susi-gemi-models Cargo.toml");
-    let mut in_deps = false;
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('[') {
-            in_deps = trimmed == "[dependencies]"
-                || trimmed.starts_with("[dependencies.")
-                || (trimmed.starts_with("[target.")
-                    && trimmed.contains("dependencies]")
-                    && !trimmed.contains("dev-dependencies]"));
-            continue;
-        }
-        if !in_deps {
-            continue;
-        }
-        for banned in ["reqwest", "tokenizers"] {
-            let declared = trimmed.starts_with(&format!("{banned} "))
-                || trimmed.starts_with(&format!("{banned}="));
-            assert!(
-                !declared,
-                "susi-gemi-models must not declare `{banned}` (HF HTTP via susi-http-transport, tokenizers via susi-vendor-candle)"
-            );
-        }
-    }
-}
-
 #[test]
 fn architecture_md_exists() {
     let path = workspace_root().join("ARCHITECTURE.md");
@@ -807,29 +667,6 @@ fn is_ident_byte(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'_'
 }
 
-/// Whether `text` names module `m` through `prefix::m` (word-bounded).
-fn names_path(text: &str, prefix: &str, m: &str) -> bool {
-    let needle = format!("{prefix}::{m}");
-    text.match_indices(&needle).any(|(i, _)| {
-        let before_ok = i == 0 || !is_ident_byte(text.as_bytes()[i - 1]);
-        let after = text.as_bytes().get(i + needle.len()).copied();
-        before_ok && !after.is_some_and(is_ident_byte)
-    })
-}
-
-/// Whether a `use crate::{…}` / `use super::{…}` group imports `m`.
-fn brace_imports(text: &str, m: &str) -> bool {
-    ["crate::{", "super::{"].iter().any(|open| {
-        text.match_indices(open).any(|(i, _)| {
-            let rest = &text[i + open.len()..];
-            let group = rest.find('}').map_or(rest, |end| &rest[..end]);
-            group
-                .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
-                .any(|word| word == m)
-        })
-    })
-}
-
 fn rust_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
@@ -842,93 +679,6 @@ fn rust_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
             out.push(path);
         }
     }
-}
-
-fn unreachable_daemon_modules() -> Vec<String> {
-    let root = workspace_root();
-    let src = root.join("crates/susi-daemon/src");
-    let mut modules: HashMap<String, String> = HashMap::new();
-    for entry in std::fs::read_dir(&src).unwrap().flatten() {
-        let path = entry.path();
-        let name = path.file_stem().unwrap().to_string_lossy().to_string();
-        if path.extension().is_some_and(|e| e == "rs") && name != "lib" && name != "main" {
-            let mut text = std::fs::read_to_string(&path).unwrap();
-            let mut nested = Vec::new();
-            rust_files(&src.join(&name), &mut nested);
-            for f in nested {
-                text.push_str(&std::fs::read_to_string(f).unwrap());
-            }
-            modules.insert(name, text);
-        }
-    }
-    let mentions = |text: &str, m: &str| {
-        let code = non_test(text);
-        ["crate", "super", "susi_daemon"]
-            .iter()
-            .any(|p| names_path(code, p, m))
-            || brace_imports(code, m)
-    };
-    let mut outside = String::new();
-    let mut files = Vec::new();
-    rust_files(&root.join("src"), &mut files);
-    rust_files(&root.join("crates"), &mut files);
-    for f in files {
-        if f.starts_with(&src) || !f.components().any(|c| c.as_os_str() == "src") {
-            continue;
-        }
-        outside.push_str(non_test(&std::fs::read_to_string(f).unwrap()));
-    }
-    let lib = std::fs::read_to_string(src.join("lib.rs")).unwrap();
-    let lib_code: String = lib
-        .lines()
-        .filter(|l| {
-            let t = l.trim_start().trim_start_matches("pub ");
-            !(t.starts_with("mod ") && t.ends_with(';'))
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    let mut reached: HashSet<String> = HashSet::new();
-    let mut queue: VecDeque<String> = modules
-        .keys()
-        .filter(|m| {
-            names_path(&outside, "susi_daemon", m)
-                || names_path(&lib_code, "crate", m)
-                || names_path(&lib_code, "self", m)
-                || lib_code.contains(&format!("use {m}::"))
-                || lib_code.contains(&format!(" {m}::"))
-        })
-        .cloned()
-        .collect();
-    while let Some(m) = queue.pop_front() {
-        if !reached.insert(m.clone()) {
-            continue;
-        }
-        let text = &modules[&m];
-        for other in modules.keys() {
-            if other != &m && !reached.contains(other) && mentions(text, other) {
-                queue.push_back(other.clone());
-            }
-        }
-    }
-    let mut dead: Vec<String> = modules
-        .keys()
-        .filter(|m| !reached.contains(*m))
-        .cloned()
-        .collect();
-    dead.sort();
-    dead
-}
-
-#[test]
-fn unreachable_daemon_modules_only_decrease() {
-    let dead = unreachable_daemon_modules();
-    // Ceiling is 0: `len() <= 0` trips clippy::absurd_extreme_comparisons.
-    assert!(
-        dead.is_empty(),
-        "{} susi-daemon modules are unreachable from any production path; \
-         wire (a discarded probe does not count) or remove them: {dead:?}",
-        dead.len()
-    );
 }
 
 /// Coverage floor ratchet: every non-facade crate must contain at least one
@@ -954,41 +704,6 @@ fn every_non_facade_crate_has_tests() {
         let mut text = String::new();
         let mut files = Vec::new();
         rust_files(&crate_dir.join("src"), &mut files);
-        if [
-            "susi-daemon",
-            "susi-gawd",
-            "susi-gawd-agents",
-            "susi-gawd-swarm",
-            "susi-gemi",
-            "susi-gemi-models",
-            "susi-tools",
-        ]
-        .contains(&name.as_str())
-        {
-            assert_eq!(
-                files,
-                [crate_dir.join("src/lib.rs")],
-                "{name} must remain a pure protocol facade"
-            );
-            let source = std::fs::read_to_string(&files[0]).unwrap();
-            let statements = source
-                .lines()
-                .map(str::trim)
-                .filter(|line| {
-                    !line.is_empty() && !line.starts_with("//") && !line.starts_with("#![")
-                })
-                .collect::<Vec<_>>()
-                .join(" ");
-            assert!(!statements.is_empty(), "{name} must export its protocol");
-            assert!(
-                statements
-                    .split(';')
-                    .filter(|part| !part.trim().is_empty())
-                    .all(|part| part.trim().starts_with("pub use ")),
-                "{name} contains implementation and needs original tests"
-            );
-            continue;
-        }
         rust_files(&crate_dir.join("tests"), &mut files);
         for f in files {
             text.push_str(&std::fs::read_to_string(&f).unwrap());
@@ -1816,22 +1531,6 @@ fn pruned_non_ai_os_bloat_modules_and_deps_stay_removed() {
         );
     }
 
-    let daemon_manifest = std::fs::read_to_string(root.join("crates/susi-daemon/Cargo.toml"))
-        .expect("read susi-daemon Cargo.toml");
-    assert!(
-        !daemon_manifest.contains("ed25519-dalek"),
-        "susi-daemon must not depend on ed25519-dalek after pruning uncalled signing/identity stubs"
-    );
-    assert!(
-        !daemon_manifest.contains("parking_lot") && !daemon_manifest.contains("parking-lot"),
-        "susi-daemon must not depend on unused parking_lot"
-    );
-    let harness_manifest = std::fs::read_to_string(root.join("crates/susi-harness/Cargo.toml"))
-        .expect("read susi-harness Cargo.toml");
-    assert!(
-        !harness_manifest.contains("susi-vendor-fastembed"),
-        "susi-harness must not depend on susi-vendor-fastembed after pruning unpersisted memory stub"
-    );
     let root_manifest =
         std::fs::read_to_string(root.join("Cargo.toml")).expect("read root Cargo.toml");
     assert!(
@@ -2319,12 +2018,6 @@ fn ui_and_plugins_live_in_commercial_apps() {
             "{member} must not be a workspace member"
         );
     }
-    let harness_lib = std::fs::read_to_string(root.join("crates/susi-harness/src/lib.rs"))
-        .expect("read susi-harness lib.rs");
-    assert!(
-        !harness_lib.contains("pub mod plugins;"),
-        "the harness plugin manifest module must not return"
-    );
 }
 
 /// Every first-party, non-test Rust source in core (`src/` and `crates/`;

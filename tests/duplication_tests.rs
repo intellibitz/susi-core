@@ -122,40 +122,6 @@ fn susi_abi_is_never_source_mounted_into_a_consumer() {
     );
 }
 
-/// `susi-gawd-agents` is the fleet/detectors leaf. Consumers reach it
-/// through a Cargo edge; remounting its sources would give each consumer
-/// its own fleet types and detector statics.
-#[test]
-fn susi_gawd_agents_is_never_source_mounted_into_a_consumer() {
-    let crates = workspace_root().join("crates");
-    let mut offenders = Vec::new();
-    let mut pending = vec![crates.clone()];
-
-    while let Some(directory) = pending.pop() {
-        for entry in std::fs::read_dir(&directory).expect("read crate directory") {
-            let path = entry.expect("read crate entry").path();
-            if path.is_dir() {
-                pending.push(path);
-                continue;
-            }
-            if path.extension().and_then(|e| e.to_str()) != Some("rs")
-                || path.starts_with(crates.join("susi-gawd-agents"))
-            {
-                continue;
-            }
-            let text = std::fs::read_to_string(&path).expect("read Rust source");
-            if text.contains("#[path = \"../../susi-gawd-agents/") {
-                offenders.push(path);
-            }
-        }
-    }
-
-    assert!(
-        offenders.is_empty(),
-        "susi-gawd-agents must be reached through a Cargo edge, not a source mount: {offenders:?}"
-    );
-}
-
 /// Within-plane crates (`susi-gawd-swarm`, `susi-gawd-a2a`, `susi-gemi-models`)
 /// are reached through Cargo edges. Remounting their sources would give the
 /// host crate a second copy of the same types.

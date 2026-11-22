@@ -499,8 +499,6 @@ dependencies = [
  "susi-config",
  "susi-core",
  "susi-error",
- "susi-gawd-agents",
- "susi-gawd-swarm",
  "susi-gmcp",
  "susi-paths",
  "susi-vendor-ed25519-dalek",
@@ -546,28 +544,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "susi-daemon"
-version = "0.21.72"
-dependencies = [
- "susi-core",
-]
-
-[[package]]
 name = "susi-error"
 version = "0.1.0"
 dependencies = [
  "susi-paths",
  "susi-vendor-serde",
  "susi-vendor-serde-json",
-]
-
-[[package]]
-name = "susi-gawd"
-version = "0.21.72"
-dependencies = [
- "susi-core",
- "susi-gawd-a2a",
- "susi-gawd-acp",
 ]
 
 [[package]]
@@ -590,35 +572,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "susi-gawd-agents"
-version = "0.1.0"
-dependencies = [
- "susi-core",
-]
-
-[[package]]
-name = "susi-gawd-swarm"
-version = "0.1.0"
-dependencies = [
- "susi-core",
-]
-
-[[package]]
-name = "susi-gemi"
-version = "0.21.72"
-dependencies = [
- "susi-core",
- "susi-gemi-models",
-]
-
-[[package]]
-name = "susi-gemi-models"
-version = "0.1.0"
-dependencies = [
- "susi-core",
-]
-
-[[package]]
 name = "susi-gmcp"
 version = "0.21.72"
 dependencies = [
@@ -628,28 +581,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "susi-harness"
-version = "0.21.72"
-dependencies = [
- "susi-core",
- "susi-error",
- "susi-paths",
- "susi-vendor-serde",
- "susi-vendor-serde-json",
-]
-
-[[package]]
 name = "susi-paths"
 version = "0.1.0"
 dependencies = [
  "susi-vendor-serde-json",
-]
-
-[[package]]
-name = "susi-tools"
-version = "0.1.0"
-dependencies = [
- "susi-core",
 ]
 
 [[package]]

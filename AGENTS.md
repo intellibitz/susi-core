@@ -13,8 +13,7 @@ routine engineering steps.
   commercial applications, and the primary. Susi Core (this repository, `susi-core`) and
   Susi Tools (`susi-tools`, everything used only while developing, testing or releasing) are
   its public Apache-2.0 derivatives. The three move together. The program built here is
-  still called `susi`; it becomes `susi-core` in a later, announced step. The
-  `crates/susi-tools` crate in this workspace is the tool-socket binding, not Susi Tools.
+  still called `susi`; it becomes `susi-core` in a later, announced step.
 - **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never back, and Susi
   Core and Susi Tools do not depend on each other. Core builds and tests on its own.
 - **Nothing secret and nothing of the private product enters this repository**: no
@@ -196,8 +195,8 @@ to the previous verified artifact; `susi install` never replaces a different exi
   and core's release check for unsafe code still builds its tools from a Susi release.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.
-- **Old records and pages:** many documents in `docs/` describe features that left core on
-  2026-11-22 and are being removed; finished task records still sit in
+- **Old records and pages:** `ARCHITECTURE.md` and many documents in `docs/` describe
+  packages and features that left core and are being removed; finished task records still sit in
   `.agents/tasks/done/`; the goal notes in `.agents/visions/carried/` name sections of the
   earlier contract by number, and the rules they name are kept here word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
