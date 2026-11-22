@@ -53,19 +53,37 @@ operating system. Susi Core is Apache-2.0 and free forever.
 
 ## What runs today
 
-Tested on 2026-11-22 (version 0.21.72, Linux x86_64): the program builds,
-`susi --help` lists 61 commands, and `susi install` copies the program into
-`~/.susi/bin`. Every other command hands its work to a runtime host
-(`SUSI_RUNTIME_HOST`). The only one that existed was part of the private
-product and was removed on 2026-11-22, so today those commands stop with "no
-runtime host configured". A small runtime that starts on its own and serves a
-working MCP endpoint is being built, one working capability at a time; the
-commands that do nothing go when it lands. Until then nothing in the next two
-sections is served by this program.
+Since 2026-11-22 the program runs on its own (Linux x86_64):
+
+```bash
+# An MCP server over standard input and output, with read-only file tools
+# confined to one folder: list_directory, read_file, search_files.
+susi mcp serve --root ~/my-project
+
+# The same tools from a local daemon on 127.0.0.1:9090 (plus SUSI_PORT_OFFSET):
+susi start --root ~/my-project     # starts it in the background
+curl -s http://127.0.0.1:9090/health
+curl -s http://127.0.0.1:9090/mcp -H "Authorization: Bearer $(cat ~/.susi/api_token)" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+susi status
+susi stop
+```
+
+`susi mcp serve` speaks MCP 2025-06-18 (and 2025-03-26, 2024-11-05), so an MCP
+client such as Claude Code can use it directly (`claude mcp add susi -- susi
+mcp serve --root .`). A path that leaves the root, by `..`, an absolute name or
+a symbolic link, is refused. The daemon listens on 127.0.0.1 only; `/health`
+needs no token, `/mcp` and `/shutdown` need the bearer token in
+`~/.susi/api_token` (made on first start, readable by its owner only).
+
+Not finished, said plainly: the other commands `susi --help` lists still hand
+their work to a runtime host (`SUSI_RUNTIME_HOST`) that no longer exists and
+stop with "no runtime host configured"; they go next, and the runtime grows
+one working capability at a time.
 ## Host contract
 
-This is the contract the runtime serves; today nothing serves it (see What
-runs today). External clients can trust these ports; the daemon never silently
+This is the contract the runtime serves; today only port 9090 is served (/health and
+`/mcp`, see What runs today). External clients can trust these ports; the daemon never silently
 drifts them. The black-box conformance checker that verified a running host
 ([docs/host-contract-conformance.md](docs/host-contract-conformance.md)) was
 part of the private product's tooling and was removed on 2026-11-22.
