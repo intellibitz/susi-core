@@ -14,6 +14,7 @@
 #![allow(missing_docs)]
 
 mod cli;
+mod daemon;
 mod dev_instance;
 use clap::{CommandFactory, FromArgMatches};
 use cli::defs::Cli;
@@ -138,9 +139,40 @@ fn main() -> std::process::ExitCode {
     }
 }
 
+/// The commands this program serves itself: the MCP server and the local daemon.
+fn own_command(words: &[std::ffi::OsString]) -> Option<std::process::ExitCode> {
+    let words: Vec<String> = words
+        .iter()
+        .map(|w| w.to_string_lossy().into_owned())
+        .collect();
+    let usage = |e: String| {
+        eprintln!("susi: {e}");
+        std::process::ExitCode::from(2)
+    };
+    let (command, rest): (&[&str], &[String]) = match words.as_slice() {
+        [a, b, rest @ ..] if a == "mcp" && b == "serve" => (&["mcp", "serve"], rest),
+        [a, b, rest @ ..] if a == "daemon" && b == "run" => (&["daemon", "run"], rest),
+        [a, rest @ ..] if a == "start" => (&["start"], rest),
+        [a, rest @ ..] if a == "status" => (&["status"], rest),
+        [a, rest @ ..] if a == "stop" => (&["stop"], rest),
+        _ => return None,
+    };
+    Some(match command {
+        ["mcp", "serve"] => daemon::root_arg(rest).map_or_else(usage, daemon::mcp_serve),
+        ["daemon", "run"] => daemon::root_arg(rest).map_or_else(usage, daemon::run),
+        ["start"] => daemon::root_arg(rest).map_or_else(usage, daemon::start),
+        ["status"] if rest.is_empty() => daemon::status(),
+        ["stop"] if rest.is_empty() => daemon::stop(),
+        _ => usage(format!("{} takes no options", command.join(" "))),
+    })
+}
+
 fn run() -> std::process::ExitCode {
     susi_paths::stdio::install_broken_pipe_guard();
     let words: Vec<_> = env::args_os().skip(1).collect();
+    if let Some(status) = own_command(&words) {
+        return status;
+    }
     if bare_terminal_invocation(false, !words.is_empty(), io::stdin().is_terminal()) {
         return print_bare_usage(&mut cli::defs::RootInfo::command());
     }

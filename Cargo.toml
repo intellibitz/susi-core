@@ -120,6 +120,7 @@ susi-core = { workspace = true }
 susi-paths = { workspace = true }
 susi-error = { workspace = true }
 susi-config = { workspace = true }
+susi-gmcp = { workspace = true }
 serde = { package = "susi-vendor-serde", path = "crates/susi-vendor-serde" }
 serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }
 clap = { package = "susi-vendor-clap", path = "crates/susi-vendor-clap" }

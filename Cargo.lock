@@ -501,6 +501,7 @@ dependencies = [
  "susi-error",
  "susi-gawd-agents",
  "susi-gawd-swarm",
+ "susi-gmcp",
  "susi-paths",
  "susi-vendor-clap",
  "susi-vendor-ed25519-dalek",
