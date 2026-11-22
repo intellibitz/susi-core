@@ -30,6 +30,13 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
 ]
+# The one exception, decided on 2026-11-22: unicode-ident is licensed
+# "(MIT OR Apache-2.0) AND Unicode-3.0" for its Unicode tables. Only the procedural
+# macros use it while compiling (every path to it runs through serde_derive), so its
+# tables are not linked into the program. It holds for this crate alone.
+exceptions = [
+    { allow = ["Unicode-3.0"], crate = "unicode-ident" },
+]
 
 [bans]
 multiple-versions = "allow"

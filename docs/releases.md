@@ -108,12 +108,8 @@ host (from Windows, inside WSL2), in a clean checkout of `main` whose
    not at all, and refuses a version that is already published.
 
 Not finished, said plainly: **no release has been cut this way yet.** The
-licences gate refuses today's tree: `unicode-ident`, which the procedural
-macros use while compiling, carries the Unicode-3.0 licence, which the policy in
-`deny.toml` does not allow, since the table-free replacement core once carried
-left with its local patches. Until that is settled, `qualify` stops at that
-gate. The steps were proven on 2026-11-22 on a scratch copy of core whose
-`deny.toml` allowed Unicode-3.0 (never published): `qualify` took 12 seconds
+steps were proven on 2026-11-22 on a scratch copy of core (never published):
+`qualify` took 12 seconds
 warm, the record tests here accepted its records, a second cut and a second
 publish were refused, and `install.sh` rebuilt the published release with a
 checksum matching the reference build. Until 2026-11-22 these steps were the

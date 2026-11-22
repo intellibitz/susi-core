@@ -1381,12 +1381,33 @@ fn workspace_enforces_apache_mit_bsd_license_policy() {
         );
     }
 
-    // 2. deny.toml has no license exceptions and admits no copyleft or
-    //    non-Apache/MIT/BSD licenses.
+    // 2. deny.toml admits no copyleft or non-Apache/MIT/BSD licenses, with one exception
+    //    decided on 2026-11-22: Unicode-3.0 for unicode-ident alone, a crate only the
+    //    procedural macros use while compiling. No other exception, and Unicode-3.0 never
+    //    in the general allow list.
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("read deny.toml");
     assert!(
         !deny.contains("[[licenses.exceptions]]"),
         "deny.toml must not grant [[licenses.exceptions]]"
+    );
+    let exceptions: Vec<&str> = deny
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with("{ allow = "))
+        .collect();
+    assert_eq!(
+        exceptions,
+        [r#"{ allow = ["Unicode-3.0"], crate = "unicode-ident" },"#],
+        "deny.toml grants exactly one licence exception: Unicode-3.0 for unicode-ident"
+    );
+    let general = deny
+        .split("allow = [")
+        .nth(1)
+        .and_then(|rest| rest.split(']').next())
+        .expect("deny.toml has a general allow list");
+    assert!(
+        !general.contains("Unicode"),
+        "Unicode-3.0 is allowed for unicode-ident alone, never in the general allow list"
     );
     for forbidden in [
         "GPL",

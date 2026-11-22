@@ -158,8 +158,11 @@ cargo deny --offline --locked check licenses
   elected for dual licensing. Preserve section 4 notices, licenses, modification attribution
   and pinned source provenance. Never relabel third-party code.
 - Distributed dependencies permit Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause under the
-  deny policy in `deny.toml`. Audit transitive dependencies, native objects, build helpers
-  and the statically linked standard library, not only their declared licenses.
+  deny policy in `deny.toml`. The one exception, decided on 2026-11-22, is Unicode-3.0 for
+  `unicode-ident`, which only the procedural macros use while compiling, so its tables are not
+  linked into the program; any other exception is a new decision. Audit transitive
+  dependencies, native objects, build helpers and the statically linked standard library, not
+  only their declared licenses.
 
 ## Secrets
 
@@ -193,12 +196,10 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 - **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
   19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
-- **Releases:** `susi-tools release` cuts and publishes a release (`docs/releases.md`), but
-  its licences gate refuses today's tree: `unicode-ident`, a build-time crate, carries the
-  Unicode-3.0 licence, which `deny.toml` does not allow, and that is still to be settled. The
-  unsafe-code check and the standard-library builder's runner left with Susi's
-  `tools/core-xtask` on 2026-11-22 and are still to be rebuilt. The newest release,
-  `v0.21.71` (2026-11-16), predates today's program.
+- **Releases:** `susi-tools release` cuts and publishes a release (`docs/releases.md`); none
+  has been cut with it yet, so the newest release, `v0.21.71` (2026-11-16), predates today's
+  program. The unsafe-code check and the standard-library builder's runner left with Susi's
+  `tools/core-xtask` on 2026-11-22 and are still to be rebuilt.
 - **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.
