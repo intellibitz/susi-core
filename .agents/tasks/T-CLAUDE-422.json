@@ -17,5 +17,6 @@
     ]
   },
   "created_by": "CLAUDE",
-  "created_unix": 1795320508
+  "created_unix": 1795320508,
+  "progress": "2026-11-22: the goal is delivered on main (ab6e16b96, 926972650 and the correction after them): the contract states the line and where it stands, .config/nextest.toml no longer names removed test programs, the Linux gates run the tests under cargo-nextest, and the ecosystem page says Susi Tools holds its first tool. The acceptance passes on Linux (the Linux gates ran the whole suite at 926972650: 434 run, none failed). Not closed, for the same reason as T-CLAUDE-421: `susi-tools tasks close` runs the acceptance on the machine that closes, and Susi Core does not build on Windows (recorded in Susi's task T-CLAUDE-33)."
 }

@@ -12,10 +12,10 @@
 //! here and in Susi's twin alike.
 
 /// Length of the shared page, with line endings written as LF.
-const PAGE_BYTES: usize = 4303;
+const PAGE_BYTES: usize = 4272;
 /// FNV-1a (64-bit) of the shared page, with line endings written as LF. A fingerprint for
 /// sameness, not a security check.
-const PAGE_FNV1A64: u64 = 0x8f2c_b0df_94eb_ed8a;
+const PAGE_FNV1A64: u64 = 0x0494_7450_cc82_cf36;
 
 fn fnv1a64(bytes: &[u8]) -> u64 {
     bytes.iter().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {

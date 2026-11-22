@@ -77,16 +77,20 @@ waiting more than 10s for anything - test, releases whatever it is."
   core count on a large machine). It does not run doc-tests: run `cargo test
   --doc --workspace --offline --locked` beside it (core has none today).
   `cargo test --workspace` runs the same tests one program after another.
-- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2): the
-  Linux gates take 16 to 19 seconds warm, three runs in a row at `ab6e16b96`,
-  9 to 12 of them in the tests (434 run, 14 ignored, the same tests
-  `cargo test` runs). They took about 70 seconds while the tests ran one
-  program at a time. The slowest single test takes 7.6 seconds
+- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2, core
+  `926972650`): the Linux gates take 33 to 36 seconds on the first run after
+  a change (the test programs are rebuilt, and when WSL has gone idle it
+  takes about 9 seconds to start) and 16 to 19 seconds when run again on the
+  same commit, 9 to 12 of them in the tests (434 run, 14 ignored, the same
+  tests `cargo test` runs). The same repeat run took about 70 seconds while
+  the tests ran one program at a time. One named test program
+  (`-Test architecture_tests`) takes 8 seconds. A brand-new agent's first
+  run takes 69 seconds. The slowest single test takes 7.6 seconds
   (`tests/functional_distillation.rs`, which builds core's release tools from
   a checkout of the private repository), so it bounds the whole test run.
-  Not done yet: the gates under 10 seconds; the size step (2 to 3 seconds)
-  and the setup before the tests (2 to 6 seconds) still run one after the
-  other.
+  Not done yet: the whole gates under 10 seconds; the WSL start, the setup
+  before the tests (2 to 6 seconds) and the size step (2 to 3 seconds) still
+  run one after the other.
 
 ## Core boundary and size
 
