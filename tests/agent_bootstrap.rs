@@ -6,31 +6,12 @@
 )]
 #![allow(missing_docs)] // integration test crate: no public API to document
 
-//! Current agent-directive drift guards, and the session-start script's
-//! promise never to block a session. The worktree start itself
-//! (`scripts/susi-worktree.sh`, which execs `workflow start`) is Susi
-//! Commercial Apps' dev workflow since the lean-core move and is tested there.
+//! Current agent-directive drift guards. The session-start script these once
+//! also guarded left with the cloud sessions on 2026-11-22; the guards still
+//! refuse it coming back.
 
 use std::path::Path;
 use std::process::Command;
-
-mod common;
-use common::script_command;
-
-/// Run a script in `dir` with `envs`; (code, stdout, stderr).
-fn run(dir: &Path, program: &str, args: &[&str], envs: &[(&str, &str)]) -> (i32, String, String) {
-    let mut cmd = script_command(Path::new(program));
-    cmd.args(args).current_dir(dir);
-    for (k, v) in envs {
-        cmd.env(k, v);
-    }
-    let out = common::run_script_bounded(&mut cmd, b"", common::SCRIPT_BOUND);
-    (
-        out.status.code().unwrap_or(-1),
-        String::from_utf8_lossy(&out.stdout).into_owned(),
-        String::from_utf8_lossy(&out.stderr).into_owned(),
-    )
-}
 
 #[test]
 fn every_agent_tool_auto_loads_the_same_first_step() {
@@ -75,26 +56,6 @@ fn every_agent_tool_auto_loads_the_same_first_step() {
             );
         }
     }
-}
-
-#[test]
-fn the_session_start_hook_never_blocks_a_session() {
-    // Outside any repo and with no susi on PATH it still exits 0 and explains.
-    let dir = std::env::temp_dir().join(format!("susi-boot-hook-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/workflow-session-start.sh");
-    let (code, out, _) = run(
-        &dir,
-        script.to_str().unwrap(),
-        &[],
-        &[
-            ("PATH", "/usr/bin:/bin"),
-            ("GIT_CEILING_DIRECTORIES", "/tmp"),
-        ],
-    );
-    let _ = std::fs::remove_dir_all(&dir);
-    assert_eq!(code, 0, "{out}");
-    assert!(out.contains("susi-worktree.sh"), "{out}");
 }
 
 /// Discover tracked tool directives so adding a new agent cannot quietly bring

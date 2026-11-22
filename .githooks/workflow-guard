@@ -12,10 +12,8 @@
 #   push    — refuse deleting, force-pushing or non-fast-forwarding main, and a
 #             non-fast-forward push of any other branch; refuse a feature branch
 #             that is behind origin/main (sync-before-push); fetch branch, claim
-#             and close refs in one round trip (what scripts/fetch-workflow-refs.sh
-#             does for CI) and run scripts/check-workflow-compliance.sh on that
-#             snapshot (SUSI_WORKFLOW_REFS_FETCHED=1), which refuses a commit not
-#             tied to a claimed or closed task.
+#             and close refs in one round trip and refuse a commit not tied to a
+#             claimed or closed task.
 # Escape hatches (deliberate, visible, never the default): SUSI_ALLOW_PRIMARY=1,
 # SUSI_ALLOW_MAIN=1, SUSI_ALLOW_FORCE=1.
 #
