@@ -147,14 +147,13 @@ cargo-test)
     ;;
 nextest)
     if [ $# -gt 0 ]; then scope=("$@"); else scope=(--workspace); fi
-    # .config/nextest.toml's eight threads are sized for a 4-vCPU CI runner.
-    # The local gate runs one thread per logical core: most of the suite is
-    # in-process and short, and the process-spawning tests reserve two slots
-    # each there (`threads-required`), so at most half the threads run those
-    # at once - the CPU headroom their deadlines assume. The root package's
-    # 598 tests took 916 s on 8 threads of a 28-core machine (7 188 s of test
-    # time: Windows file I/O makes the fixture-copying tests 6x a Linux
-    # runner's), most of it waiting on I/O one test at a time.
+    # .config/nextest.toml's eight threads are a safe count for a small
+    # machine. The local gate runs one thread per logical core: the suite is
+    # mostly in-process and short. (Until 2026-11-22 the process-spawning
+    # tests also reserved two slots each there; they left core with the code
+    # they covered.) Measured before the lean cut: the root package's 598
+    # tests took 916 s on 8 threads of a 28-core machine, most of it waiting
+    # on I/O one test at a time.
     if [ -z "${NEXTEST_TEST_THREADS:-}" ]; then
         case "${OSTYPE:-}" in
         msys* | cygwin*)

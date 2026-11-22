@@ -57,6 +57,30 @@ something that is not finished, it says so.
   and `tests/socket_boundary.rs`) still word their pinned counts as ceilings
   that only go down.
 
+## Speed: nothing waits more than 10 seconds
+
+Decided on 2026-11-22 for the whole ecosystem, in these words: "no more
+waiting more than 10s for anything - test, releases whatever it is."
+
+- **The line:** every operation a developer or agent waits on here (build,
+  test, lint, the Linux gates, commit, release) finishes within 10 seconds
+  warm. Cold timings (empty caches) are measured and reported apart.
+- **Measured, never asserted.** A timing is quoted with its date, machine and
+  commit.
+- **Over the line is a defect,** recorded with its measured cause and its fix
+  in a task and fixed in the next change that can. The line refuses no change,
+  and it is never met by skipping, loosening or narrowing a test.
+- **Run the suite the fast way:** `cargo nextest run --workspace --offline
+  --locked` runs every test in its own process, the test programs side by side
+  (settings in `.config/nextest.toml`; raise `NEXTEST_TEST_THREADS` to the
+  core count on a large machine). It does not run doc-tests: run `cargo test
+  --doc --workspace --offline --locked` beside it (core has none today).
+  `cargo test --workspace` runs the same tests one program after another.
+- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2, core
+  `main` `7d9aa6b31`): the Linux gates take about 70 seconds warm, 56 of them
+  in `cargo test`; a brand-new agent's first run takes about 111 seconds. Not
+  done yet: the gates under 10 seconds.
+
 ## Core boundary and size
 
 - Preserve exactly three core pillars: **GAWD** (A2A, ACP and the parallel
@@ -364,6 +388,9 @@ cargo clippy --workspace --all-targets --offline --locked -- -D warnings
 cargo test --workspace --offline --locked
 cargo deny --offline --locked check licenses
 ```
+
+`cargo nextest run --workspace --offline --locked` with the doc-tests beside it
+runs the same tests side by side and is the fast way (Speed, above).
 
 Do not enable mutually exclusive accelerator features together. Offline Cargo
 does not sandbox build-script network activity; verify sources and build scripts.

@@ -1,0 +1,21 @@
+{
+  "id": "T-CLAUDE-422",
+  "title": "Hold Susi Core to the 10-second line",
+  "goal": "Vision: the CEO's words of 2026-11-22 (recorded as V-42 in Susi): 'moving forward, ecosystem must be blazing fast - no more waiting more than 10s for anything - test, releases whatever it is.' Susi Core's contract states the line: every operation an agent waits on finishes within 10 seconds warm, measured and reported with cold timings apart; over the line is a defect to fix, never a refusal, and never bought with weaker tests. It names how the whole suite runs fast (cargo-nextest, as scripts/check-hermetic-tests.sh already does) and where the measurements are kept. Core's Linux gates run the tests side by side. The ecosystem page says Susi Tools now holds its first tool.",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "architecture_tests",
+      "--test",
+      "hook_enforcement"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795320508
+}

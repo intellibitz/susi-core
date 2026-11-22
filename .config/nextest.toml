@@ -1,19 +1,16 @@
-# Local and CI runs of the full suite must not starve the heavy requirement
-# tests: they spawn real stdio sessions with 120 s deadlines, and a machine
-# with 28 logical cores running 4 000 tests in parallel makes those deadlines
-# expire on scheduling alone. Eight test threads is the default (the CI shards
-# run on 4-vCPU runners); the local gate raises it through NEXTEST_TEST_THREADS
-# (scripts/check-hermetic-tests.sh), and the reservations below keep the
-# process-spawning tests from filling every slot: each takes two, so at most
-# half the threads run one at a time, whatever the count.
+# cargo-nextest runs every test in its own process, all test programs side by
+# side: the whole suite in a fraction of `cargo test`'s time, which runs the
+# programs one after another (the 10-second line, AGENTS.md "Speed").
+#
+# Eight test threads is the default, a safe count for a small machine. The
+# local gate raises it to one per logical core through NEXTEST_TEST_THREADS
+# (scripts/check-hermetic-tests.sh, and the Linux gates run from Windows).
+#
+# Until 2026-11-22 an override here gave two slots each to the tests that
+# spawned `susi` sessions (gmcp_requirements, audit_query_surface,
+# audit_chain_verifies). Those test programs left core with the code they
+# covered, and nextest refuses an override that names no program, so the
+# override went with them. A test that again needs a reserved share of the CPU
+# gets an override naming it, with the reason.
 [profile.default]
 test-threads = 8
-
-# The tests that spawn `susi` (a stdio session, the daemon and its leaf
-# services, a scratch worktree) and run for 10-45 s each on a 4-vCPU runner:
-# 743 of the root package's 1177 s of test time are gmcp_requirements alone
-# (measured on main's root-cli shards). Two slots each: they get the CPU their
-# deadlines assume, and the in-process tests fill the rest of the threads.
-[[profile.default.overrides]]
-filter = 'binary(gmcp_requirements) | binary(audit_query_surface) | binary(audit_chain_verifies)'
-threads-required = 2
