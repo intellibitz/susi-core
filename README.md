@@ -6,7 +6,8 @@
 is a local-first AI OS socket: one Rust daemon exposes models, agents and tools
 through stable protocols on ports `9090-9094`.
 
-Susi Core is one of three repositories that move together:
+Susi Core is one of three repositories that move together ([`ECOSYSTEM.md`](ECOSYSTEM.md)
+is the same page in all three):
 
 | Name | What it is | Public? |
 |------|------------|---------|

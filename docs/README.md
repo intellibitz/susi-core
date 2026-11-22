@@ -68,6 +68,9 @@ MCP socket and the [pinned MCP specification text](../.agents/gmcp/SPEC-PROVENAN
 
 ## Elsewhere in the repository
 
+- [The Susi AI OS ecosystem](../ECOSYSTEM.md): the three repositories, how they
+  relate and where they stand; the same page in Susi, Susi Core and Susi Tools,
+  held so by `tests/ecosystem_page.rs` here and in Susi.
 - [SUSI architecture](../ARCHITECTURE.md)
 - [SUSI vision](../VISION.md)
 - [Forking and contributing to Susi](../CONTRIBUTING.md)
