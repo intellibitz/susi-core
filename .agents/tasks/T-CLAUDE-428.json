@@ -1,0 +1,29 @@
+{
+  "id": "T-CLAUDE-428",
+  "title": "Remove Core's documents about features that left it",
+  "goal": "Documentation reflects reality at all times: every page in Core describes what Core is today, and pages about features that left go, so a stranger reading the public repository is not misled",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "core_docs_promise_no_ui_or_plugins",
+      "--test",
+      "release_records",
+      "--test",
+      "architecture_tests",
+      "--test",
+      "agent_contract"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795333325,
+  "reuse": {
+    "decision": "existing",
+    "searched": "Each page was judged against the tree: its subject (does the code still exist in core) and every relative link, repository path, susi command and cargo alias it names. Pages about removed features go whole; the few kept pages are corrected from the code they describe (src/daemon.rs, crates/susi-gmcp). No new code."
+  }
+}
