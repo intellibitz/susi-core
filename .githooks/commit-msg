@@ -33,12 +33,8 @@ MSG
     exit 1
 fi
 root=$(git rev-parse --show-toplevel)
-if [ -f "$root/.agents/tasks/done/$task.json" ]; then
-    echo "❌ Mandate 50: $task is already closed; add a new task or use Task: LOCAL-<name> for new work." >&2
-    exit 1
-fi
 if [ ! -f "$root/.agents/tasks/$task.json" ]; then
-    echo "❌ Mandate 50: $task is not an open task in this checkout (merge origin/main or commit the task file first)." >&2
+    echo "❌ Mandate 50: $task is not an open task in this checkout: it was closed (closing deletes the record), or merge origin/main or commit the task file first." >&2
     exit 1
 fi
 # Mandate 78: look before you build. A feature-sized task's record says where

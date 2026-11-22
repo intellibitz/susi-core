@@ -196,8 +196,8 @@ to the previous verified artifact; `susi install` never replaces a different exi
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.
 - **Old records and pages:** `ARCHITECTURE.md` and many documents in `docs/` describe
-  packages and features that left core and are being removed; finished task records still sit in
-  `.agents/tasks/done/`; the goal notes in `.agents/visions/carried/` name sections of the
-  earlier contract by number, and the rules they name are kept here word for word.
+  packages and features that left core and are being removed; the goal notes in
+  `.agents/visions/carried/` name sections of the earlier contract by number, and the rules
+  they name are kept here word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
   are still worded as ceilings that only go down.

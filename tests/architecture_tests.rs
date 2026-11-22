@@ -1013,8 +1013,8 @@ fn brain_lanes_board_is_retired_into_data() {
 }
 
 /// Roadmap vectors say what and why; tasks are how it gets done. Every task
-/// link must name a real vector, and every P0 vector must have a task (so the
-/// most important work is always reachable from the queue).
+/// link must name a real vector, and every P0 vector that is not settled must
+/// have an open task (so the most important work is always reachable from the queue).
 #[test]
 fn roadmap_vectors_and_tasks_stay_linked() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -1033,7 +1033,7 @@ fn roadmap_vectors_and_tasks_stay_linked() {
         })
         .collect();
     let mut linked = std::collections::HashSet::new();
-    for dir in [".agents/tasks", ".agents/tasks/done"] {
+    for dir in [".agents/tasks"] {
         let Ok(entries) = std::fs::read_dir(root.join(dir)) else {
             continue;
         };
@@ -1053,14 +1053,31 @@ fn roadmap_vectors_and_tasks_stay_linked() {
             }
         }
     }
+    // A P0 vector is reachable from the queue (an open task links it) or settled on the
+    // roadmap itself (its progress says DELIVERED or MOVED). Until 2026-11-22 a finished
+    // record in .agents/tasks/done/ also counted; those records left, and every P0 vector they
+    // covered was settled on the roadmap (54 delivered, 12 moved to Susi).
+    let settled: std::collections::HashSet<&str> = roadmap["vectors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|v| {
+            v["progress"].as_str().is_some_and(|p| {
+                let p = p.trim_start();
+                p.starts_with("DELIVERED") || p.starts_with("MOVED")
+            })
+        })
+        .filter_map(|v| v["id"].as_str())
+        .collect();
     let uncovered: Vec<&str> = vectors
         .iter()
-        .filter(|(id, p)| p == "P0" && !linked.contains(id))
+        .filter(|(id, p)| p == "P0" && !linked.contains(id) && !settled.contains(id.as_str()))
         .map(|(id, _)| id.as_str())
         .collect();
     assert!(
         uncovered.is_empty(),
-        "P0 roadmap vectors with no task: {uncovered:?} — `susi-commercial tasks add --roadmap <id> …`"
+        "P0 roadmap vectors neither settled nor linked by an open task: {uncovered:?}; \
+         add a task whose record says \"roadmap\": \"<id>\""
     );
 }
 

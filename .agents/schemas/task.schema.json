@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://intellibitz.com/susi/schemas/task.schema.json",
-  "title": "susi task record (.agents/tasks/*.json, .agents/tasks/done/*.json)",
+  "title": "susi task record (.agents/tasks/*.json)",
   "description": "The shape the task queue, tests/task_records.rs and the distillation planner (xtask/src/distill.rs) read. Historical records carry many more fields, so unknown properties are allowed. A record in done/ or with a `closed` object counts as closed. Labels that let a release select the record: id, deps, scopes, accept.cmd, status, closed.commit or a `Task: <id>` commit trailer, evidence.",
   "type": "object",
   "additionalProperties": true,

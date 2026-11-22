@@ -117,9 +117,10 @@ fn task_records_do_not_gain_new_or_modified_schema_debt() {
         serde_json::from_value(snapshot["records"].clone()).unwrap();
     let mut seen_debt = BTreeSet::new();
     let mut unexpected = Vec::new();
-    // These are the two directories the production task queue reads. Other
-    // planning documents under .agents/tasks/ are not runtime task records.
-    for relative in [".agents/tasks", ".agents/tasks/done"] {
+    // The task queue reads this directory alone: closing a task deletes its record, and the
+    // finished records that sat in .agents/tasks/done/ left on 2026-11-22. Other planning
+    // documents under .agents/tasks/ are not runtime task records.
+    for relative in [".agents/tasks"] {
         for entry in std::fs::read_dir(root.join(relative)).unwrap() {
             let path = entry.unwrap().path();
             if path.extension().is_none_or(|extension| extension != "json") {

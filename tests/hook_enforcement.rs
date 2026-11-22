@@ -153,16 +153,11 @@ fn a_trailer_naming_an_open_task_is_accepted() {
     let (code, _, err) = hook(&f.work, "commit-msg", &[&msg], "", &[]);
     assert_eq!(code, 0, "{err}");
 
-    // A closed task cannot be cited again.
-    std::fs::create_dir_all(f.work.join(".agents/tasks/done")).unwrap();
-    std::fs::rename(
-        f.work.join(".agents/tasks/T-TEST-1.json"),
-        f.work.join(".agents/tasks/done/T-TEST-1.json"),
-    )
-    .unwrap();
+    // A closed task cannot be cited again: closing deletes its record.
+    std::fs::remove_file(f.work.join(".agents/tasks/T-TEST-1.json")).unwrap();
     let (code, _, err) = hook(&f.work, "commit-msg", &[&msg], "", &[]);
     assert_ne!(code, 0);
-    assert!(err.contains("already closed"), "{err}");
+    assert!(err.contains("not an open task"), "{err}");
 }
 
 #[test]
