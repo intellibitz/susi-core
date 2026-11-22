@@ -1,0 +1,17 @@
+{
+  "id": "T-CLAUDE-438",
+  "title": "Remove Core's Windows leftovers, dead catalogs and tests that test only themselves",
+  "goal": "CEO 2026-11-22: foundation bloat free before features. Core is Linux-only yet carries a Windows installer and release scripts; 14 of 15 config catalogs are read by nothing; the standard-library builder is unused; several tests define and test their own copies of what they claim to cover.",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--test",
+      "architecture_tests"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795343420
+}
