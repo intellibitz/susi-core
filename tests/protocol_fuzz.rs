@@ -1,90 +1,61 @@
-//! Property/fuzz-style smoke for wire frames, claim blobs, compliance parser.
+//! What the program reads from outside never panics it: every line the MCP server is handed,
+//! garbage included, gets a JSON-RPC answer or, for a notification, none. Until 2026-11-22 this
+//! file fuzzed the swarm-event and claim formats of the `susi-core` package, which no program
+//! read; they left with it.
 
-#![allow(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    clippy::unreachable,
-    missing_docs
-)]
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, missing_docs)]
 
-use serde::Deserialize;
-use susi_core::bus::SwarmEvent;
+use serde_json::Value;
+use susi_gmcp::server::Server;
 
-#[derive(Debug, Deserialize)]
-struct ClaimBlob {
-    task_id: String,
-    agent: String,
-    #[serde(default)]
-    lease_until: u64,
-}
-
-fn claim_roundtrip_or_err(bytes: &[u8]) {
-    // Bounded: never allocate from length prefix beyond 64KiB.
-    if bytes.len() > 65_536 {
-        return;
-    }
-    let _ = serde_json::from_slice::<serde_json::Value>(bytes);
+fn server() -> Server {
+    Server::new(std::env::temp_dir().join("susi-protocol-fuzz"))
 }
 
 #[test]
-fn protocol_fuzz_swarm_event_no_panic() {
-    let cases: &[&[u8]] = &[
-        b"",
-        b"{",
-        b"null",
-        b"[]",
-        br#"{"type":"ping"}"#,
-        b"\xff\xfe\x00",
-    ];
-    for c in cases {
-        let _: Result<SwarmEvent, _> = serde_json::from_slice(c);
-        claim_roundtrip_or_err(c);
-    }
-}
-
-#[test]
-fn protocol_fuzz_claim_blob_bounded() {
-    let huge = vec![b'a'; 70_000];
-    claim_roundtrip_or_err(&huge);
-    let ok = br#"{"task_id":"T-1","agent":"CURSOR","lease_until":1}"#;
-    let parsed: ClaimBlob = serde_json::from_slice(ok).unwrap();
-    assert_eq!(parsed.task_id, "T-1");
-    assert_eq!(parsed.agent, "CURSOR");
-    assert_eq!(parsed.lease_until, 1);
-}
-
-#[test]
-fn protocol_fuzz_compliance_trailer_parse() {
-    for msg in [
+fn garbage_lines_get_a_json_rpc_error_never_a_panic() {
+    let server = server();
+    let deep = format!("{}{}", "[".repeat(10_000), "]".repeat(10_000));
+    let long = format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"{}\"}}",
+        "x".repeat(70_000)
+    );
+    let cases: Vec<&str> = vec![
         "",
-        "feat: x\n\nTask: T-CLAUDE-1\n",
-        "feat: x\n\nTask: not-a-task\n",
-        "\0\nTask: T-CURSOR-1\n",
-    ] {
-        let _has = msg.lines().any(|l| l.starts_with("Task: T-"));
+        "{",
+        "null",
+        "[]",
+        "\u{0}{}",
+        "\"plain\"",
+        "{\"id\":1}",
+        "{\"jsonrpc\":\"1.0\",\"id\":1,\"method\":\"ping\"}",
+        "{\"jsonrpc\":\"2.0\",\"id\":{},\"method\":\"tools/call\",\"params\":null}",
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":7}}",
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"read_file\",\"arguments\":{\"path\":\"../../etc/passwd\"}}}",
+        &deep,
+        &long,
+    ];
+    for line in cases {
+        if let Some(answer) = server.handle_text(line) {
+            assert_eq!(answer["jsonrpc"], "2.0", "{line:.80}");
+            let failed = answer.get("error").is_some()
+                || answer["result"]["isError"].as_bool() == Some(true);
+            assert!(failed, "garbage must not succeed: {line:.80} -> {answer}");
+        }
     }
+    // Odd but well-formed arguments get an answer too.
+    let odd = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_files\",\"arguments\":{\"query\":\"x\",\"max_results\":-5}}}";
+    assert!(server.handle_text(odd).is_some());
 }
 
 #[test]
-fn protocol_fuzz_claim_blob_missing_optional_lease_and_malformed_rejection() {
-    let without_lease = br#"{"task_id":"T-42","agent":"AGY"}"#;
-    let parsed: ClaimBlob = serde_json::from_slice(without_lease).unwrap();
-    assert_eq!(parsed.task_id, "T-42");
-    assert_eq!(parsed.agent, "AGY");
-    assert_eq!(parsed.lease_until, 0);
-
-    let missing_required = br#"{"task_id":"T-42"}"#;
-    assert!(serde_json::from_slice::<ClaimBlob>(missing_required).is_err());
-}
-
-#[test]
-fn protocol_fuzz_deeply_nested_and_empty_json_values_are_handled_cleanly() {
-    for input in [
-        &b"{}"[..],
-        &b"{\"a\":{\"b\":{\"c\":1}}}"[..],
-        &b"\"plain-string\""[..],
-    ] {
-        claim_roundtrip_or_err(input);
-    }
+fn a_notification_gets_no_answer_and_a_request_gets_its_own_id() {
+    let server = server();
+    assert!(server
+        .handle_text("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}")
+        .is_none());
+    let answer: Value = server
+        .handle_text("{\"jsonrpc\":\"2.0\",\"id\":\"a-7\",\"method\":\"ping\"}")
+        .unwrap();
+    assert_eq!(answer["id"], "a-7");
 }

@@ -41,9 +41,18 @@ signed release with plain notes.
 
 ## The socket and its size
 
-- Preserve exactly three core pillars: **GAWD** (agents: A2A and ACP), **GEMI** (models) and
-  **GMCP** (tools: the Model Context Protocol). Preserve their public capabilities, wire
-  contracts, errors and compatibility as core changes.
+- Keep three core pillars: **GAWD** (agents), **GEMI** (models) and **GMCP** (tools: the Model
+  Context Protocol). A pillar holds code when a program serves it: today GMCP serves, and GAWD
+  and GEMI hold none. Preserve the public capabilities, wire contracts, errors and
+  compatibility of what the program serves as core changes. Until 2026-11-22 this rule also
+  kept GAWD's Agent2Agent and Agent Client Protocol wire contracts, which no program served or
+  read; they left that day with the packages that held them, after the compiler confirmed
+  nothing used them, because code no program runs is a promise nobody keeps and it made every
+  build and check slower. They remain in the published v0.21.72.
+- Every package is used by the program or by Susi, and every package and third-party crate is
+  named, with its reason, in [`ARCHITECTURE.md`](ARCHITECTURE.md); the tests fail otherwise.
+- A host extends the MCP server with its own tools through `Server::with_tool`, without
+  editing core.
 - Core contains generic protocol contracts and socket machinery. Concrete implementations
   belong in separately hosted implementation packages, including Susi. Prove the destination
   works through the standard socket before removing its implementation from core. No
@@ -196,14 +205,15 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 ## Not finished
 
-- **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
-  19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
+- **Speed:** a warm repeat of the Linux gates takes 6.9 seconds, the tests 5 (2026-11-22, a
+  28-core host through WSL2, after the packages no program used left); the first run after a
+  change is still over the line (39 seconds of steps after that change, 29 of them compiling,
+  linking and running 54 test binaries).
 - **Releases:** `susi-tools release` cut `v0.21.72`, the first release of today's program
   (`docs/releases.md`). The unsafe-code check and the standard-library builder's runner left
   with Susi's `tools/core-xtask` on 2026-11-22 and are still to be rebuilt.
-- **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools.
-- **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
-  GEMI holds no code yet.
+- **Development code still here:** `scripts/` and `toolchain/` belong in Susi Tools.
+- **The pillars:** GMCP serves (`susi mcp serve`); GAWD and GEMI hold no code yet.
 - **Old records:** `config/` holds the earlier runtime's catalogs (models, agents, vendors),
   and `.agents/roadmap.json` its roadmap; the goal notes in `.agents/visions/carried/`
   name sections of the earlier contract by number, and the rules they name are kept here

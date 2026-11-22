@@ -1,8 +1,9 @@
 # Susi Core architecture
 
-What the program does today, the crates it is built from, how they may depend on each other
-and what is not finished. The rules behind it are in [`AGENTS.md`](AGENTS.md); the tests that
-hold the layering are in `tests/architecture_tests.rs`.
+What the program does today, the packages and third-party crates it is built from, how they may
+depend on each other and what is not finished. The rules behind it are in
+[`AGENTS.md`](AGENTS.md); the tests that hold this page true are in
+`tests/architecture_tests.rs` and `tests/lean_core_ceilings.rs`.
 
 ## What runs
 
@@ -19,54 +20,94 @@ One program, `susi` (`src/main.rs`):
 - `susi install` copies the program into `$SUSI_HOME/bin` (`src/cli/install_cli.rs`) and never
   replaces a different program already there.
 
+Nothing needs a setting: with no file and no variable, the folder is the current one, the home
+is `~/.susi`, the port is 9090 and the token is made on first start.
 [`SECURITY.md`](SECURITY.md) says what these expose and how.
 
-## The crates
+## Extending the server
 
-| Crate | Rust lines (`src`) | What it holds |
-|---|---:|---|
-| `susi-paths` | 915 | The host directory contract on Linux: the Susi home, test isolation, standard output guards. |
-| `susi-error` | 849 | `EaiError`, the typed error every crate returns. |
-| `susi-config` | 534 | Configuration wire types, atomic file storage and host inspection. |
-| `susi-abi` | 2,108 | Wire and record types shared by the planes: frames, cells, routing, memory, evidence. |
-| `susi-gawd-acp` | 429 | Agent Client Protocol wire contracts (GAWD pillar). |
-| `susi-gawd-a2a` | 28 | Agent2Agent protocol constants; re-exports the ACP contracts (GAWD pillar). |
-| `susi-core` | 2,722 | `plane_bus`, the in-process control plane between feature planes, and `plane_bus_ipc`, its framing across processes; agent types, a bounded command runner and scoped tools. |
-| `susi-gmcp` | 549 | The MCP server and its read-only file tools (GMCP pillar). |
-| `susi-vendor-*` | 79 | Ten facades, each the only owner of one third-party crate. |
-| `susi` (root) | 746 | The program: commands, daemon and installer. |
+A host adds its own MCP tools beside the three built-in ones without editing Core: it implements
+the `Tool` trait of `susi_gmcp::server` (its `tools/list` entry, and how it runs) and hands it to
+`Server::with_tool`. A name already served is refused. `crates/susi-gmcp/tests/added_tools.rs`
+proves it. Until 2026-11-22 that seam was a process-wide plane bus in a `susi-core` package
+that no program used; it left with that package.
 
-Counted on 2026-11-22 at the commit that wrote this page; `cargo core-size` prints the
-current total.
+## Packages
 
-## How crates may depend on each other
+Every package of the workspace, and nothing else, has a row here; a test fails when they differ.
 
-- **Leaf order.** A crate depends only on crates of a lower rank: `susi-paths` and `susi-abi`,
-  then `susi-error`, `susi-config`, `susi-gawd-acp`, `susi-core`, `susi-gmcp`, `susi-gawd-a2a`,
-  and the root program last (`LEAF_RANK` in `tests/architecture_tests.rs`).
-- **The feature planes do not depend on each other.** The pillars talk only through
-  `plane_bus` in `susi-core`, which is the one control plane between them; the layer matrix in
-  `tests/architecture_tests.rs` lists the edges each crate may not have.
+| Package | Rust lines (`src`) | What it holds | Who uses it |
+|---|---:|---|---|
+| `susi` | 745 | The program: commands, daemon and installer. | The program |
+| `susi-gmcp` | 582 | The MCP server, its read-only file tools and the seam for a host's own tools. | The program |
+| `susi-paths` | 915 | The host directory contract: the Susi home, test isolation, standard-output guards, platform service names. | The program, Susi |
+| `susi-error` | 849 | The typed error every package returns, secret redaction and the metrics sink. | The program, Susi |
+| `susi-config` | 534 | Atomic file storage, JSON field helpers, progress output and random nonces. | Susi only |
+| `susi-vendor-serde` | 6 | The only owner of the serde crates. | The program, Susi |
+| `susi-vendor-serde-json` | 6 | The only owner of serde_json. | The program, Susi |
+| `susi-vendor-sha2` | 6 | The only owner of sha2. | The program, Susi |
+| `susi-vendor-getrandom` | 25 | The only owner of getrandom. | Susi only |
+| `susi-vendor-libc` | 6 | The only owner of libc. | Susi only |
+
+"Susi only": the program does not compile it; Susi, the product, builds on it (its manifest
+names it), so it stays (`LIBRARIES_FOR_SUSI` in `tests/lean_core_ceilings.rs`). A package used
+by neither fails that suite. Counted on 2026-11-22; `cargo core-size` prints the current total.
+
+## Third-party crates
+
+Every crate `Cargo.lock` resolves from outside, and nothing else, has a row here; a test fails
+when they differ. Their licences are checked by `cargo deny` (`deny.toml`).
+
+| Crate | Pulled in by | Why |
+|---|---|---|
+| `serde` | `susi-vendor-serde` | Typed JSON for records and messages. |
+| `serde_core` | serde | Part of serde. |
+| `serde_derive` | serde | Derives serde's traits at compile time. |
+| `proc-macro2` | serde_derive | Compile-time only. |
+| `quote` | serde_derive | Compile-time only. |
+| `syn` | serde_derive | Compile-time only. |
+| `unicode-ident` | proc-macro2 | Compile-time only; Unicode-3.0, the one licence exception. |
+| `serde_json` | `susi-vendor-serde-json` | JSON-RPC and every JSON file. |
+| `itoa` | serde_json | Part of serde_json. |
+| `memchr` | serde_json | Part of serde_json. |
+| `zmij` | serde_json | Part of serde_json: number formatting. |
+| `sha2` | `susi-vendor-sha2` | SHA-256 for the installer's checksum. |
+| `digest` | sha2 | Part of sha2. |
+| `block-buffer` | sha2 | Part of sha2. |
+| `crypto-common` | sha2 | Part of sha2. |
+| `generic-array` | sha2 | Part of sha2. |
+| `typenum` | sha2 | Part of sha2. |
+| `version_check` | generic-array | Compile-time only. |
+| `cpufeatures` | sha2 | Part of sha2: picks the fastest SHA-256 for the processor. |
+| `cfg-if` | sha2 | Part of sha2. |
+| `getrandom` | `susi-vendor-getrandom` | The system's random source, for Susi. |
+| `wasi` | getrandom | Part of getrandom on WebAssembly targets; never compiled on Linux. |
+| `libc` | `susi-vendor-libc`, getrandom, cpufeatures | The C library interface. |
+
+## How packages may depend on each other
+
+- **Leaf order.** A package depends only on packages of a lower rank: `susi-paths` and
+  `susi-gmcp`, then `susi-error`, then `susi-config`, and the root program last (`LEAF_RANK` in
+  `tests/architecture_tests.rs`).
 - **No source mounts.** Shared code is reached through a Cargo edge, never a `#[path]`
-  include across crates.
-- **Third-party crates only through their facade.** Ordinary `susi-*` crates declare no
+  include across packages.
+- **Third-party crates only through their facade.** Ordinary `susi-*` packages declare no
   external dependency.
 
 ## Composition roots
 
-The root program is the only composition root: `src/main.rs` links `susi-gmcp` and
-`susi-core` and wires each command to them. Libraries never link a composition root.
+The root program is the only composition root: `src/main.rs` links `susi-gmcp` and `susi-paths`
+and wires each command to them. Libraries never link a composition root.
 
 ## The pillars
 
-- **GAWD** (agents): the A2A and ACP wire contracts, with no server in core yet.
+- **GAWD** (agents): no code. Until 2026-11-22 it held Agent2Agent and Agent Client Protocol
+  wire contracts that no program served; they left that day and stay in the published v0.21.72.
 - **GEMI** (models): no code yet.
 - **GMCP** (tools): the MCP server above, the one pillar that serves today.
 
 ## Not finished
 
-- No handler is registered on `plane_bus` in the program yet: the daemon calls the MCP server
-  directly.
-- A2A and ACP have contracts but no server; GEMI has no code.
+- GAWD and GEMI have no code; a pillar returns when a program serves it.
 - `toolchain/` (the standard-library builder) and `scripts/` are development code that belongs
   in Susi Tools.

@@ -4,20 +4,73 @@
 use crate::tools;
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// MCP protocol versions this server speaks, newest first.
 pub const PROTOCOL_VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
+/// A tool a host adds to the server beside the built-in file tools, without editing this crate:
+/// `tools/list` shows its entry and `tools/call` runs it by name.
+pub trait Tool: Send + Sync {
+    /// The tool's `tools/list` entry: an object with `name`, `description` and `inputSchema`.
+    fn describe(&self) -> Value;
+    /// Run the tool with `args`; `root` is the server's workspace root.
+    fn call(&self, root: &Path, args: &Value) -> tools::Outcome;
+}
+
 /// One MCP server over one workspace root.
 pub struct Server {
     root: PathBuf,
+    added: Vec<(String, Box<dyn Tool>)>,
 }
 
 impl Server {
     /// A server whose tools see only `root`.
     pub fn new(root: PathBuf) -> Server {
-        Server { root }
+        Server {
+            root,
+            added: Vec::new(),
+        }
+    }
+
+    /// The server with `tool` added. Refused when its entry has no name, or a built-in or an
+    /// earlier added tool already has that name.
+    pub fn with_tool(mut self, tool: Box<dyn Tool>) -> Result<Server, String> {
+        let name = tool
+            .describe()
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_owned();
+        if name.is_empty() {
+            return Err("an added tool's entry needs a name".into());
+        }
+        let taken = tools::catalog()
+            .as_array()
+            .is_some_and(|built_in| built_in.iter().any(|t| t["name"] == name.as_str()))
+            || self.added.iter().any(|(n, _)| *n == name);
+        if taken {
+            return Err(format!("a tool named {name:?} is already served"));
+        }
+        self.added.push((name, tool));
+        Ok(self)
+    }
+
+    fn catalog(&self) -> Value {
+        let mut all = tools::catalog();
+        if let Some(list) = all.as_array_mut() {
+            list.extend(self.added.iter().map(|(_, tool)| tool.describe()));
+        }
+        all
+    }
+
+    fn call_tool(&self, name: &str, args: &Value) -> Option<tools::Outcome> {
+        tools::call(&self.root, name, args).or_else(|| {
+            self.added
+                .iter()
+                .find(|(n, _)| n == name)
+                .map(|(_, tool)| tool.call(&self.root, args))
+        })
     }
 
     /// The answer to one JSON-RPC message, or `None` for a notification.
@@ -51,14 +104,14 @@ impl Server {
                 )
             }
             "ping" => result(id, json!({})),
-            "tools/list" => result(id, json!({ "tools": tools::catalog() })),
+            "tools/list" => result(id, json!({ "tools": self.catalog() })),
             "tools/call" => {
                 let name = params.get("name").and_then(Value::as_str).unwrap_or("");
                 let args = params
                     .get("arguments")
                     .cloned()
                     .unwrap_or_else(|| json!({}));
-                match tools::call(&self.root, name, &args) {
+                match self.call_tool(name, &args) {
                     Some(outcome) => result(
                         id,
                         json!({

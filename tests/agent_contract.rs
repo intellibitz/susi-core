@@ -32,7 +32,10 @@ const RULES: &[&str] = &[
     "Nothing is a permanent ceiling, and nothing has a line limit",
     "Core improves on a weekly cycle",
     // The socket and its size.
-    "exactly three core pillars",
+    "Keep three core pillars",
+    "A pillar holds code when a program serves it",
+    "Every package is used by the program or by Susi",
+    "without editing core",
     "Concrete implementations belong in separately hosted implementation packages",
     "Prove the destination works through the standard socket before removing",
     "No functionality is dropped",

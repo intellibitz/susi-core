@@ -1,24 +1,15 @@
 [workspace]
 members = [
     ".",
-    "crates/susi-abi",
     "crates/susi-paths",
     "crates/susi-error",
-    "crates/susi-core",
     "crates/susi-config",
     "crates/susi-gmcp",
-    "crates/susi-gawd-a2a",
-    "crates/susi-gawd-acp",
-    "crates/susi-vendor-clap",
-    "crates/susi-vendor-ed25519-dalek",
     "crates/susi-vendor-getrandom",
-    "crates/susi-vendor-hyper",
     "crates/susi-vendor-libc",
     "crates/susi-vendor-serde",
     "crates/susi-vendor-serde-json",
-    "crates/susi-vendor-sha2",
-    "crates/susi-vendor-tokio",
-    "crates/susi-vendor-tracing"]
+    "crates/susi-vendor-sha2"]
 # Historical `vendor/` tree is gone (model/TLS patches moved with their plugs).
 # Keep the exclude so a stray directory never becomes a workspace member.
 exclude = ["vendor"]
@@ -79,31 +70,21 @@ too_many_arguments = "warn"
 complexity = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
-susi-abi = { path = "crates/susi-abi" }
-susi-core = { path = "crates/susi-core" }
 susi-gmcp = { path = "crates/susi-gmcp", default-features = false }
-susi-gawd-acp = { path = "crates/susi-gawd-acp" }
-susi-gawd-a2a = { path = "crates/susi-gawd-a2a" }
 susi-paths = { path = "crates/susi-paths" }
 susi-error = { path = "crates/susi-error" }
 susi-config = { path = "crates/susi-config" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tracing = { version = "0.1", default-features = false, features = ["std"] }
 sha2 = "0.10.9"
 getrandom = "0.2"
-ed25519-dalek = { version = "2.2", default-features = false }
-tokio = { version = "1.53", features = ["io-std", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }
 
 [dev-dependencies]
-ed25519-dalek = { package = "susi-vendor-ed25519-dalek", path = "crates/susi-vendor-ed25519-dalek" }
 sha2 = { package = "susi-vendor-sha2", path = "crates/susi-vendor-sha2" }
 
 [dependencies]
-susi-core = { workspace = true }
 susi-paths = { workspace = true }
 susi-error = { workspace = true }
-susi-config = { workspace = true }
 susi-gmcp = { workspace = true }
 serde = { package = "susi-vendor-serde", path = "crates/susi-vendor-serde" }
 serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }

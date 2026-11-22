@@ -1,153 +1,94 @@
-# Lean core: a generic standards socket, measured and reported
+# Lean core: measured and reported
 
-Susi core is a generic, standards-protocol AI OS socket. Its three pillars are
-GAWD (A2A and ACP), GEMI and GMCP. The socket host and foundation are part of
-core. Concrete implementations belong in separately hosted packages, including
-Susi, reached through standard
-protocols. Preserve capabilities while moving their implementations.
+Susi Core is a small, generic socket: one program, `susi`, that serves the Model Context
+Protocol over standard input and output and through a local daemon ([`ARCHITECTURE.md`](../ARCHITECTURE.md)).
+Its three pillars are GAWD (agents), GEMI (models) and GMCP (tools); a pillar holds code when a
+program serves it, and today only GMCP does. Concrete implementations belong in separately
+hosted packages, including Susi, reached through standard protocols.
 
-The [active engineering contract](../AGENTS.md) governs current work. This
-page defines how core's size is measured and the performance budgets; it is
-not an append-only progress log or evidence of a completed migration.
+The [active engineering contract](../AGENTS.md) governs current work. This page says how core's
+size and reach are measured and what the speed budget is; it is not a progress log.
+
+## Nothing is there for nobody
+
+Two tests keep the workspace lean without a limit on its size:
+
+- **Every package is used.** `tests/lean_core_ceilings.rs` walks what the program `susi`
+  compiles (normal and build edges, from `cargo metadata`). A package the program does not
+  compile fails the suite unless Susi, the product, builds on it and it is named in
+  `LIBRARIES_FOR_SUSI` and in `ARCHITECTURE.md`'s package table.
+- **Every dependency is named.** `tests/architecture_tests.rs` requires `ARCHITECTURE.md` to name
+  every package of the workspace and every crate `Cargo.lock` resolves, with what pulls it in
+  and why, and nothing else. A new dependency fails until its reason is written down.
+
+On 2026-11-22 the first of these found four packages and five facades that no program compiled
+and no Susi manifest named (5,400 lines); they left, and `Cargo.lock` fell from 89 packages to
+33.
 
 ## Complete socket size
 
-Core has no line limit. The earlier limit of 9,999 physical runtime Rust
-lines, and the rule that a change adding lines removes as many, were withdrawn
-on 2026-11-22. Size is still measured and reported, because a number nobody
-reads cannot inform a decision; no size refuses a change.
-
-Print the measurement:
+Core has no line limit. Size is measured and reported, because a number nobody reads cannot
+inform a decision; no size refuses a change.
 
 ```sh
 cargo core-size
 ```
 
-This runs one test in
-[`tests/lean_core_ceilings.rs`](../tests/lean_core_ceilings.rs) that counts the
-complete socket and prints the total and each package's share. It does not
-fail on the number. It fails only when the measurement itself is broken, for
-example when a package that must exist is counted as empty. A run that
-executes no test has measured nothing. Read the current measurement from the
-command rather than adding dated measurements to this document.
+This runs one test in [`tests/lean_core_ceilings.rs`](../tests/lean_core_ceilings.rs) that
+counts the complete socket and prints the total and each package's share. It fails only when
+the measurement itself is broken, for example when a package that must exist is counted as
+empty. Read the current measurement from the command rather than adding dated measurements to
+this document.
 
-Counting contract: physical Rust lines, including comments, blanks, inline
-tests, every platform and every feature in first-party runtime files, plus
-the `susi-vendor-*` facades. Count all pillar, foundation, host, client and
-compatibility code, rather than only the crate named `susi-core`. Reuse the
-existing path-based category rules. The unconditionally public
-`crates/susi-paths/src/test_env.rs` is runtime and must remain counted. Separately
-report test/bench/fuzz files, development tooling, third-party `vendor/`
-source and `.agents/` records. Count tracked and non-ignored untracked files;
-deduplicate Git's file list. The source report is not the size of linked
-dependencies or executable bytes. Keep the report honest: do not relocate
-tests, minify, or exclude compiled code to change the number it prints.
+Counting contract: physical Rust lines, including comments, blanks, inline tests, every platform
+and every feature in first-party runtime files, plus the `susi-vendor-*` facades. Test files and
+development tooling are reported apart. Count tracked and non-ignored untracked files. The
+source report is not the size of linked dependencies or executable bytes. Keep the report
+honest: do not relocate tests, minify, or exclude compiled code to change the number it prints.
 
 ## Recorded baselines
 
 The same test file records five counts that are not line counts:
 
-- third-party crates the three measurement roots compile;
-- workspace crates the three measurement roots compile;
+- third-party crates the program compiles;
+- workspace packages the program compiles;
 - workspace members declared in `Cargo.toml`;
 - packages resolved in `Cargo.lock`;
-- vendor facades the pillar crates name directly.
+- vendor facades the program's package names directly.
 
-A sixth, the reviewed unsafe-baseline files under `.agents/baseline/`, left on
-2026-11-22 with those files: nothing read them once the unsafe-code check left
-with the private repository's tools.
+Each is a baseline, not a ceiling. A change may raise one in the same commit: raise the
+constant in `tests/lean_core_ceilings.rs` to the new count and say why, in the constant's
+comment and in the commit body. A change that lowers a count lowers its baseline too, so the
+record stays true. A count above its baseline fails the ordinary run, and the failure says
+exactly this.
 
-Each is a baseline, not a ceiling. A change may raise one in the same commit:
-raise the constant in `tests/lean_core_ceilings.rs` to the new count and say
-why, in the constant's comment and in the commit body. A change that lowers a
-count lowers its baseline too, so the record stays true. A count above its
-baseline fails the ordinary run, and the failure says exactly this. What is
-measured did not change when the rule did.
+## Preserve behavior
 
-```sh
-cargo test --locked --test lean_core_ceilings -- --nocapture
-```
+Preserve what the program serves: its commands, the supported MCP revisions and transports,
+its typed errors and its compatibility fields. Before removing an implementation that a
+program serves, demonstrate its working destination over the standard socket. Code that no
+program serves or reads is not a capability; the compiler deciding that nothing uses it is the
+proof, and the removal says so in its commit. UI and bundled product or plug-in content do not
+belong in core. Keep proprietary source out of core.
 
-Earlier separate per-pillar, category and per-file line ceilings remain
-removed. Dependency reach uses normal and build edges from the three
-measurement roots `susi-gawd-a2a`, `susi-gawd-acp` and `susi-gmcp`, the GAWD and
-GMCP crates (GEMI has none yet); development edges are excluded.
+## Speed budget
 
-## Preserve behavior through extraction
+Nothing waits more than 10 seconds warm (V-42): the build, the whole test suite, the lint and
+each release gate, measured and dated, cold timings apart. A step over the line is a defect to
+fix, never met by skipping, loosening or narrowing a test. Susi's `docs/speed.md` holds the
+measurements.
 
-Core retains generic protocol contracts, authorization boundaries, discovery,
-transport, cancellation and socket composition. Move concrete provider,
-workflow, tool, model and application implementations to independently hosted
-packages. UI and bundled product or plugin content do not belong in core.
-Do not relabel implementations or move them into an excluded counting category.
-
-Preserve public APIs, CLI actions, the five-port contract, supported MCP
-revisions and transports, ACP and A2A behavior, inference compatibility,
-Wasm admission, permissions, cancellation, persistence and harness execution.
-Protocol identifiers and compatibility fields stay intact. Runtime and current
-documentation remain identity-neutral; required license and attribution
-notices stay with the source they cover.
-
-Before removing an implementation, demonstrate its working destination and
-the installed core adapter over the standard socket. Exercise original and
-replacement behavior, including typed errors, authorization refusals, uncertain
-mutations, process ownership, cancellation, large payloads and native path
-handling. Inspect every platform and feature caller. A finite test corpus
-must not conceal a known capability gap. Keep proprietary source out of core.
-
-A size report and structural socket tests do not establish standards
-compliance. Run affected behavioral regressions, relevant live conformance
-checks and `cargo check --workspace --all-targets` on the combined migration
-tree. Keep unmet behavior and conformance requirements open.
-
-## Compile budget
-
-The cold compile target is under 60 seconds for `cargo build --offline --locked
--p susi` in a fresh target directory on the current native qualification host.
-Measure wall time, total and workspace CPU-seconds, critical path, host load,
-toolchain, target, feature set and source revision. Report cold and warm runs
-separately; cache reuse does not establish a cold result.
-
-No tool measures it today: `xtask build-time`, which did, left with the private
-repository's `tools/core-xtask` on 2026-11-22. Historical measurements may be
-absent. Keep results and comparisons in local
-storage rather than extending this source document with successive runs.
-
-## Warm build, test and release budget
-
-The warm pipeline budget is under 10 seconds: `total_ms < 10_000`, where
-`total_ms = build_ms + test_ms + release_ms`. Measure the core build, meaningful
-verification tests sharing compatible artifacts, and emission of the candidate
-artifact with its SHA-256 provenance manifest. Avoid redundant profile builds
-while keeping debug, candidate and production artifacts distinct.
-
-The fast warm pipeline does not replace full release qualification. Qualify
-releases against the exact source, lockfile, toolchain, target and feature set,
-with required tests, license and native-code audits, executable checks and
-artifact digest. Preserve required provenance with the artifact, independently
-of optional operational history. Retain atomic promotion, health checks and
-rollback; source publication alone does not qualify a release.
+The fast loop does not replace release qualification. A release is qualified against the exact
+source, lock file, toolchain and target, with every gate and a smoke run of the built program
+(`docs/releases.md`).
 
 ## Records and publication
 
-Operational history, completed tasks, build measurements, facts and evidence
-belong outside checked-out source, in a local database when available; history
-may be lost. Do not append wave logs, dated mandates or progress tables here.
-Keep current directives and minimal active coordination readable, removing
-active records after accepted completion. Missing records never prove accepted
-work, a completed dependency or a qualified release. Live authorization,
-recovery and spend-enforcement state retain their correctness requirements.
+Operational history, completed tasks, build measurements and evidence belong outside
+checked-out source. Do not append wave logs, dated mandates or progress tables here.
 
-Work in an owned isolated worktree, respect active scopes, and fetch and merge
-reachable `origin/main` before committing. Publish meaningful checkpoints about
-every ten minutes through normal fast-forward updates. `main` remains an
-unqualified development stream. Agent handoffs use `refs/agents/<agent>`;
-release candidates and immutable snapshots retain their separate qualification.
-
-Core is published one way. The designated publisher alone holds push authority;
-authorized agents exercise it within scope without gaining new access. Outside
-pull requests, patches and commits are not accepted. Everyone is free to fork
-under Apache-2.0; code from a fork returns only through authorized source
-admission with its pinned provenance and required notices. See
-[CONTRIBUTING.md](../CONTRIBUTING.md) and the harvest rule in
-[AGENTS.md](../AGENTS.md).
+Core is published one way. The designated publisher alone holds push authority; authorized
+agents exercise it within scope without gaining new access. Outside pull requests, patches and
+commits are not accepted. Everyone is free to fork under Apache-2.0; code from a fork returns
+only through authorized source admission with its pinned provenance and required notices. See
+[CONTRIBUTING.md](../CONTRIBUTING.md) and the harvest rule in [AGENTS.md](../AGENTS.md).

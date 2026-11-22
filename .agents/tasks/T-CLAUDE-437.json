@@ -13,5 +13,9 @@
     ]
   },
   "created_by": "CLAUDE",
-  "created_unix": 1795342276
+  "created_unix": 1795342276,
+  "reuse": {
+    "decision": "existing",
+    "searched": "Core and Susi: the seam for host tools reuses the MCP server already in susi-gmcp (server.rs, tools.rs) instead of the plane bus of susi-core; nothing new is built beyond a trait and a list. The packages removed have no user in Core's program, its tests or Susi's manifest (which names susi-config, susi-error, susi-paths and the getrandom, serde, serde_json and sha2 facades only)"
+  }
 }

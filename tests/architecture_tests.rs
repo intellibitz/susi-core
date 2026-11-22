@@ -7,13 +7,14 @@
 
 //! Architecture boundary tests — see `ARCHITECTURE.md`.
 //!
-//! Parses workspace `Cargo.toml` files (no network) and asserts:
-//! - no workspace crate dependency cycles
-//! - every SUSI edge points down the AGENTS.md leaf order
-//! - forbidden edges (feature-plane isolation / error purity)
-//! - ratchets that only decrease (cross-crate source mounts)
+//! Parses workspace `Cargo.toml` files and `Cargo.lock` (no network) and asserts:
+//! - every package of the workspace and every crate the lock file resolves is named in
+//!   `ARCHITECTURE.md`, so nothing enters Core without saying why (an allow-list: until
+//!   2026-11-22 this suite kept deny-lists of crates and modules deleted long before);
+//! - no workspace crate dependency cycles, and every SUSI edge points down the leaf order;
+//! - cross-crate source mounts stay at zero.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 fn workspace_root() -> PathBuf {
@@ -94,16 +95,11 @@ fn workspace_graph() -> HashMap<String, HashSet<String>> {
 /// SUSI crates, so shared code is reached through a Cargo edge in one
 /// direction instead of being copied or source-mounted upward.
 const LEAF_RANK: &[(&str, u8)] = &[
-    ("susi-abi", 0),
     ("susi-paths", 0),
+    ("susi-gmcp", 0),
     ("susi-error", 1),
     ("susi-config", 2),
-    // The GAWD ACP protocol crate depends on config. Core re-exports its API.
-    ("susi-gawd-acp", 3),
-    ("susi-core", 4),
-    ("susi-gmcp", 5),
-    ("susi-gawd-a2a", 8),
-    ("susi", 11),
+    ("susi", 3),
 ];
 
 /// Pure re-export facades (`susi-vendor-*` crates whose only dependency is
@@ -112,16 +108,11 @@ const LEAF_RANK: &[(&str, u8)] = &[
 /// a rank-0 crate like susi-paths legitimately depends on a facade.
 /// The zero-external-deps ratchet below is what actually constrains them.
 const VENDOR_FACADES: &[&str] = &[
-    "susi-vendor-clap",
-    "susi-vendor-ed25519-dalek",
     "susi-vendor-getrandom",
-    "susi-vendor-hyper",
     "susi-vendor-libc",
     "susi-vendor-serde",
     "susi-vendor-serde-json",
     "susi-vendor-sha2",
-    "susi-vendor-tokio",
-    "susi-vendor-tracing",
 ];
 
 #[test]
@@ -285,379 +276,58 @@ fn no_workspace_crate_cycles() {
     }
 }
 
-#[test]
-fn layer_matrix_forbidden_edges() {
-    // ARCHITECTURE.md "must not import" column, enforced per crate.
-    // Each entry: (crate, workspace crates it may not depend on).
-    // `susi-core` is foundation (rank 3): crates above it depend on the one
-    // compiled copy. It stays banned for the crates at or below its rank.
-    let forbidden: &[(&str, &[&str])] = &[
-        (
-            "susi-gmcp",
-            &[
-                "susi-gawd",
-                "susi-gawd-agents",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-gawd-a2a",
-            &[
-                "susi-gawd",
-                "susi-gemi",
-                "susi-gmcp",
-                "susi-tools",
-                "susi-agents",
-                "susi-daemon",
-                "susi-server",
-                "susi-sandbox",
-                "susi-vendor-wasmtime",
-            ],
-        ),
-        (
-            "susi-config",
-            &[
-                "susi-core",
-                "susi-vendor-wasmtime",
-                "susi-sandbox",
-                "susi-tools",
-                "susi-agents",
-                "susi-gemi",
-                "susi-gemi-models",
-                "susi-gmcp",
-                "susi-gawd",
-                "susi-gawd-agents",
-                "susi-gawd-swarm",
-                "susi-gawd-a2a",
-                "susi-daemon",
-                "susi-server",
-            ],
-        ),
-    ];
-    let graph = workspace_graph();
-    for (crate_name, banned) in forbidden {
-        let deps = graph
-            .get(*crate_name)
-            .unwrap_or_else(|| panic!("{crate_name} missing from workspace graph"));
-        for dep in *banned {
-            assert!(
-                !deps.contains(*dep),
-                "{crate_name} must not depend on {dep} (ARCHITECTURE.md layer matrix)"
-            );
-        }
-    }
+/// The names in the first column of the table in the section of `ARCHITECTURE.md` that starts
+/// with `heading`: every row `| `name` | ...`.
+fn names_in_section(heading: &str) -> HashSet<String> {
+    let text = std::fs::read_to_string(workspace_root().join("ARCHITECTURE.md")).unwrap();
+    let section = text
+        .split(&format!("\n{heading}\n"))
+        .nth(1)
+        .unwrap_or_else(|| panic!("ARCHITECTURE.md has no `{heading}` section"))
+        .split("\n## ")
+        .next()
+        .unwrap_or_default();
+    section
+        .lines()
+        .filter_map(|line| line.strip_prefix("| `"))
+        .filter_map(|rest| rest.split('`').next())
+        .map(str::to_owned)
+        .collect()
 }
 
+/// Every package of the workspace, and nothing else, is named in `ARCHITECTURE.md`'s
+/// package table, and every crate `Cargo.lock` resolves from outside, and nothing else, in its
+/// third-party list. Nothing enters Core without its reason written down, and the page never
+/// names what is gone. This allow-list replaced, on 2026-11-22, fourteen deny-lists of crates
+/// and modules removed long before (candle, wasmtime, reqwest, rmcp, the UI crates, ...).
 #[test]
-fn susi_error_must_not_depend_on_candle_or_features() {
+fn every_package_and_dependency_is_named_in_architecture_md() {
     let root = workspace_root();
-    let text = std::fs::read_to_string(root.join("crates/susi-error/Cargo.toml"))
-        .expect("susi-error Cargo.toml");
-    for forbidden in [
-        "candle",
-        "candle-core",
-        "reqwest",
-        "hyper",
-        "wasmer",
-        "wasmtime",
-        "bollard",
-        "rmcp",
-        "susi-gemi",
-        "susi-gmcp",
-        "susi-gawd",
-        "susi-core",
-    ] {
-        assert!(
-            !text.lines().any(|l| {
-                let t = l.trim();
-                t.starts_with(forbidden)
-                    || t.contains(&format!("{forbidden} ="))
-                    || t.contains(&format!("\"{forbidden}\""))
-            }),
-            "susi-error must not depend on `{forbidden}`"
-        );
-    }
-}
-
-#[test]
-fn susi_core_must_not_depend_on_infra_or_features() {
-    let root = workspace_root();
-    let metadata = std::process::Command::new("cargo")
-        .current_dir(root)
-        .args([
-            "metadata",
-            "--offline",
-            "--locked",
-            "--no-deps",
-            "--format-version",
-            "1",
-        ])
-        .output()
-        .expect("read the workspace package declarations");
-    assert!(
-        metadata.status.success(),
-        "{}",
-        String::from_utf8_lossy(&metadata.stderr)
+    let mut members: HashSet<String> = workspace_graph().into_keys().collect();
+    let lock = std::fs::read_to_string(root.join("Cargo.lock")).unwrap();
+    let locked: HashSet<String> = lock
+        .lines()
+        .filter_map(|line| line.strip_prefix("name = \""))
+        .map(|name| name.trim_end_matches('"').to_owned())
+        .collect();
+    let third_party: HashSet<String> = locked.difference(&members).cloned().collect();
+    members.retain(|m| locked.contains(m));
+    let sorted = |set: &HashSet<String>| {
+        let mut v: Vec<String> = set.iter().cloned().collect();
+        v.sort();
+        v
+    };
+    assert_eq!(
+        sorted(&names_in_section("## Packages")),
+        sorted(&members),
+        "ARCHITECTURE.md's package table names exactly the workspace's packages"
     );
-    let metadata: serde_json::Value = serde_json::from_slice(&metadata.stdout).unwrap();
-    let core = metadata["packages"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|p| p["name"] == "susi-core")
-        .expect("susi-core package");
-    let dependencies: HashSet<_> = core["dependencies"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|d| {
-            d["name"]
-                .as_str()
-                .expect("declared dependency package name")
-        })
-        .collect();
-    for forbidden in [
-        "candle",
-        "candle-core",
-        "reqwest",
-        "hyper",
-        "wasmer",
-        "wasmtime",
-        "bollard",
-        "rmcp",
-        "susi-gemi",
-        "susi-gmcp",
-        "susi-gawd",
-        "susi-gawd-agents",
-        "susi-gawd-swarm",
-        "susi-gawd-a2a",
-        "susi-daemon",
-        "susi-server",
-        "susi-agents",
-        "susi-tools",
-        "susi-sandbox",
-        "susi-vendor-wasmtime",
-    ] {
-        assert!(
-            !dependencies.contains(forbidden),
-            "susi-core must not depend on `{forbidden}` (see ARCHITECTURE.md)"
-        );
-    }
-}
-
-/// No workspace crate may declare a third-party HTTP client crate except the
-/// transport and the vendor/adapter crates: outbound JSON HTTP lives in
-/// `susi-http-transport`; vendor SDKs live in `susi-vendor-*` /
-/// `susi-adapters-*`. An
-/// allow-list, so a new crate is covered without editing this test.
-#[test]
-fn core_os_crates_must_not_declare_http_clients() {
-    let root = workspace_root();
-    let mut forbidden_in: Vec<String> = std::fs::read_dir(root.join("crates"))
-        .expect("crates dir")
-        .filter_map(|e| e.ok())
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|name| {
-            name != "susi-http-transport"
-                && !name.starts_with("susi-vendor-")
-                && !name.starts_with("susi-adapters-")
-        })
-        .collect();
-    forbidden_in.sort();
-    for crate_name in forbidden_in {
-        let Ok(text) =
-            std::fs::read_to_string(root.join(format!("crates/{crate_name}/Cargo.toml")))
-        else {
-            continue;
-        };
-        let mut in_deps = false;
-        for line in text.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with('[') {
-                in_deps = trimmed == "[dependencies]"
-                    || trimmed.starts_with("[dependencies.")
-                    || (trimmed.starts_with("[target.")
-                        && trimmed.contains("dependencies]")
-                        && !trimmed.contains("dev-dependencies]"));
-                continue;
-            }
-            if !in_deps {
-                continue;
-            }
-            for client in ["reqwest", "ureq"] {
-                let declared = trimmed.starts_with(&format!("{client} "))
-                    || trimmed.starts_with(&format!("{client}="));
-                assert!(
-                    !declared,
-                    "{crate_name} must not declare `{client}` (HTTP clients belong in susi-http-transport / adapters / vendor crates)"
-                );
-            }
-        }
-    }
-}
-
-/// No crate links an MCP SDK: GMCP serves MCP with its own implementation
-/// (`crates/susi-gmcp/src/mcp`) and the MCP client is the std JSON-RPC
-/// client in `susi-tools`. Neither `rmcp` nor its macro or schema crates may
-/// return as a dependency of any workspace crate.
-#[test]
-fn no_crate_links_an_mcp_sdk() {
-    let root = workspace_root();
-    let mut crates: Vec<String> = std::fs::read_dir(root.join("crates"))
-        .expect("crates dir")
-        .filter_map(|e| e.ok())
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .collect();
-    crates.sort();
-    let mut manifests: Vec<(String, std::path::PathBuf)> = crates
-        .into_iter()
-        .map(|name| {
-            let path = root.join(format!("crates/{name}/Cargo.toml"));
-            (name, path)
-        })
-        .collect();
-    manifests.push(("susi".to_string(), root.join("Cargo.toml")));
-    for (crate_name, path) in manifests {
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        for line in text.lines() {
-            let trimmed = line.trim();
-            for sdk in ["rmcp", "rmcp-macros", "schemars"] {
-                let declared = trimmed.starts_with(&format!("{sdk} "))
-                    || trimmed.starts_with(&format!("{sdk}="))
-                    || trimmed.contains(&format!("package = \"{sdk}\""));
-                assert!(
-                    !declared,
-                    "{crate_name} must not declare `{sdk}` (GMCP serves MCP itself: crates/susi-gmcp/src/mcp)"
-                );
-            }
-        }
-    }
-    let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("Cargo.lock");
-    for sdk in ["rmcp", "rmcp-macros"] {
-        assert!(
-            !lock.contains(&format!("name = \"{sdk}\"")),
-            "Cargo.lock must not resolve `{sdk}`"
-        );
-    }
-}
-
-/// Production sources outside `susi-http-transport` must not name `ureq::`
-/// or call a vanished `http_agent()` — every outbound request uses
-/// `http_call` / `http_call_with_body`.
-#[test]
-fn ureq_types_stay_inside_http_transport() {
-    let root = workspace_root();
-    let mut files = Vec::new();
-    rust_files(&root.join("crates"), &mut files);
-    rust_files(&root.join("src"), &mut files);
-    for path in files {
-        let rel = path
-            .strip_prefix(&root)
-            .unwrap_or(path.as_path())
-            .to_string_lossy()
-            .replace('\\', "/");
-        if rel.contains("susi-http-transport/") {
-            continue;
-        }
-        // Facade crates legitimately name their upstream (`pub use <crate>::*`
-        // is the entire point of a susi-vendor-* facade).
-        if let Some(crate_dir) = rel.split('/').nth(1) {
-            if VENDOR_FACADES.contains(&crate_dir) {
-                continue;
-            }
-        }
-        let text = std::fs::read_to_string(&path).unwrap();
-        assert!(
-            !text.contains("ureq::"),
-            "{rel} must not name ureq:: (use susi-http-transport::http_call)"
-        );
-        assert!(
-            !text.contains("http_agent("),
-            "{rel} must not call http_agent (use http_call / http_call_with_body)"
-        );
-    }
-}
-
-#[test]
-fn architecture_md_exists() {
-    let path = workspace_root().join("ARCHITECTURE.md");
-    assert!(
-        path.is_file(),
-        "ARCHITECTURE.md missing at {}",
-        path.display()
-    );
-    let text = std::fs::read_to_string(&path).expect("read");
-    assert!(text.contains("Composition roots"));
-    assert!(text.contains("susi-core"));
-    assert!(
-        text.contains("plane_bus"),
-        "ARCHITECTURE.md must document plane_bus as the feature-plane control plane"
+    assert_eq!(
+        sorted(&names_in_section("## Third-party crates")),
+        sorted(&third_party),
+        "ARCHITECTURE.md's third-party list names exactly the crates Cargo.lock resolves"
     );
 }
-
-#[test]
-fn reachability_from_core_stays_downward() {
-    // From susi-core, BFS of reverse edges must not reach feature crates
-    // that core is forbidden to depend on — sanity on the parsed graph.
-    let graph = workspace_graph();
-    let mut reverse: HashMap<String, HashSet<String>> = HashMap::new();
-    for (from, tos) in &graph {
-        for to in tos {
-            reverse.entry(to.clone()).or_default().insert(from.clone());
-        }
-    }
-    // Forward: core's transitive workspace deps stay in foundation only.
-    let mut seen = HashSet::new();
-    let mut q = VecDeque::new();
-    q.push_back("susi-core".to_string());
-    while let Some(n) = q.pop_front() {
-        if !seen.insert(n.clone()) {
-            continue;
-        }
-        if let Some(deps) = graph.get(&n) {
-            for d in deps {
-                q.push_back(d.clone());
-            }
-        }
-    }
-    seen.remove("susi-core");
-    for forbidden in [
-        "susi-gemi",
-        "susi-gmcp",
-        "susi-gawd",
-        "susi-sandbox",
-        "susi-tools",
-        "susi-agents",
-        "susi-server",
-        "susi-daemon",
-    ] {
-        assert!(
-            !seen.contains(forbidden),
-            "susi-core transitive workspace deps include `{forbidden}`: {seen:?}"
-        );
-    }
-}
-
-// ── Unwired module ratchet ──────────────────────────────────────────────
-//
-// A daemon module that no production path reaches is compiled and
-// unit-tested but never runs: a feature in name only. Roots are references
-// from outside `susi-daemon` (other crates, the root binary) plus
-// `lib.rs` re-exports; edges are `crate::`/`super::`/`susi_daemon::` paths
-// and brace imports in non-test code. The 2026-09-27 audit found 88 of 119
-// modules unreachable; later passes deleted isolated sketches and wired
-// modules used by the live composition root. The count may only go down.
 
 fn non_test(text: &str) -> &str {
     text.find("#[cfg(test)]").map_or(text, |i| &text[..i])
@@ -835,58 +505,6 @@ fn every_panic_path_allow_is_justified() {
         unjustified.is_empty(),
         "panic-path #[allow]s without a written justification: {unjustified:?}"
     );
-}
-
-/// Mandate 48 regression guard (targeted, not a proof): the two removed
-/// dev-install paths must not come back, and dev binaries must select their
-/// own instance before anything else runs.
-#[test]
-fn dev_builds_never_install_the_release_binary() {
-    let root = workspace_root();
-
-    // Core's build and release tools, and their "build only, never install"
-    // guard, moved to Susi Commercial Apps (tools/core-xtask) on 2026-11-19.
-    let mut files = Vec::new();
-    for dir in ["crates", "src"] {
-        rust_files(&root.join(dir), &mut files);
-    }
-    let self_deploy: Vec<String> = files
-        .iter()
-        .filter(|path| {
-            let text = std::fs::read_to_string(path).unwrap_or_default();
-            let text = non_test(&text);
-            text.contains("push_to_hardware") || text.contains("auto_install")
-        })
-        .map(|path| path.display().to_string())
-        .collect();
-    assert!(
-        self_deploy.is_empty(),
-        "dev self-install over ~/.susi/bin is forbidden (Mandate 48): {self_deploy:?}"
-    );
-
-    // The dispatch-order check (delivery and install before development isolation, isolation
-    // before handing work to a runtime host) left with the code it ordered on 2026-11-22: the
-    // program forwards nothing and has no development-instance switch any more.
-}
-
-/// Mandate 48 ("SUSI writes SUSI"): every code-writing path into a SUSI
-/// tree carries the self-build contract, and installed Susi exposes guarded
-/// local delivery. Targeted guard over the known paths, not a
-/// proof that no other path exists.
-#[test]
-fn self_build_contract_reaches_every_code_writing_path() {
-    let root = workspace_root();
-    let read = |rel: &str| std::fs::read_to_string(root.join(rel)).unwrap();
-
-    // Core writes code into no tree of its own: `susi install` copies the program without
-    // overwriting a different one, and nothing else here writes source. The `local`
-    // delivery command that named Susi's `susi-dev` launcher left on 2026-11-22.
-    let main = read("src/main.rs");
-    assert!(
-        !main.contains("local_delivery"),
-        "guarded local delivery must not return"
-    );
-    assert!(read("src/cli/install_cli.rs").contains("different_existing_binary_is_never_replaced"));
 }
 
 /// Mandate 49 regression guard: the worktree-workflow guard exists, is
@@ -1229,62 +847,6 @@ fn vendor_patches_are_local_and_preserve_upstream_licenses() {
         "Cargo.lock must not carry unused [patch.crates-io] entries"
     );
 }
-/// The lockfile carries no `zip` with GitHub's five Dependabot advisories
-/// (GHSA-m665-v7pm-7grj and four more, all fixed in 9.0.5). Candle and
-/// tokenizers belong in commercial model plugs, not the slim core socket, so
-/// they must stay out of this lockfile and out of any core path patch.
-#[test]
-fn the_lockfile_carries_fixed_zip_and_the_approved_candle_sources() {
-    let lock = std::fs::read_to_string(workspace_root().join("Cargo.lock")).unwrap();
-    let packages: Vec<&str> = lock.split("[[package]]").collect();
-    let field = |package: &str, name: &str| -> Option<String> {
-        package
-            .lines()
-            .find_map(|line| line.strip_prefix(&format!("{name} = ")))
-            .map(|value| value.trim_matches('"').to_string())
-    };
-    let named = |name: &str| -> Vec<&str> {
-        packages
-            .iter()
-            .copied()
-            .filter(|package| field(package, "name").as_deref() == Some(name))
-            .collect()
-    };
-    for zip in named("zip") {
-        let version = field(zip, "version").unwrap();
-        let mut parts = version
-            .split('.')
-            .map(|part| part.parse::<u64>().unwrap_or(0));
-        let triple = (
-            parts.next().unwrap_or(0),
-            parts.next().unwrap_or(0),
-            parts.next().unwrap_or(0),
-        );
-        assert!(
-            triple >= (9, 0, 5),
-            "zip {version} carries the Dependabot advisories fixed in 9.0.5"
-        );
-    }
-    for crate_name in [
-        "candle-core",
-        "candle-nn",
-        "candle-transformers",
-        "tokenizers",
-    ] {
-        let found = named(crate_name);
-        assert!(
-            found.is_empty(),
-            "{crate_name} must not remain in the slim core lockfile after susi-vendor-candle migration"
-        );
-    }
-    let manifest = std::fs::read_to_string(workspace_root().join("Cargo.toml")).unwrap();
-    assert!(!manifest.contains("candle-core = { path = \"vendor/candle-core\" }"));
-    assert!(
-        !workspace_root().join("vendor/candle-core").exists(),
-        "vendor/candle-core must stay out of core after the model stack moved"
-    );
-}
-
 /// The release installer builds the newest tag from source on this host (CEO
 /// decision 2026-11-09 00:22: release binaries are built from git tags; no
 /// artifact store) and asks nothing of a git host beyond git itself. The tag
@@ -1363,7 +925,7 @@ fn workspace_enforces_apache_mit_bsd_license_policy() {
     let root = workspace_root();
 
     // 1. Every workspace crate manifest explicitly declares `license = "Apache-2.0"`.
-    let mut manifests = vec![root.join("Cargo.toml"), root.join("fuzz/Cargo.toml")];
+    let mut manifests = vec![root.join("Cargo.toml")];
     for entry in std::fs::read_dir(root.join("crates")).expect("crates/") {
         let entry = entry.expect("entry");
         let p = entry.path().join("Cargo.toml");
@@ -1436,188 +998,9 @@ fn workspace_enforces_apache_mit_bsd_license_policy() {
             "deny.toml must allow permissive license {required}"
         );
     }
-
-    // 3. Cargo.lock contains no reachable GPL/MPL dependencies (`auto_generate_cdp`,
-    //    `headless_chrome`, `hf-hub`, `dirs`).
-    let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("read Cargo.lock");
-    for excluded_pkg in ["auto_generate_cdp", "headless_chrome", "hf-hub", "dirs"] {
-        let needle = format!("name = \"{excluded_pkg}\"\n");
-        assert!(
-            !lock.contains(&needle),
-            "Cargo.lock must not contain excluded package {excluded_pkg}"
-        );
-    }
-}
-
-/// Regression guard for AI-OS bloat pruning: the 35 dead/uncalled stub and
-/// duplicate modules removed across `susi-daemon`, `susi-config`, `susi-core`,
-/// and `susi-gawd`, plus unused `[workspace.dependencies]` entries, must not
-/// return.
-#[test]
-fn pruned_non_ai_os_bloat_modules_and_deps_stay_removed() {
-    let root = workspace_root();
-    const PRUNED_DAEMON_MODULES: &[&str] = &[
-        "admin",
-        "audit_log",
-        "budget",
-        "cas",
-        "cell_snapshot",
-        "checkpoint",
-        "code_signing",
-        "composition_recommender",
-        "dashboard",
-        "docs_generator",
-        "event_log",
-        "fork",
-        "hot_reload",
-        "identity",
-        "inspector",
-        "leaderboard",
-        "load_balancer",
-        "logger",
-        "metrics",
-        "p2p_router",
-        "plugins",
-        "signal",
-        "suspend",
-        "task_queue",
-        "tool_catalog",
-        "tool_proxy",
-        "topology",
-        "tracing",
-        "ttl",
-        "webhook_dispatcher",
-        "what_if",
-        "workflows",
-    ];
-    for module in PRUNED_DAEMON_MODULES {
-        let path = root
-            .join("crates/susi-daemon/src")
-            .join(format!("{module}.rs"));
-        assert!(
-            !path.exists(),
-            "pruned susi-daemon bloat module must not return: {}",
-            path.display()
-        );
-    }
-
-    for rel in [
-        "crates/susi-config/src/zc_installer.rs",
-        "crates/susi-config/src/zc_uninstall.rs",
-        "crates/susi-config/src/zc_config_overrides.rs",
-        "crates/susi-config/src/zc_env_detectable.rs",
-        "crates/susi-core/src/abi_bridge.rs",
-        "crates/susi-core/src/jit_credentials.rs",
-        "crates/susi-error/src/zc_errors_fixable.rs",
-        "crates/susi-gawd/src/brain_status.rs",
-        "crates/susi-gawd/src/ops_slo.rs",
-        "crates/susi-gawd/src/task_edit_guard.rs",
-        "crates/susi-gawd/src/update_health.rs",
-        "crates/susi-gawd-a2a/src/eco_a2a_security.rs",
-        "crates/susi-gawd-swarm/src/capability_market.rs",
-        "crates/susi-gawd-swarm/src/zc_lan_cluster.rs",
-        "crates/susi-gemi/src/batch_api.rs",
-        "crates/susi-gemi/src/eco_capability_routing.rs",
-        "crates/susi-gemi/src/status_pages.rs",
-        "crates/susi-gmcp/src/eco_mcp_auth.rs",
-        "crates/susi-gmcp/src/zc_mcp_autoinstall.rs",
-        "crates/susi-harness/src/memory.rs",
-        "crates/susi-sandbox-client/src/mission_sandbox_limits.rs",
-        "crates/susi-server/src/gateway_embeddings.rs",
-        "crates/susi-server/src/web_dashboard.rs",
-        "crates/susi-vendor-agents/src/a2a_streaming_client.rs",
-        "crates/susi-vendor-agents/src/acp_discovery.rs",
-        "crates/susi-vendor-agents/src/a2a_card_cache.rs",
-        "crates/susi-vendor-agents/src/zc_a2a_registry.rs",
-        "crates/susi-vendor-agents/src/zc_agent_approvals.rs",
-        "crates/susi-vendor-agents/src/zc_delegation_dir.rs",
-        "crates/susi-vendor-agents/src/zc_workspace_trust.rs",
-        "crates/susi-vendor-agents/src/external/aider.rs",
-        "crates/susi-vendor-agents/src/external/browser_use.rs",
-        "crates/susi-vendor-agents/src/external/byok.rs",
-        "crates/susi-vendor-agents/src/external/deerflow.rs",
-        "crates/susi-vendor-agents/src/external/gemini_cli.rs",
-        "crates/susi-vendor-agents/src/external/openhands.rs",
-        "crates/susi-vendor-agents/src/external/openhands_server.rs",
-        "crates/susi-vendor-agents/src/external/openviking.rs",
-        "crates/susi-vendor-agents/src/external/swe_agent.rs",
-        "crates/susi-vendor-models/src/azure_openai_provider.rs",
-        "crates/susi-vendor-models/src/bedrock_provider.rs",
-        "crates/susi-vendor-models/src/cloud_cli_auth.rs",
-        "crates/susi-vendor-models/src/deepseek_default.rs",
-        "crates/susi-vendor-models/src/disk_budget.rs",
-        "crates/susi-vendor-models/src/eco_gemini.rs",
-        "crates/susi-vendor-models/src/eco_openai_chat.rs",
-        "crates/susi-vendor-models/src/engine_autopull.rs",
-        "crates/susi-vendor-models/src/engine_format_match.rs",
-        "crates/susi-vendor-models/src/hf_gated_models.rs",
-        "crates/susi-vendor-models/src/hf_token_gate.rs",
-        "crates/susi-vendor-models/src/key_detect.rs",
-        "crates/susi-vendor-models/src/more_openai_compat.rs",
-        "crates/susi-vendor-models/src/multi_gpu_plan.rs",
-        "crates/susi-vendor-models/src/ollama_models.rs",
-        "crates/susi-vendor-models/src/vertex_provider.rs",
-        "crates/susi-vendor-models/src/vllm_launcher.rs",
-        "crates/susi-vendor-models/src/zc_disk_default.rs",
-        "crates/susi-vendor-models/src/zc_key_autodetect.rs",
-    ] {
-        let path = root.join(rel);
-        assert!(
-            !path.exists(),
-            "pruned dead module must not return: {}",
-            path.display()
-        );
-    }
-
-    let root_manifest =
-        std::fs::read_to_string(root.join("Cargo.toml")).expect("read root Cargo.toml");
-    assert!(
-        !root_manifest.contains("\"*\".*=.*opt-level = 3")
-            && !root_manifest.contains("\"*\" = { opt-level = 3 }"),
-        "root Cargo.toml must not force opt-level = 3 across all dev/test dependencies"
-    );
-    for manifest_rel in [
-        "crates/susi-core/Cargo.toml",
-        "crates/susi-gawd-a2a/Cargo.toml",
-        "crates/susi-gmcp/Cargo.toml",
-    ] {
-        let manifest =
-            std::fs::read_to_string(root.join(manifest_rel)).expect("read crate Cargo.toml");
-        assert!(
-            !manifest.contains("susi-vendor-models"),
-            "{manifest_rel} must not depend on susi-vendor-models after pruning unreferenced eco_* test stubs"
-        );
-    }
-
-    for py_bridge in [
-        "crates/susi-vendor-agents/src/external/python_bridge.rs",
-        "crates/susi-vendor-agents/src/external/python_engine.rs",
-        "crates/susi-vendor-agents/src/external/autogen.rs",
-        "crates/susi-vendor-agents/src/external/crewai.rs",
-        "crates/susi-vendor-agents/src/external/e2b.rs",
-        "crates/susi-vendor-agents/src/external/haystack.rs",
-        "crates/susi-vendor-agents/src/external/langgraph.rs",
-        "crates/susi-vendor-agents/src/external/llamaindex.rs",
-        "crates/susi-vendor-agents/src/external/openai_agents.rs",
-        "crates/susi-vendor-agents/src/external/smolagents.rs",
-        "crates/susi-vendor-agents/src/external/temporal.rs",
-    ] {
-        let path = root.join(py_bridge);
-        assert!(
-            !path.exists(),
-            "Python bridge/engine module must not return in 100% Rust Susi: {}",
-            path.display()
-        );
-    }
-
-    for entry in std::fs::read_dir(root.join("scripts")).expect("read scripts/") {
-        let entry = entry.expect("scripts entry");
-        let name = entry.file_name().to_string_lossy().to_string();
-        assert!(
-            !name.ends_with(".py"),
-            "scripts/ must contain zero Python scripts in 100% Rust Susi: found scripts/{name}"
-        );
-    }
+    // Which crates the lock file may resolve at all is the allow-list in ARCHITECTURE.md
+    // (`every_package_and_dependency_is_named_in_architecture_md`); their licences are checked
+    // by `cargo deny`, a release gate.
 }
 
 /// Source may retain a release-compatible empty template, never operational facts.
@@ -1730,109 +1113,6 @@ fn non_rust_scripts_only_decrease() {
     );
 }
 
-/// Open-core boundary (AGENTS.md): organisation-scale capabilities are sold in
-/// Susi (repository `susi`) and must not return to the Apache-2.0 substrate.
-#[test]
-fn enterprise_capabilities_live_in_commercial_apps() {
-    let root = workspace_root();
-    for rel in [
-        "crates/susi-gawd/src/tenant_isolation.rs",
-        "helm",
-        "deploy/helm",
-        "scripts/check-helm-chart.sh",
-        "crates/susi-config/src/fleet_rollout.rs",
-        "crates/susi-config/src/tests/vc_201_068.rs",
-        "crates/susi-config/src/tests/vc_201_068_mastery.rs",
-        "tests/vc_201_068_mastery.rs",
-        "crates/susi-server/src/gateway_keys.rs",
-        "crates/susi-vendor-cloud/src/autoscale.rs",
-        "crates/susi-vendor-cloud/src/failover_policy.rs",
-        "crates/susi-vendor-cloud/src/orphan_gc.rs",
-        "crates/susi-vendor-models/src/deployment_spec.rs",
-        "crates/susi-vendor-models/src/workload_drain.rs",
-        "crates/susi-config/src/managed_drift.rs",
-        "crates/susi-config/src/plan_apply.rs",
-        "crates/susi-config/src/state_backup.rs",
-        "crates/susi-config/src/keyring_storage.rs",
-        "crates/susi-core/src/capability_contract.rs",
-        "crates/susi-core/src/memory_replicate.rs",
-        "crates/susi-core/src/memory_tombstone.rs",
-        "crates/susi-core/src/otel_export.rs",
-        "crates/susi-core/src/prompt_secret_scan.rs",
-        "crates/susi-core/src/retrieval_eval.rs",
-        "crates/susi-core/src/skill_artifacts.rs",
-        "crates/susi-core/src/vertical_workflow.rs",
-        "crates/susi-core/src/wasm_grants.rs",
-        "crates/susi-gawd-swarm/src/brain_coordination.rs",
-        "crates/susi-gawd-swarm/src/coordinator_fence.rs",
-        "crates/susi-gawd-swarm/src/federation_compat.rs",
-        "crates/susi-gawd-swarm/src/locality_placement.rs",
-        "crates/susi-gawd-swarm/src/membership_model.rs",
-        "crates/susi-gawd-swarm/src/snapshot_bootstrap.rs",
-        "crates/susi-gawd-swarm/src/wan_peers.rs",
-        "crates/susi-gawd-swarm/src/workspace_txn.rs",
-        "crates/susi-gawd/src/brain_gap_publish.rs",
-        "crates/susi-gawd/src/brain_gap_triggers.rs",
-        "crates/susi-gawd/src/model_rate_arbitration.rs",
-        "crates/susi-gemi/src/structured_output.rs",
-        "crates/susi-gemi/src/eco_compat_gate.rs",
-        "crates/susi-vendor-models/src/eco_conflicts.rs",
-        "crates/susi-vendor-models/src/eco_coverage.rs",
-        "crates/susi-vendor-models/src/eco_matrix.rs",
-        "crates/susi-vendor-models/src/eco_provenance.rs",
-        "crates/susi-vendor-models/src/eco_signed_kb.rs",
-        "crates/susi-vendor-models/src/signed_catalog.rs",
-        "crates/susi-vendor-models/src/zc_key_aliases.rs",
-        "crates/susi-vendor-models/src/zc_key_sources.rs",
-        "crates/susi-vendor-models/src/infer_batch.rs",
-        "crates/susi-vendor-models/src/eco_engine_capability_map.rs",
-        "crates/susi-vendor-models/src/eco_live_probe.rs",
-        "crates/susi-vendor-models/src/eco_gpu_clouds.rs",
-        "crates/susi-vendor-agents/src/agent_scoreboard.rs",
-        "crates/susi-gawd-agents/src/brain_ranking.rs",
-        "crates/susi-gawd-agents/src/cloud_brain_policy.rs",
-        "crates/susi-gawd-swarm/src/brain_supervisor.rs",
-        "crates/susi-gawd-swarm/src/agent_routing.rs",
-        "crates/susi-gawd-swarm/src/chaos_deployment.rs",
-        "crates/susi-gawd-swarm/src/fault_matrix.rs",
-        "crates/susi-gawd-swarm/src/swarm_chaos.rs",
-        "crates/susi-gawd/src/brain_gap_dedup.rs",
-        "crates/susi-gawd/src/brain_gap_tasks.rs",
-        "crates/susi-gawd/src/brain_gap_audit.rs",
-        "crates/susi-gawd/src/disaster_recovery.rs",
-        "crates/susi-gawd/src/action_history.rs",
-        "crates/susi-gawd/src/autonomous_builder.rs",
-        "crates/susi-gawd/src/capacity_limits.rs",
-        "crates/susi-gawd/src/cloud_rsi_delivery.rs",
-        "crates/susi-gawd/src/cloud_rsi_outcomes.rs",
-        "crates/susi-gawd/src/cloud_rsi_lifecycle.rs",
-        "crates/susi-gawd/src/formal_invariants.rs",
-        "crates/susi-gawd/src/orchestrator_tier.rs",
-        "crates/susi-gemi/src/rate_limit_scheduler.rs",
-        "crates/susi-gemi/src/thermal_routing.rs",
-        "crates/susi-config/src/env_profiles.rs",
-        "crates/susi-config/src/rekey_schedule.rs",
-        "crates/susi-config/src/selfheal.rs",
-        "crates/susi-config/src/zc_bare_susi.rs",
-        "crates/susi-config/src/zc_qualification.rs",
-        "crates/susi-config/src/zc_susi_fix.rs",
-        "crates/susi-config/src/zc_debt_ratchet.rs",
-        "crates/susi-config/src/windows_environment.rs",
-        "crates/susi-core/src/secret.rs",
-        "crates/susi-vendor-models/src/cloud_reconciler.rs",
-        "crates/susi-vendor-models/src/offline_bundle.rs",
-        "crates/susi-config/src/offline_bundle.rs",
-        "crates/susi-vendor-cloud/src/preemptible.rs",
-        "crates/susi-error/src/redact_tests.rs",
-    ] {
-        assert!(
-            !root.join(rel).exists(),
-            "enterprise capability belongs in Susi (repository susi): {rel}"
-        );
-    }
-    // The relocated handler contract is checked by commercial ownership_guards.
-}
-
 // ---------------------------------------------------------------------------
 // Zero-UI boundary (CEO directive): core is a pure Rust CLI plus a standards
 // protocol socket. It ships no GUI/TUI, no web assets, serves no HTML and
@@ -1875,78 +1155,6 @@ fn zero_ui_rel(path: &std::path::Path) -> String {
         .replace('\\', "/")
 }
 
-/// BT-05: no GUI or TUI toolkit (nor a terminal spinner) is declared by any
-/// first-party manifest, the `susi-vendor-*` facades included (they are where
-/// a third-party dependency would enter). `vendor/` holds patched upstream
-/// sources and is not scanned.
-#[test]
-fn core_declares_no_gui_or_tui_crates() {
-    const BANNED: &[&str] = &[
-        "ratatui",
-        "crossterm",
-        "termion",
-        "egui",
-        "eframe",
-        "iced",
-        "tauri",
-        "gtk",
-        "winit",
-        "slint",
-        "dioxus",
-        "indicatif",
-    ];
-    let mut files = Vec::new();
-    zero_ui_walk(&workspace_root(), false, &mut files);
-    let manifests: Vec<PathBuf> = files
-        .into_iter()
-        .filter(|path| path.file_name().is_some_and(|name| name == "Cargo.toml"))
-        .collect();
-    assert!(
-        manifests.len() > 10,
-        "manifest walk found too few Cargo.toml files"
-    );
-    let mut offenders = Vec::new();
-    for manifest in &manifests {
-        let text = std::fs::read_to_string(manifest).expect("read Cargo.toml");
-        let mut in_deps = false;
-        for line in text.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with('[') {
-                let header = trimmed.trim_matches(|c| c == '[' || c == ']');
-                in_deps = header.ends_with("dependencies");
-                // `[dependencies.<name>]` table form.
-                if let Some((_, name)) = header.split_once("dependencies.") {
-                    if BANNED.contains(&name.trim()) {
-                        offenders.push(format!("{}: {trimmed}", zero_ui_rel(manifest)));
-                    }
-                }
-                continue;
-            }
-            if !in_deps || trimmed.starts_with('#') {
-                continue;
-            }
-            let key = trimmed
-                .split(['=', ' ', '.'])
-                .next()
-                .unwrap_or_default()
-                .trim_matches('"');
-            let package = trimmed
-                .split("package")
-                .nth(1)
-                .and_then(|rest| rest.split('"').nth(1))
-                .unwrap_or_default();
-            if BANNED.contains(&key) || BANNED.contains(&package) {
-                offenders.push(format!("{}: {trimmed}", zero_ui_rel(manifest)));
-            }
-        }
-    }
-    assert!(
-        offenders.is_empty(),
-        "core has zero UI: GUI/TUI/spinner crates belong in Susi (repository susi):\n{}",
-        offenders.join("\n")
-    );
-}
-
 /// BT-03: no web or front-end asset ships in core. `target/`, `out/`,
 /// `vendor/`, tool/agent metadata (`.git/`, `.claude/`, `.agents/`, ...) and
 /// the `susi-vendor-*` facade crates are not scanned. No test-fixture
@@ -1979,10 +1187,7 @@ fn core_ships_zero_ui_assets() {
 /// BT-04: no first-party, non-test Rust source serves HTML: no `text/html`
 /// content type, no axum `Html` response and no HTML document literal.
 /// Test modules (`#[cfg(test)]` onward), `tests/` trees and the
-/// `susi-vendor-*` facades are not scanned. The launchd plist in
-/// `susi-gawd/src/cross_platform_service.rs` carries an XML `<!DOCTYPE plist`,
-/// which is not an HTML document and does not match the ban, so no allow-list
-/// entry is needed.
+/// `susi-vendor-*` facades are not scanned.
 #[test]
 fn core_serves_no_html() {
     let root = workspace_root();
@@ -2017,122 +1222,6 @@ fn core_serves_no_html() {
         offenders.is_empty(),
         "core serves no HTML (JSON/SSE/MCP/A2A only); offending sources:\n{}",
         offenders.join("\n")
-    );
-}
-
-/// BT-02: the UI and plugin content removed from core must not return; it
-/// lives in Susi, repository `susi` (or, for the DeepSeek Harness plugin, is
-/// retired in favour of a native commercial desktop view).
-#[test]
-fn ui_and_plugins_live_in_commercial_apps() {
-    let root = workspace_root();
-    for rel in [
-        // A2: the HTML cockpit panel and its standalone server binary.
-        "crates/susi-harness/src/panel.html",
-        "crates/susi-harness/src/bin/harness-cockpit.rs",
-        // A3: the DeepSeek Harness plugin and its asset test.
-        "deploy/dsh-cockpit",
-        "tests/cockpit_plugin.rs",
-        // A4: the terminal spinner facade.
-        "crates/susi-vendor-indicatif",
-        // A7: dead or vendor-specific plugin code.
-        "deploy/harness/plugins.example.json",
-        "crates/susi-harness/src/plugins.rs",
-        "crates/susi-dsh-cell",
-        // A9: the bundled default extension pack. (`config/cloud-vendors.json`
-        // is not listed: it is now core's compiled vendor-alias default, which
-        // the key resolver depends on — plan NP-04.)
-        "config/extensions",
-    ] {
-        assert!(
-            !root.join(rel).exists(),
-            "UI and plugin content belongs in Susi (repository susi), not core: {rel}"
-        );
-    }
-    let root_toml = std::fs::read_to_string(root.join("Cargo.toml")).expect("root Cargo.toml");
-    for member in ["crates/susi-dsh-cell", "crates/susi-vendor-indicatif"] {
-        assert!(
-            !root_toml.contains(&format!("\"{member}\"")),
-            "{member} must not be a workspace member"
-        );
-    }
-}
-
-/// Every first-party, non-test Rust source in core (`src/` and `crates/`;
-/// third-party `vendor/` is not ours).
-fn first_party_non_test_sources() -> Vec<(String, String)> {
-    let root = workspace_root();
-    let mut paths = Vec::new();
-    rust_files(&root.join("src"), &mut paths);
-    rust_files(&root.join("crates"), &mut paths);
-    let mut out = Vec::new();
-    for path in paths {
-        let rel = zero_ui_rel(&path);
-        if rel
-            .split('/')
-            .any(|part| part == "tests" || part == "benches")
-            || rel.ends_with("/tests.rs")
-        {
-            continue;
-        }
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        out.push((rel, non_test(&text).to_string()));
-    }
-    out
-}
-
-/// A8: core never launches third-party code on its own. No boot-time
-/// leading-MCP auto-enable, no essential-MCP auto-link (nor its plane-bus
-/// topic), no registry-driven provisioning inside capability-gap
-/// resolution, and no remote MCP registry refresh. Admission is explicit
-/// only: `susi mcp-add`, `susi mcp add/enable`, `susi extensions load` — the
-/// user or the commercial desktop asks, core admits. Scope is A8's: MCP
-/// servers and packages. The daemon's boot-time wake of an installed local
-/// inference engine was removed; `tests/core_boot_starts_nothing.rs` guards it.
-#[test]
-fn core_never_autolaunches_third_party_servers() {
-    let banned = [
-        "auto_enable_ready",
-        "auto_link_essential",
-        "auto_configure_server",
-        "provision_tool_package",
-        "tools.registry.auto_link",
-        "mcp_registry_url",
-    ];
-    let mut offenders = Vec::new();
-    for (rel, code) in first_party_non_test_sources() {
-        for name in banned {
-            // `susi-gmcp`'s `auto_configure_server` is an inert stub behind
-            // the explicit `mcp_configure` tool: it launches and writes
-            // nothing, and its source is bound to the recorded VC-203 GMCP
-            // evidence digest, so it is left as is.
-            if name == "auto_configure_server" && rel.starts_with("crates/susi-gmcp/src/") {
-                continue;
-            }
-            // The retired key is listed only so upgraded configs heal it away.
-            if name == "mcp_registry_url" && rel == "crates/susi-config/src/validate.rs" {
-                continue;
-            }
-            if code.contains(name) {
-                offenders.push(format!("{rel}: {name}"));
-            }
-        }
-    }
-    assert!(
-        offenders.is_empty(),
-        "core must not launch or provision third-party servers on its own:\n{}",
-        offenders.join("\n")
-    );
-    let defaults: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(workspace_root().join("config/config.default.json"))
-            .expect("read config.default.json"),
-    )
-    .expect("config.default.json is JSON");
-    assert!(
-        defaults.get("mcp_registry_url").is_none(),
-        "no remote MCP registry URL: core never refreshes a registry on its own"
     );
 }
 

@@ -13,7 +13,7 @@ Susi Core is one of three repositories that move together (the ecosystem page,
 | Name | What it is | Public? |
 |------|------------|---------|
 | **Susi** | The product: commercial applications that run on this socket, sold under licence. It is the primary, and the other two derive from it. Its repository is `susi` (it was `susi-commercial-apps` until 2026-11-22), and older text here calls it Susi Commercial Apps. | No. Private and licensed. |
-| **Susi Core** (this repository) | The socket itself and its three core pillars: **GAWD** (agents: the A2A and ACP wire contracts), **GEMI** (models: no code yet) and **GMCP** (tools: the MCP server that runs today). | Yes. Apache-2.0, all of it. |
+| **Susi Core** (this repository) | The socket itself and its three core pillars: **GAWD** (agents: no code yet), **GEMI** (models: no code yet) and **GMCP** (tools: the MCP server that runs today, which a host extends with its own tools). | Yes. Apache-2.0, all of it. |
 | **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Yes, since 2026-11-22. Apache-2.0; it is being filled, and its README lists what it holds. |
 
 Nothing in this repository is secret, and it builds and runs without the
@@ -28,7 +28,7 @@ or marks.
 
 Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
-become `susi-core`; development-only code (`scripts/`, `toolchain/`, `fuzz/`)
+become `susi-core`; development-only code (`scripts/`, `toolchain/`)
 is still in this tree and will move to Susi Tools, which is being filled; the
 program's own runtime is small (an MCP server and a local daemon) and grows one
 working capability at a time; and since
