@@ -1,0 +1,25 @@
+{
+  "id": "T-CLAUDE-431",
+  "title": "Remove Core's scripts for processes that left it",
+  "goal": "Development-only code that nothing runs leaves the public repository: the old parallel workflow, swarm checks, local Windows channels and cloud-session scripts left with their processes; the hooks, installer and release scripts stay",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "ci_changed_crates",
+      "--test",
+      "agent_bootstrap",
+      "--test",
+      "hook_enforcement",
+      "--test",
+      "sync_hooks"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795334521
+}
