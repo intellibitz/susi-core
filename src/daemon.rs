@@ -90,9 +90,15 @@ fn json_reply(status: &'static str, body: &Value) -> Reply {
     }
 }
 
-fn read_request(
-    stream: &TcpStream,
-) -> Result<(String, String, Vec<(String, String)>, String), String> {
+/// One HTTP request as the daemon reads it.
+struct Request {
+    method: String,
+    path: String,
+    headers: Vec<(String, String)>,
+    body: String,
+}
+
+fn read_request(stream: &TcpStream) -> Result<Request, String> {
     let mut reader = BufReader::new(stream.try_clone().map_err(|e| e.to_string())?);
     let mut first = String::new();
     reader.read_line(&mut first).map_err(|e| e.to_string())?;
@@ -125,12 +131,12 @@ fn read_request(
     }
     let mut body = vec![0u8; length];
     reader.read_exact(&mut body).map_err(|e| e.to_string())?;
-    Ok((
+    Ok(Request {
         method,
         path,
         headers,
-        String::from_utf8_lossy(&body).into_owned(),
-    ))
+        body: String::from_utf8_lossy(&body).into_owned(),
+    })
 }
 
 fn authorized(headers: &[(String, String)], token: &str) -> bool {
@@ -187,7 +193,12 @@ fn serve(root: PathBuf) -> Result<(), String> {
     for stream in listener.incoming() {
         let Ok(stream) = stream else { continue };
         let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
-        let (method, path, headers, body) = match read_request(&stream) {
+        let Request {
+            method,
+            path,
+            headers,
+            body,
+        } = match read_request(&stream) {
             Ok(request) => request,
             Err(why) => {
                 respond(

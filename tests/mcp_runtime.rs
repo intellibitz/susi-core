@@ -39,11 +39,9 @@ fn place(tag: &str) -> Place {
 fn susi(place: &Path, offset: u16) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_susi"));
     command
-        .env_clear()
-        .env("PATH", std::env::var_os("PATH").unwrap_or_default())
-        .env("HOME", place.join("home"))
         .env("SUSI_HOME", place.join("home/.susi"))
         .env("SUSI_PORT_OFFSET", offset.to_string());
+    susi_paths::test_env::isolate_home(&mut command, &place.join("home"));
     command
 }
 
