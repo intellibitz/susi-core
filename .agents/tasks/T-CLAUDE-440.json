@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-440",
+  "title": "Remove susi-config and susi-vendor-libc: nothing uses them",
+  "goal": "Neither Susi Core's program nor Susi uses susi-config (Susi dropped its last use in Susi T-CLAUDE-68) or susi-vendor-libc (only susi-config used it). Remove both, with the records and tests that name them.",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "nextest",
+      "run",
+      "--workspace",
+      "--offline",
+      "--locked"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795371204
+}
