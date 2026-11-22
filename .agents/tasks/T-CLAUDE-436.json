@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-436",
+  "title": "Point Core's contract at one-command task start and finish",
+  "goal": "",
+  "size": "xs",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "agent_contract"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795340292
+}
