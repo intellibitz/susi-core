@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-430",
+  "title": "Remove Core's settled roadmap items whose code left",
+  "goal": "Documentation reflects reality: the roadmap's delivered and moved items claim code and tests that left core, so they go with their verdict files; open items and their tasks stay",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "architecture_tests"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795334283
+}
