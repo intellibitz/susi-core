@@ -36,6 +36,5 @@ scripts/setup-dev.sh
 ```
 
 This enables `.githooks` (`pre-commit`: staged Rust formatting; `pre-push`:
-transport safety only) and the `ledger` merge driver that unions entries
-appended to `.agents/evidence.json` by parallel agents. The CEO's agents work in
+transport safety only). The CEO's agents work in
 isolated worktrees (see **[AGENTS.md](AGENTS.md)**, "Working here").

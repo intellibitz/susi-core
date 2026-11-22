@@ -195,11 +195,11 @@ re-cut or delete its tag.
   tests. Whether they stay is decided with a check on a Windows host.
 - **The public descriptions** of the hosted copies still describe the earlier program until
   they are changed there, which is an external publication.
-- **Development code still here:** `scripts/` and the Git hooks belong in Susi Tools; several
-  still call workflow commands of the earlier program and do nothing when it is absent.
-- **Old records:** `.agents/roadmap.json` holds the earlier runtime's roadmap (its catalogs
-  in `config/` left on 2026-11-22, read by nothing); the goal notes in `.agents/visions/carried/`
-  name sections of the earlier contract by number, and the rules they name are kept here
-  word for word.
+- **Development code still here:** the Git hooks and the three scripts they run
+  (`scripts/check-task-scope.sh`, `check-worker-identity.sh`, `setup-dev.sh`) belong in Susi
+  Tools. The hooks and scripts that ran only for the earlier program, and the earlier
+  runtime's roadmap, verdicts, evidence ledger, lanes and baselines, left on 2026-11-22.
+- **Old records:** the goal notes in `.agents/visions/carried/` name sections of the earlier
+  contract by number, and the rules they name are kept here word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` are still worded as ceilings
   that only go down.

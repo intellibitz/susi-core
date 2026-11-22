@@ -28,9 +28,9 @@ xn = "nextest run --workspace --locked"
 #   425 GB. With a path-independent config, a worktree created after a warm
 #   build compiled 81 crates (79 workspace, 2 registry) in 176 s.
 #
-# Each worktree now has a target of its own, copied from a warm snapshot of
-# origin/main (scripts/seed-target.sh), and the snapshot's registry crates are
-# fresh in the copy only while their fingerprints carry no worktree path. So
+# Each agent builds into a target of its own (CARGO_TARGET_DIR), and registry
+# crates stay fresh across worktrees only while their fingerprints carry no
+# worktree path. So
 # do not set a repo-relative `linker` (or any flag that embeds a worktree
 # path) for a target developers build on; tests/ci_workflow_perf.rs pins this.
 #

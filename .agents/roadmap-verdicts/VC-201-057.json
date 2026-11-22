@@ -1,9 +1,0 @@
-{
-  "vector": "VC-201-057",
-  "verdict": "not-delivered",
-  "evidence": "",
-  "missing": "PreemptibleSet in crates/susi-vendor-cloud/src/preemptible.rs had zero production callers in susi and was migrated to susi-commercial-apps (susi-gpu-fabric); open-core mission preemption is governed by resource_governor::MissionRequest::preemptible in susi-daemon.",
-  "tracked_by": [],
-  "recorded_by": "INTELLIBITZ202610030140553714905",
-  "recorded_unix": 1790985125
-}

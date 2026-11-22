@@ -1,7 +1,0 @@
-{
-  "max_required": 2,
-  "known_ids": [
-    "secret:cloud_api_key",
-    "setting:privacy"
-  ]
-}

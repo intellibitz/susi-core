@@ -3,8 +3,8 @@
 # programs one after another (the 10-second line, AGENTS.md "Speed").
 #
 # Eight test threads is the default, a safe count for a small machine. The
-# local gate raises it to one per logical core through NEXTEST_TEST_THREADS
-# (scripts/check-hermetic-tests.sh, and the Linux gates run from Windows).
+# Linux gates run from Windows raise it to one per logical core through
+# NEXTEST_TEST_THREADS.
 #
 # Until 2026-11-22 an override here gave two slots each to the tests that
 # spawned `susi` sessions (gmcp_requirements, audit_query_surface,

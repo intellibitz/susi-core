@@ -5,8 +5,7 @@
 # failed the clippy job on unchanged code (T-DEEPSEEK-8). The lockfile is
 # committed for exactly this reason — determinism — so the compiler is pinned
 # too. Bump this deliberately, with the fixes the new compiler needs in the
-# same change (scripts/check-toolchain-pin.sh fails if the resolved toolchain
-# is not the pinned version).
+# same change.
 [toolchain]
 channel = "1.99.0"
 components = ["rustfmt", "clippy"]

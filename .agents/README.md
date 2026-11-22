@@ -1,59 +1,12 @@
-# Agent governance ledgers
+# Agent records
 
-These files are **not end-user documentation**. They are machine-readable
-source of truth for the substrate genome, compiled into the binary at build
-time (`susi-gawd-agents` `build.rs` → `AlphaSelf`).
+What is kept here, and why:
 
-| File | Schema | Role |
-|------|--------|------|
-| `roadmap.json` | `susi/roadmap/v1` | Evolutionary vectors |
-| `evidence.json` | `susi/evidence/v1` | Append-only audit / mission ledger (`entries[]`) |
-| `schemas/*.schema.json` | JSON Schema 2020-12 | Shape contracts |
+| Path | What it is | Read by |
+|------|------------|---------|
+| `tasks/<id>.json` | This repository's open tasks; closing one deletes its record. | `susi-tools tasks`, the commit hooks, `tests/task_records.rs` |
+| `visions/` | Goal notes; `visions/carried/` names sections of the earlier contract by number. | Readers of `AGENTS.md` |
 
-## Roadmap vectors and the task queue
-
-`roadmap.json` vectors say *what and why*; `.agents/tasks/*.json` say *do this, prove it with this command* (see `AGENTS.md`, `susi tasks`). A task links to its vector with the optional `roadmap` field, `susi tasks roadmap` reports coverage, and an architecture test requires every P0 vector to have at least one linked task (or to be delivered) and every link to name a vector that exists.
-
-## RSI swarm AI operating-layer backlog
-
-`roadmap.json` preserves the two `VC-200-*` vectors and adds exactly 100
-planned tasks, `VC-201-001` through `VC-201-100`. Each block of ten covers,
-in order: RSI evaluation, RSI execution, swarm execution, federation, local
-hosting, cloud hosting, configuration, governance, memory and ecosystem
-integration, and operations. This is a multi-release backlog; the existing
-`target_version` is not a delivery promise for all 100 tasks.
-
-For these tasks, `vector` names the deliverable, `mastery_target` states the
-testable completion criteria, and `progress` records implementation status.
-Optional `priority` is P0 (foundation or critical correctness), P1 (delivery),
-or P2 (later optimization). `depends_on` lists prerequisite task IDs, not
-implemented features; complete their acceptance criteria before accepting
-the dependent task. Tasks without dependency edges can proceed independently
-subject to their actual code and resource constraints.
-
-Completion requires production wiring, typed failures, bounded resource use,
-relevant failure-path tests, and evidence identifying the revision, commands,
-and results. Apply AGENTS.md gates and update current-product claims only
-after verification. Self-patches build in private per-agent targets and verify in isolated runtime
-homes and ports. Production changes require native local qualification, atomic
-promotion, health checks and tested rollback under Mandates 48, 53 and 67.
-GitHub publication and human code review are not local completion gates.
-
-"100% better" is an ambition, not a completion percentage or capability claim.
-The scorecard task establishes baselines and metrics; the final qualification
-task requires measured results and limitations before reporting improvement.
-
-Public host contract and Tier S pillars live in `README.md` (repo
-root). When README and the source disagree, **source code wins** and both
-are updated in the same change.
-
-Append evidence by pushing an object onto `evidence.json` → `entries` (never
-rewrite history of prior `proof` fields except to correct factual error, with
-a new `EV-*` entry noting the correction).
-
-## CEO mandates
-
-Mandates 62–72 record the agent-only, Rust-only, native Windows, isolated parallel,
-local development, release, license, bloat, zero-configuration, evidence-earned
-upgrade and platform-scope/licensing/budget requirements. Requirements are not statements of current compliance.
-Keep missing implementations open and preserve failed acceptance evidence.
+The earlier runtime's roadmap, its verdicts, the evidence ledger, the lanes, the feature
+records, the storage record, the baselines and the record schemas left on 2026-11-22: nothing read them, and
+history keeps them.

@@ -23,7 +23,7 @@ code=()
 while IFS= read -r -d '' p; do
     [ -n "$p" ] || continue
     case "$p" in
-    .agents/tasks/* | .agents/roadmap-verdicts/* | .agents/roadmap.json) continue ;;
+    .agents/tasks/*) continue ;;
     esac
     code+=("$p")
 done < <(git diff --cached --name-only --no-renames -z)
