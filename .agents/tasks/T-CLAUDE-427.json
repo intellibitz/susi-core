@@ -1,0 +1,25 @@
+{
+  "id": "T-CLAUDE-427",
+  "title": "Remove Core's 864 finished task records",
+  "goal": "One short contract per repository (foundation plan, phase 7): history belongs outside checked-out source; closing a task deletes its record, so the finished records in .agents/tasks/done are history nothing reads",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "task_records",
+      "--test",
+      "architecture_tests",
+      "--test",
+      "hook_enforcement",
+      "--test",
+      "agent_contract"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795332569
+}
