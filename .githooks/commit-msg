@@ -39,17 +39,14 @@ if [ ! -f "$root/.agents/tasks/$task.json" ]; then
 fi
 # Mandate 78: look before you build. A feature-sized task's record says where
 # its agent looked for existing work (`reuse`); without it the commit is
-# refused. The rule lives in the Susi development tool (no env bypass). That
-# tool is `susi-tools`; the older `susi-commercial` carried the same commands
-# and is used only where `susi-tools` is not installed, so this file works
-# before and after the switch. When neither answers the verb, the check cannot
-# run and one line says so: it is never skipped silently.
+# refused. The rule lives in the Susi development tool, `susi-tools`, and only it
+# is asked. When it does not answer the verb, the check cannot run and one line
+# says so: it is never skipped silently.
 tool=susi-tools
-command -v "$tool" >/dev/null 2>&1 || tool=susi-commercial
 if "$tool" workflow reuse --help >/dev/null 2>&1; then
     (cd "$root" && "$tool" workflow reuse "$task") || exit 1
 else
-    echo "[commit-msg] the Susi development tool is not installed: no program here answers \`susi-tools workflow reuse\`. That check did not run; install susi-tools." >&2
+    echo "[commit-msg] the installed susi-tools does not answer \`susi-tools workflow reuse\` (or is not installed). That check did not run; install the current susi-tools from Susi Tools' main." >&2
 fi
 # One token per worker: two worktrees sharing an identity can renew, close
 "$root/scripts/check-worker-identity.sh" || exit 1

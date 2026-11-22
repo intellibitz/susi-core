@@ -4,7 +4,10 @@ set -euo pipefail
 jq() { command jq "$@" | tr -d '\r'; }
 
 task=${1:?task id required}
-claim=$(git cat-file -p "refs/claims/$task" 2>/dev/null) || exit 0
+# susi-tools keeps the remote's claims under refs/susi-tools/remote/claims/ (each
+# of its commands fetches them); a local refs/claims/ ref is the older layout.
+claim=$(git cat-file -p "refs/susi-tools/remote/claims/$task" 2>/dev/null) ||
+    claim=$(git cat-file -p "refs/claims/$task" 2>/dev/null) || exit 0
 jq -e 'type == "object"' <<<"$claim" >/dev/null 2>&1 || exit 0
 
 owner_branch=$(jq -r '.branch // empty' <<<"$claim")
@@ -29,7 +32,7 @@ if [ "${#scopes[@]}" -eq 0 ]; then
     if [ "${#code[@]}" -gt 0 ]; then
         joined=$(printf ', %s' "${code[@]}")
         joined=${joined#, }
-        echo "Task $task reserves no paths — re-claim it with a scope that covers this change (susi-commercial tasks release $task, then susi-commercial tasks claim $task --scope <path>): $joined" >&2
+        echo "Task $task reserves no paths — re-claim it with a scope that covers this change (susi-tools tasks release $task, then susi-tools tasks claim $task --scope <path>): $joined" >&2
         exit 1
     fi
     exit 0

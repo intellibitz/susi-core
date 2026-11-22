@@ -4,7 +4,7 @@
 #   workflow-guard <commit|merge|push>
 #
 # The rules are the Susi development tool's: `susi-tools workflow guard`, or
-# `susi-commercial workflow guard` only where `susi-tools` is not installed or
+# nothing else since 2026-11-22: the built-in rules apply where `susi-tools` is
 # does not answer (run-susi picks the program and says in one line when nothing
 # answers).
 #   commit  — refuse in the primary checkout, and refuse plain commits on main
