@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-433",
+  "title": "Allow Unicode-3.0 for unicode-ident in Core's licence policy",
+  "goal": "Decision of 2026-11-22: allow the Unicode-3.0 licence of unicode-ident, a crate only the procedural macros use while compiling, so Core's licence gate passes and releases can be cut; no other exception",
+  "size": "xs",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "deny",
+      "--offline",
+      "--locked",
+      "check",
+      "licenses"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795337188
+}
