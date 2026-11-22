@@ -49,11 +49,15 @@ or the one `SUSI_RELEASE_TAG` names.
 
 **Upgrading is running `install.sh` again**: it builds the newest release from
 its tag and replaces the installed program only when the build reports the
-tag's version. There is no automatic updater today. The earlier one,
+tag's version; an installed program of any other version is stopped and
+replaced (proven on 2026-11-22 in WSL2: a home holding an older program got
+`v0.21.72`, 94 seconds with a cold build cache, its checksum matching the
+reference build). There is no automatic updater today. The earlier one,
 `scripts/susi-release-sync.sh` with its hourly timer, still drove the program of
-before 2026-11-22 (a `restart` command and a health port the program no longer
-has), so it could not update today's program; it left on 2026-11-22 and returns
-only when it works with the program it updates.
+before 2026-11-22: its script calls a `restart` command and checks a health port
+the program no longer has (read from the script, not run), so it could not have
+updated today's program. It left on 2026-11-22 and returns only when it works
+with the program it updates.
 
 ### What the sha256 means
 

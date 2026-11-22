@@ -205,11 +205,12 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 ## Not finished
 
-- **Speed:** the Linux gates with lint take 5 seconds of steps on the first run after a small
-  change (build 1, tests 3, size 1) and 5.9 seconds of wall time on a warm repeat, the whole
-  suite 1.6 (2026-11-22, a 28-core host through WSL2, 196 tests across 43 binaries). A change
-  to the lock file or many crates still compiles for longer (39 seconds once that day); that
-  cold case is measured apart.
+- **Speed:** after a one-line edit to the program's library the Linux gates with lint take 9
+  seconds of steps (build 4, tests 3, size 1, lint 1), plus about 12 seconds to start WSL2
+  when it is idle; a repeat on the same commit takes 5.9 seconds of wall time, the whole suite
+  1.6 (2026-11-22, a 28-core host, 196 tests across 43 binaries). A change to the lock file or
+  many crates compiles for longer (39 seconds of steps once that day); that cold case is
+  measured apart.
 - **Releases:** `susi-tools release` cut `v0.21.72`, the first release of today's program
   (`docs/releases.md`). The unsafe-code check left with Susi's `tools/core-xtask` on 2026-11-22
   and is still to be rebuilt; the standard-library builder, which nothing ran, left the same
