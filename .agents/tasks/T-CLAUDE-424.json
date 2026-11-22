@@ -1,0 +1,27 @@
+{
+  "id": "T-CLAUDE-424",
+  "title": "Phase 5: Susi Core runs on its own (MCP server and local daemon)",
+  "goal": "Foundation plan phase 5, CEO decision B (2026-11-22): a small runtime that starts on its own, grown one working capability at a time. First capability: susi mcp serve answers MCP over stdio with read-only file tools confined to one root (list_directory, read_file, search_files), and susi start | status | stop run a local daemon on 127.0.0.1:9090+offset with an open /health and a token-protected POST /mcp. Then the commands that only forward to the removed runtime host, and the empty pillar packages, go.",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "mcp_runtime",
+      "-p",
+      "susi-gmcp"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795328895,
+  "reuse": {
+    "decision": "build",
+    "searched": "Susi Core first: susi-gmcp (a 20-line socket), susi_core::plane_bus::tools (forwards to a runtime host that left Susi on 2026-11-22), susi-gawd-acp (wire contracts only), scoped_tools (owner traits, no tools). The lockfile already has serde_json, used through the vendor facade; HTTP needs only std::net for a localhost daemon, so hyper and tokio are not pulled into the binary. Susi Tools' program uses no outside crates.",
+    "source": null,
+    "reason": "No runtime exists in Susi Core to reuse; the MCP protocol handling and three read-only tools are small and written fresh for Core under Apache-2.0."
+  }
+}
