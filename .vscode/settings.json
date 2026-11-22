@@ -1,11 +1,5 @@
 {
   "rust-analyzer.linkedProjects": [
     "Cargo.toml"
-  ],
-  "mcp.servers": {
-    "susi-core": {
-      "command": "${workspaceFolder}/target/debug/susi",
-      "args": ["mcp", "serve"]
-    }
-  }
+  ]
 }

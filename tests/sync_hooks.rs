@@ -27,10 +27,10 @@ fn run(dir: &Path, args: &[&str], envs: &[(&str, &str)]) -> (i32, String) {
         .env_remove("SUSI_PRIMARY_SYNC_ACTIVE")
         // The sync hooks run `scripts/park-primary.sh`, which execs the first
         // binary with `workflow park-primary` (Susi Commercial Apps' dev
-        // workflow since the lean-core move). This binary is not one, so a
+        // workflow since the lean-core move). `false` is not one, so a
         // `--sync-only` park is a quiet no-op here: these tests judge the
         // hooks' wiring and the branch sync, not primary parking.
-        .env("SUSI_WORKFLOW_BIN", env!("CARGO_BIN_EXE_susi"))
+        .env("SUSI_WORKFLOW_BIN", "/usr/bin/false")
         .env("GIT_AUTHOR_NAME", "t")
         .env("GIT_AUTHOR_EMAIL", "t@t")
         .env("GIT_COMMITTER_NAME", "t")

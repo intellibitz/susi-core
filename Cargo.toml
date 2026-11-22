@@ -3,7 +3,6 @@ members = [
     ".",
     "crates/susi-paths",
     "crates/susi-error",
-    "crates/susi-gmcp",
     "crates/susi-vendor-getrandom",
     "crates/susi-vendor-serde",
     "crates/susi-vendor-serde-json",
@@ -14,10 +13,9 @@ exclude = ["vendor"]
 
 [package]
 name = "susi"
-default-run = "susi"
 version = "0.21.72"
 edition = "2021"
-description = "susi: Susi Core, a small local Model Context Protocol server with read-only file tools, served over standard input and output and by a token-protected local daemon."
+description = "Susi Core: the small libraries Susi, the product, builds on (home and path resolution, the typed error, and the wrappers of serde, serde_json, sha2 and getrandom)."
 license = "Apache-2.0"
 repository = "https://github.com/intellibitz/susi-core"
 homepage = "https://github.com/intellibitz/susi-core"
@@ -68,7 +66,6 @@ too_many_arguments = "warn"
 complexity = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
-susi-gmcp = { path = "crates/susi-gmcp", default-features = false }
 susi-paths = { path = "crates/susi-paths" }
 susi-error = { path = "crates/susi-error" }
 serde = { version = "1.0", features = ["derive"] }
@@ -76,49 +73,14 @@ serde_json = "1.0"
 sha2 = "0.10.9"
 getrandom = "0.2"
 
+# The repository's own tests read JSON records and hash files through the same wrappers.
 [dev-dependencies]
-sha2 = { package = "susi-vendor-sha2", path = "crates/susi-vendor-sha2" }
-
-[dependencies]
-susi-paths = { workspace = true }
-susi-error = { workspace = true }
-susi-gmcp = { workspace = true }
 serde = { package = "susi-vendor-serde", path = "crates/susi-vendor-serde" }
 serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }
 sha2 = { package = "susi-vendor-sha2", path = "crates/susi-vendor-sha2" }
+# Test homes are isolated through the path library's test helpers.
+susi-paths = { workspace = true }
 
-[build-dependencies]
-serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }
-
-# No crates.io patches in the slim socket. Implementations that needed local
-# patches live in Susi Commercial Apps and resolve there.
-[patch.crates-io]
-# Concrete model/tool feature selection belongs to the commercial runtime.
-[features]
-default = []
-
-[profile.release]
-# Optimized builds: `cargo local-build production` and the installer's
-# `--release` build what ships. (58062432f had set this profile to opt-level 0
-# for faster iteration; the dev and test profiles keep that speed instead.)
-opt-level = 3 # High performance
-# Thin LTO (not fat): ~10x faster compile/link than fat LTO on this workspace,
-# low RAM, avoids multi-hour link hangs on large crates (susi-daemon -> candle/
-# wasmtime/...). Cross-crate opts still apply; runtime delta vs fat is small.
-lto = "thin"
-# Parallel LLVM codegen within each crate. codegen-units=1 serializes the
-# heaviest units (susi-daemon, candle, wasmtime) and dominates cold install time.
-codegen-units = 16
-incremental = false # Release artifacts should not carry incremental caches
-panic = "abort"
-strip = true
-
-# Max-opt distribution profile for published release binaries. Not used by the
-# one-line installer; that path stays on [profile.release] above.
-[profile.dist]
-inherits = "release"
-lto = "fat"
-codegen-units = 1
 
 # dev and test must keep identical settings: any difference (codegen-units
 # included) gives every dependency a second fingerprint, so a `cargo build`
@@ -145,32 +107,3 @@ opt-level = 3
 [profile.test.package.sha2]
 opt-level = 3
 
-# Sub-10s unified core build + verification test + distilled candidate release
-# profile (`cargo fast-release` / `cargo local-build fast-release`).
-#
-# - `panic = "unwind"` matches Cargo's test harness so `cargo build` and
-#   `cargo test --no-run` share 100% of compiled `.rlib`/`.rmeta` dependency
-#   artifacts in `<target>/fast-release/deps/` with zero duplicate compilation.
-# - Registry dependencies compile at `-O2` (`sha2` at `-O3`) once and stay
-#   cached across workspace source edits, while workspace crates keep
-#   `incremental = true`, `codegen-units = 16`, `debug = 0`, and `lto = false`
-#   so warm edits in `susi-core` or `susi` build, test, and distill under 10s
-#   without touching `debug` or `release` artifacts (Mandate 67).
-[profile.fast-release]
-inherits = "dev"
-opt-level = 0
-debug = 0
-strip = "debuginfo"
-debug-assertions = false
-overflow-checks = false
-lto = false
-codegen-units = 16
-incremental = true
-panic = "unwind"
-split-debuginfo = "unpacked"
-
-[profile.fast-release.package."*"]
-opt-level = 2
-
-[profile.fast-release.package.sha2]
-opt-level = 3

@@ -1,7 +1,6 @@
 # Susi Core: the contract
 
-Susi Core is a generic standards-protocol AI OS socket: a small Rust runtime that serves
-standard protocols on your own machine. This page is the contract every agent reads before
+Susi Core is the small set of libraries that Susi, the product, builds on. This page is the contract every agent reads before
 editing here. Its requirements are rules, not claims of completed implementation; what is not
 finished is said at the end. Agents own authorized development, verification, integration and
 production qualification end-to-end; do not ask the requester to inspect code or perform
@@ -12,8 +11,8 @@ routine engineering steps.
 - **Three repositories, one ecosystem.** Susi is the product: a private, licensed set of
   commercial applications, and the primary. Susi Core (this repository, `susi-core`) and
   Susi Tools (`susi-tools`, everything used only while developing, testing or releasing) are
-  its public Apache-2.0 derivatives. The three move together. The program built here is
-  still called `susi`; it becomes `susi-core` in a later, announced step.
+  its public Apache-2.0 derivatives. The three move together. The root package here is still
+  called `susi`; it holds no program.
 - **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never back, and Susi
   Core and Susi Tools do not depend on each other. Core builds and tests on its own.
 - **Nothing secret and nothing of the private product enters this repository**: no
@@ -22,9 +21,10 @@ routine engineering steps.
 - **Development-only code never ships with production code.** What is used only while
   developing, testing or releasing belongs in Susi Tools. Tests stay beside the code they
   test.
-- **What runs today:** `susi mcp serve` (an MCP server over standard input and output) and
-  the local daemon (`susi start`, `susi status`, `susi stop`); the README says how to use
-  them.
+- **What it holds:** the libraries Susi builds on, each named in
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) with what Susi uses it for. There is no program: the
+  earlier one (an MCP server and a local daemon) left on 2026-11-22 because no feature of Susi
+  used it; v0.21.72 is its last release.
 - **Agents land features without being asked.** Pick up the open task or request that
   unblocks the most and put it where the next section says.
 - **Nothing is a permanent ceiling, and nothing has a line limit.** A rule that stops serving
@@ -32,41 +32,28 @@ routine engineering steps.
 
 ## Where a feature goes
 
-Core improves on a weekly cycle: a change proven in dependent work enters only when it helps a
-single developer on its own, is not paid-only value, is fresh code written here under this
-license and passes the Linux gates and the offline test with every mirror cut off. Anything
-paid for, or touching licensing, a vault or anything secret, goes to Susi; anything used only
-while developing, testing or releasing goes to Susi Tools. A cycle that lands anything ships a
-signed release with plain notes.
+Core holds only what Susi's features use (decided on 2026-11-22). A library capability enters
+when a feature of Susi needs it, it is useful without a licence, it is fresh code written here
+under this license and it passes the Linux gates and the offline test with every mirror cut
+off. Anything paid for, or touching licensing, a vault or anything secret, goes to Susi;
+anything used only while developing, testing or releasing goes to Susi Tools. A library no
+feature of Susi uses leaves, after Susi has stopped naming it.
 
-## The socket and its size
+## The libraries and their size
 
-- Keep three core pillars: **GAWD** (agents), **GEMI** (models) and **GMCP** (tools: the Model
-  Context Protocol). A pillar holds code when a program serves it: today GMCP serves, and GAWD
-  and GEMI hold none. Preserve the public capabilities, wire contracts, errors and
-  compatibility of what the program serves as core changes. Until 2026-11-22 this rule also
-  kept GAWD's Agent2Agent and Agent Client Protocol wire contracts, which no program served or
-  read; they left that day with the packages that held them, after the compiler confirmed
-  nothing used them, because code no program runs is a promise nobody keeps and it made every
-  build and check slower. They remain in the published v0.21.72.
-- Every package is used by the program or by Susi, and every package and third-party crate is
-  named, with its reason, in [`ARCHITECTURE.md`](ARCHITECTURE.md); the tests fail otherwise.
-- A host extends the MCP server with its own tools through `Server::with_tool`, without
-  editing core.
-- Core contains generic protocol contracts and socket machinery. Concrete implementations
-  belong in separately hosted implementation packages, including Susi. Prove the destination
-  works through the standard socket before removing its implementation from core. No
-  functionality is dropped, no error stub replaces a working capability, and no
-  implementation is merely relabeled to reduce a count. Keep proprietary source out of core.
-  Core ships no UI or bundled plug content.
+- Every package is one Susi builds on, and every package and third-party crate is named, with
+  what Susi uses it for, in [`ARCHITECTURE.md`](ARCHITECTURE.md); the tests fail otherwise.
+- Removing what Susi still uses breaks Susi: Susi stops using it first. No functionality is
+  dropped, no error stub replaces a working capability, and no implementation is merely
+  relabeled to reduce a count. Keep proprietary source out of core. Core ships no UI or
+  bundled plug content.
 - Core has no line limit. Size is measured and reported, never refused: `cargo core-size`
-  prints the socket's physical runtime Rust lines under the counting contract in
+  prints the libraries' physical Rust lines under the counting contract in
   `docs/lean-core.md`, and the other counts pinned in `tests/lean_core_ceilings.rs` are
   recorded baselines that a change may raise in the same commit, saying why. Never hide or
   minify code, or move it into an excluded category, to change a reported number.
-- Keep runtime and current documentation generic: no personal, corporate or individual
-  identity references. Preserve protocol identifiers and mandatory license and attribution
-  notices.
+- Keep library code and current documentation generic: no personal, corporate or individual
+  identity references. Preserve mandatory license and attribution notices.
 
 ## Working here
 
@@ -83,8 +70,8 @@ signed release with plain notes.
    authority; never silently discard it.
 4. Commit with a `Task: <id>` trailer. Push the commit to `refs/agents/<your-name>` and run
    the Linux gates on that exact commit: formatting, Clippy, the whole suite and the size
-   report, offline (from a Windows host, in WSL2). No hook enforces them; every landing runs
-   them.
+   report, offline (natively on Linux; from a Windows host, in WSL2). No hook enforces them;
+   every landing runs them.
 5. Ship with `susi-tools ship`, a fast-forward of `main`; merge first when `main` has moved
    on. Verify the remote contains the commit before claiming it landed.
 6. Close with `susi-tools tasks finish <id>`, which runs the task's acceptance, commits the
@@ -108,16 +95,16 @@ external messages only with explicit user or invoked-workflow authorization.
   the Susi name or marks.
 - A local canonical Git server is the source of truth and the `origin` of every clone. GitHub
   and GitLab hold write-only backup copies, refreshed every ten minutes, and the public
-  copies of this repository receive only `main` and signed release tags. Nothing is ever
-  fetched from a hosted copy: clone, build, test and release must succeed with every mirror
-  and the internet unreachable. Use no hosting-service API, hosted CI or hosted review.
+  copies of this repository receive only `main` and signed release tags; an unsigned tag is
+  never published. Nothing is ever fetched from a hosted copy: clone, build and test must
+  succeed with every mirror and the internet unreachable. Use no hosting-service API, hosted CI or hosted review.
 - Only `refs/heads/main` is published as a branch. Agent handoffs use `refs/agents/<agent>`.
   Release tags are immutable. Never force-push or change live access controls.
 
 ## Speed
 
 - Every operation a developer or agent waits on here (build, test, lint, the Linux gates,
-  commit, release) finishes within 10 seconds warm. Cold timings (empty caches) are measured
+  commit) finishes within 10 seconds warm. Cold timings (empty caches) are measured
   and reported apart, and every timing is quoted with its date, machine and commit.
 - Over the line is a defect, recorded in a task with its measured cause and fixed; it is
   never met by skipping, loosening or narrowing a test.
@@ -127,10 +114,9 @@ external messages only with explicit user or invoked-workflow authorization.
 
 ## Code, commits and tests
 
-- Runtime, build, install and release tooling and shipped dependencies are Rust. External
-  crates are owned by their `susi-vendor-*` facade; ordinary `susi-*` crates declare no
-  external dependency. Keep the leaf dependency order `paths → error → config → core/sandbox
-  → services → daemon`.
+- Library code, build tooling and dependencies are Rust. External crates are owned by their
+  `susi-vendor-*` facade; ordinary `susi-*` crates declare no external dependency. Keep the
+  leaf dependency order `paths → error`.
 - Preserve `forbid(unsafe_code)` and `deny(unsafe_code)` boundaries; the existing platform
   FFI exceptions stay scoped per function with `// SAFETY:` reasoning. Production code has no
   panic-path macros. Justify every lint allowance inline. Return typed `Result<T, EaiError>`
@@ -163,15 +149,15 @@ cargo deny --offline --locked check licenses
 
 ## Platform and licensing
 
-- Core ships for x86_64 Linux only; qualify releases only on a native x86_64 Linux host.
-  Keep portable source for other targets without adding their builds, tests or releases.
+- Core is built and tested on x86_64 Linux. Keep the libraries' source portable: Susi builds
+  them on Windows too.
 - Copied or harvested source must offer pure Apache-2.0, with that alternative explicitly
   elected for dual licensing. Preserve section 4 notices, licenses, modification attribution
   and pinned source provenance. Never relabel third-party code.
 - Distributed dependencies permit Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause under the
   deny policy in `deny.toml`. The one exception, decided on 2026-11-22, is Unicode-3.0 for
   `unicode-ident`, which only the procedural macros use while compiling, so its tables are not
-  linked into the program; any other exception is a new decision. Audit transitive
+  linked into anything built here; any other exception is a new decision. Audit transitive
   dependencies, native objects, build helpers and the statically linked standard library, not
   only their declared licenses.
 
@@ -184,13 +170,9 @@ environment. Never rotate an authority secret or alter credential access as rout
 
 ## Releases
 
-A release is a signed tag `vX.Y.Z` on `main`, cut with `susi-tools release qualify --task <id>
---sign` on a native x86_64 Linux host and published with `susi-tools release publish vX.Y.Z`;
-an unsigned tag is never published. Cut each
-version once and never move, re-cut or delete its tag; follow a broken release with a new
-version. Publish the tag, its record and its qualification record together. Never install an
-unqualified candidate as production. Use atomic replacement, health checks and tested rollback
-to the previous verified artifact; `susi install` never replaces a different existing program.
+Since 2026-11-22 Core has no program and cuts no releases: Susi builds on a pinned commit of
+`main`. The tags already published stay as they are: Cut each version once and never move,
+re-cut or delete its tag.
 
 ## Records and documents
 
@@ -205,22 +187,19 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 ## Not finished
 
-- **Speed:** after a one-line edit to the program's library the Linux gates with lint take 9
-  seconds of steps (build 4, tests 3, size 1, lint 1), plus about 12 seconds to start WSL2
-  when it is idle; a repeat on the same commit takes 5.9 seconds of wall time, the whole suite
-  1.6 (2026-11-22, a 28-core host, 196 tests across 43 binaries). A change to the lock file or
-  many crates compiles for longer (39 seconds of steps once that day); that cold case is
-  measured apart.
-- **Releases:** `susi-tools release` cut `v0.21.72`, the first release of today's program
-  (`docs/releases.md`). The unsafe-code check left with Susi's `tools/core-xtask` on 2026-11-22
-  and is still to be rebuilt; the standard-library builder, which nothing ran, left the same
-  day. There is no automatic updater: upgrading is running `install.sh` again.
+- **Speed:** natively on Linux the gates (formatting, Clippy, the whole suite and the size
+  report) take about 5 seconds together, the suite under 2 (2026-11-22, a 28-thread host on
+  mains power); from a Windows host, starting WSL2 adds about 12 seconds when it is idle.
+- **What Susi uses is thin:** Susi's vault uses the four facades; `susi-paths` and
+  `susi-error` are reached only by Susi's Windows crate, and `susi-error` only by one of its
+  tests. Whether they stay is decided with a check on a Windows host.
+- **The public descriptions** of the hosted copies still describe the earlier program until
+  they are changed there, which is an external publication.
 - **Development code still here:** `scripts/` and the Git hooks belong in Susi Tools; several
   still call workflow commands of the earlier program and do nothing when it is absent.
-- **The pillars:** GMCP serves (`susi mcp serve`); GAWD and GEMI hold no code yet.
 - **Old records:** `.agents/roadmap.json` holds the earlier runtime's roadmap (its catalogs
   in `config/` left on 2026-11-22, read by nothing); the goal notes in `.agents/visions/carried/`
   name sections of the earlier contract by number, and the rules they name are kept here
   word for word.
-- **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
-  are still worded as ceilings that only go down.
+- **Older pins:** counts pinned in `tests/architecture_tests.rs` are still worded as ceilings
+  that only go down.

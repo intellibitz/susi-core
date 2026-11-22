@@ -94,12 +94,7 @@ fn workspace_graph() -> HashMap<String, HashSet<String>> {
 /// → daemon`) as ranks: a crate may depend only on strictly lower-ranked
 /// SUSI crates, so shared code is reached through a Cargo edge in one
 /// direction instead of being copied or source-mounted upward.
-const LEAF_RANK: &[(&str, u8)] = &[
-    ("susi-paths", 0),
-    ("susi-gmcp", 0),
-    ("susi-error", 1),
-    ("susi", 3),
-];
+const LEAF_RANK: &[(&str, u8)] = &[("susi-paths", 0), ("susi-error", 1), ("susi", 3)];
 
 /// Pure re-export facades (`susi-vendor-*` crates whose only dependency is
 /// the third-party crate they wrap). They are leaves by construction —
@@ -759,51 +754,6 @@ fn readme_covers_the_workflow_ecosystem_and_brain() {
     }
 }
 
-/// README quickstart may ask a new user for at most two manual commands;
-/// the budget may only go down (ratchet).
-#[test]
-fn zc_quickstart_budget() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let readme = std::fs::read_to_string(root.join("README.md")).unwrap();
-    // New-user install only: ## Install until the developing/Mandate-48 section.
-    let install = readme
-        .split("## Install")
-        .nth(1)
-        .expect("README has ## Install");
-    let end = install
-        .find("### Developing susi")
-        .or_else(|| install.find("\n## "))
-        .unwrap_or(install.len());
-    let section = &install[..end];
-    let mut cmds = Vec::new();
-    let mut in_fence = false;
-    for line in section.lines() {
-        let t = line.trim();
-        if t.starts_with("```") {
-            in_fence = !in_fence;
-            continue;
-        }
-        if in_fence && !t.is_empty() && !t.starts_with('#') {
-            // Count base install one-liners; env-prefix variants of the same
-            // pipe are the same manual step for budget purposes.
-            let canonical = if t.contains("install.sh") {
-                "install.sh | bash".to_string()
-            } else {
-                t.to_string()
-            };
-            cmds.push(canonical);
-        }
-    }
-    cmds.sort();
-    cmds.dedup();
-    const MAX_MANUAL_COMMANDS: usize = 2;
-    assert!(
-        cmds.len() <= MAX_MANUAL_COMMANDS,
-        "README Install asks for {} manual commands (budget {MAX_MANUAL_COMMANDS}): {cmds:?}",
-        cmds.len()
-    );
-}
-
 /// Core no longer ships a `vendor/` tree: model/TLS patches moved with their
 /// implementations. Any remaining `[patch.crates-io]` entry must still be a
 /// local path (never a Git host), and the lockfile must stay git-free.
@@ -815,10 +765,11 @@ fn vendor_patches_are_local_and_preserve_upstream_licenses() {
         "core must not grow a vendor/ tree again after the socket slim"
     );
     let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap();
+    // No patch table at all is the simplest local state (2026-11-22).
     let patch = manifest
         .split("[patch.crates-io]")
         .nth(1)
-        .unwrap()
+        .unwrap_or("")
         .split("\n[")
         .next()
         .unwrap();
@@ -948,10 +899,9 @@ fn historical_evidence_is_not_shipped_or_generated_back_into_source() {
     let schema: serde_json::Value =
         serde_json::from_str(&read(".agents/schemas/evidence.schema.json")).unwrap();
     assert_eq!(schema["properties"]["entries"]["minItems"], 0);
-    assert!(
-        !read("build.rs").contains(".agents/evidence.json"),
-        "build.rs: history became a build input"
-    );
+    // There is no build script since the program left (2026-11-22), so no history can
+    // become a build input.
+    assert!(!root.join("build.rs").exists(), "a build script came back");
     // Moved build/runtime readers are checked by commercial ownership_guards.
 }
 
@@ -1096,7 +1046,9 @@ fn core_ships_zero_ui_assets() {
     ];
     let mut files = Vec::new();
     zero_ui_walk(&workspace_root(), true, &mut files);
-    assert!(files.len() > 100, "asset walk found too few files");
+    // A floor that proves the walk saw the tree, not a size rule: about 120 files are walked
+    // since the program left (2026-11-22).
+    assert!(files.len() > 60, "asset walk found too few files");
     let offenders: Vec<String> = files
         .iter()
         .filter(|path| {
@@ -1154,84 +1106,6 @@ fn core_serves_no_html() {
     );
 }
 
-/// BT-07: the CLI has no UI subcommands: nothing in `src/` (or the clap
-/// definitions in `crates/susi-cli-defs/src/`) clears and redraws the terminal, `top` has no watch loop, no visible command help names a
-/// dashboard or a cockpit (hidden aliases such as `sovereign-dashboard` and
-/// `harness cockpit` live in `#[command(alias = ...)]`, not in doc comments),
-/// and there is no interactive shell: no `Shell` command variant in defs.rs and
-/// no `susi> ` prompt anywhere in `src/`. Bare `susi` prints usage; the
-/// conversation lives in the Susi desktop app (Susi, repository `susi`).
-#[test]
-fn core_cli_has_no_ui_subcommands() {
-    let root = workspace_root();
-    let mut sources = Vec::new();
-    rust_files(&root.join("src"), &mut sources);
-    assert!(!sources.is_empty(), "no Rust sources under src/");
-    // Complete command definitions are checked with their commercial owner.
-    for path in &sources {
-        let text = std::fs::read_to_string(path).expect("read src file");
-        assert!(
-            !text.contains("susi> "),
-            "{}: interactive `susi> ` prompt; core takes one-shot goals, the conversation lives in the commercial desktop",
-            zero_ui_rel(path)
-        );
-        for escape in [
-            "\\x1B[2J",
-            "\\x1b[2J",
-            "\\u{1b}[2J",
-            "\\u{1B}[2J",
-            "\\033[2J",
-        ] {
-            assert!(
-                !text.contains(escape),
-                "{}: clear-screen escape {escape}; core prints, it never redraws",
-                zero_ui_rel(path)
-            );
-        }
-    }
-    assert!(
-        !root.join("src/cli/shell_cli.rs").exists(),
-        "the interactive shell module must not return to core"
-    );
-    // Since 2026-11-22 the command list is the usage text in src/main.rs.
-    let defs = std::fs::read_to_string(root.join("src/main.rs")).expect("read main.rs");
-    assert!(
-        defs.contains("const USAGE"),
-        "src/main.rs must hold the command list in `USAGE`; update scanner path if moved"
-    );
-    for (number, line) in defs.lines().enumerate() {
-        let trimmed = line.trim();
-        assert!(
-            !(trimmed == "Shell,"
-                || trimmed.starts_with("Shell {")
-                || trimmed.starts_with("Shell(")),
-            "src/cli/defs.rs:{}: a `Shell` command variant; core has no interactive shell",
-            number + 1
-        );
-    }
-    for rel in ["src/main.rs"] {
-        let text = std::fs::read_to_string(root.join(rel)).expect("read the command list");
-        let mut visible_help_matches = 0usize;
-        for (number, line) in text.lines().enumerate() {
-            let trimmed = line.trim();
-            let lower = trimmed.to_ascii_lowercase();
-            let visible_help = trimmed.starts_with("susi ") || trimmed.starts_with("///");
-            if visible_help {
-                visible_help_matches += 1;
-            }
-            assert!(
-                !(visible_help && (lower.contains("dashboard") || lower.contains("cockpit"))),
-                "{rel}:{}: visible command help names a dashboard/cockpit: {trimmed}",
-                number + 1
-            );
-        }
-        assert!(
-            visible_help_matches > 0,
-            "{rel} yielded zero visible help lines; update scanner path if moved"
-        );
-    }
-}
-
 /// CEO directive 2026-11-16 (Mandate 72): core is Apache-2.0 and published one
 /// way. The CEO alone holds push authority, nothing is accepted from outside,
 /// and the world is free to fork. Every front door says so, and none of them
@@ -1285,7 +1159,6 @@ fn core_is_published_one_way_and_free_to_fork() {
         "CONTRIBUTING.md",
         "CONTRIBUTORS.md",
         "docs/lean-core.md",
-        "docs/integrating-with-susi.md",
     ] {
         let text = flat(path).to_lowercase();
         for invitation in [

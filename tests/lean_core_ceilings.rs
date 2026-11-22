@@ -17,27 +17,37 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// The package whose program the reach is measured from.
+/// The root package, whose reach is measured. Since 2026-11-22 it has no program and compiles
+/// nothing of its own: it holds the repository's tests (T-CLAUDE-441).
 const PROGRAM: &str = "susi";
 
-/// Workspace packages the program does not compile, kept because Susi, the product, builds on
-/// them (its manifest names them); `ARCHITECTURE.md` says so in its package table. Any other
-/// package the program does not reach is bloat, and this suite fails on it.
-const LIBRARIES_FOR_SUSI: [&str; 1] = ["susi-vendor-getrandom"];
+/// The libraries Susi, the product, builds on (its manifest names them); `ARCHITECTURE.md` says
+/// so in its package table, with what Susi uses each for. They are why this repository exists
+/// (the CEO, 2026-11-22: Core holds only what Susi's features use). Any other package is bloat,
+/// and this suite fails on it.
+const LIBRARIES_FOR_SUSI: [&str; 6] = [
+    "susi-error",
+    "susi-paths",
+    "susi-vendor-getrandom",
+    "susi-vendor-serde",
+    "susi-vendor-serde-json",
+    "susi-vendor-sha2",
+];
 
-/// Third-party crates the program compiles. 2026-11-22: 21, measured when the packages no
-/// program reached left (T-CLAUDE-437).
-const THIRD_PARTY_BASELINE: usize = 21;
-/// Workspace packages the program compiles, itself included. 2026-11-22: 7 (T-CLAUDE-437).
-const WORKSPACE_BASELINE: usize = 7;
-/// Workspace members in `Cargo.toml`. 2026-11-22: 19 -> 10 (T-CLAUDE-437: `susi-core`,
-/// `susi-abi`, `susi-gawd-acp`, `susi-gawd-a2a` and five vendor facades left, reached by no
-/// program and named by no Susi manifest).
-const WORKSPACE_MEMBERS_BASELINE: usize = 10;
-/// Packages resolved in `Cargo.lock`. 2026-11-22: 89 -> 33 (T-CLAUDE-437).
-const CARGO_LOCK_PACKAGES_BASELINE: usize = 33;
-/// `susi-vendor-*` facades the program's package names directly. 2026-11-22: 3 (T-CLAUDE-437).
-const DIRECT_FACADE_EDGES_BASELINE: usize = 3;
+/// Third-party crates the root package compiles. 2026-11-22: 21 -> 0 when the program left
+/// (T-CLAUDE-441).
+const THIRD_PARTY_BASELINE: usize = 0;
+/// Workspace packages the root package compiles, itself included. 2026-11-22: 7 -> 1
+/// (T-CLAUDE-441).
+const WORKSPACE_BASELINE: usize = 1;
+/// Workspace members in `Cargo.toml`. 2026-11-22: 19 -> 10 (T-CLAUDE-437), 10 -> 8
+/// (T-CLAUDE-440: `susi-config`, `susi-vendor-libc`), 8 -> 7 (T-CLAUDE-441: `susi-gmcp`).
+const WORKSPACE_MEMBERS_BASELINE: usize = 7;
+/// Packages resolved in `Cargo.lock`. 2026-11-22: 89 -> 33 (T-CLAUDE-437), 33 -> 30
+/// (T-CLAUDE-440, T-CLAUDE-441); most are what the tests and Susi's libraries need.
+const CARGO_LOCK_PACKAGES_BASELINE: usize = 30;
+/// `susi-vendor-*` facades the root package names directly. 2026-11-22: 3 -> 0 (T-CLAUDE-441).
+const DIRECT_FACADE_EDGES_BASELINE: usize = 0;
 
 /// The failure text for a count above its recorded baseline. It tells the
 /// agent what to do, because a baseline is not a ceiling.
@@ -156,8 +166,8 @@ fn program_reach(metadata: &Value) -> Reach {
     }
 }
 
-/// Every workspace package is compiled by the program or is one Susi builds on: nothing in the
-/// workspace is there for nobody.
+/// Every workspace package is one Susi builds on (or the root package that holds the tests):
+/// nothing in the workspace is there for nobody.
 #[test]
 fn every_package_is_used_by_the_program_or_by_susi() {
     let reach = program_reach(&metadata());
@@ -348,7 +358,7 @@ fn repository_size() -> RepositorySize {
         "lean-core categories: runtime_rust={runtime_rust}, vendor_facade_rust={facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, other_files={other_lines}"
     );
     // A missing or empty inventory must not pass as a small measurement.
-    for package in ["susi (root)", "susi-gmcp", "susi-paths", "susi-error"] {
+    for package in ["susi-paths", "susi-error"] {
         assert!(
             runtime_by_package
                 .get(package)

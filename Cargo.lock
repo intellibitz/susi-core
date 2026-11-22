@@ -161,8 +161,6 @@ dependencies = [
 name = "susi"
 version = "0.21.72"
 dependencies = [
- "susi-error",
- "susi-gmcp",
  "susi-paths",
  "susi-vendor-serde",
  "susi-vendor-serde-json",
@@ -174,14 +172,6 @@ name = "susi-error"
 version = "0.1.0"
 dependencies = [
  "susi-paths",
- "susi-vendor-serde",
- "susi-vendor-serde-json",
-]
-
-[[package]]
-name = "susi-gmcp"
-version = "0.21.72"
-dependencies = [
  "susi-vendor-serde",
  "susi-vendor-serde-json",
 ]

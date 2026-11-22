@@ -244,7 +244,9 @@ fn nothing_tracked_depends_on_a_github_feature() {
         }
     }
     assert!(
-        scanned > 100,
+        // A floor that proves the scan saw the tree (about 180 tracked text files since the
+        // program left, 2026-11-22), not a size rule.
+        scanned > 60,
         "only {scanned} tracked text files were scanned"
     );
     assert!(

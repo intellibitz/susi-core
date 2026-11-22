@@ -21,7 +21,7 @@ fn flat(rel: &str) -> String {
 
 const RULES: &[&str] = &[
     // What Core is.
-    "generic standards-protocol AI OS socket",
+    "the small set of libraries that Susi, the product, builds on",
     "not claims of completed implementation",
     "Agents own authorized development",
     "Dependencies flow one way",
@@ -30,21 +30,17 @@ const RULES: &[&str] = &[
     "Tests stay beside the code they test",
     "Agents land features without being asked",
     "Nothing is a permanent ceiling, and nothing has a line limit",
-    "Core improves on a weekly cycle",
-    // The socket and its size.
-    "Keep three core pillars",
-    "A pillar holds code when a program serves it",
-    "Every package is used by the program or by Susi",
-    "without editing core",
-    "Concrete implementations belong in separately hosted implementation packages",
-    "Prove the destination works through the standard socket before removing",
+    "Core holds only what Susi's features use",
+    // The libraries and their size.
+    "Every package is one Susi builds on",
+    "Susi stops using it first",
     "No functionality is dropped",
     "Keep proprietary source out of core",
     "Core ships no UI or bundled plug content",
     "Core has no line limit",
     "Size is measured and reported, never refused",
     "Never hide or minify code",
-    "Keep runtime and current documentation generic",
+    "Keep library code and current documentation generic",
     // Publication, Git and the hosted copies.
     "published one way",
     "The designated publisher alone holds push authority",
@@ -56,7 +52,7 @@ const RULES: &[&str] = &[
     "an unsigned tag is never published",
     "Nothing is ever fetched from a hosted copy",
     "receive only `main` and signed release tags",
-    "clone, build, test and release must succeed with every mirror and the internet unreachable",
+    "clone, build and test must succeed with every mirror and the internet unreachable",
     "Only `refs/heads/main` is published as a branch",
     "Agent handoffs use `refs/agents/<agent>`",
     "Release tags are immutable",
@@ -77,8 +73,7 @@ const RULES: &[&str] = &[
     "State each rule once",
     "Agent rule files stay identical pointers that restate nothing",
     // Platform and licensing.
-    "Core ships for x86_64 Linux only",
-    "qualify releases only on a native x86_64 Linux host",
+    "Core is built and tested on x86_64 Linux",
     "pure Apache-2.0",
     "Preserve section 4 notices",
     "Never relabel third-party code",
@@ -115,11 +110,9 @@ const RULES: &[&str] = &[
     "Never open a private personal vault",
     "Inject only a child's required scope",
     "Never rotate an authority secret or alter credential access as routine cleanup",
-    // Releases and rollback.
-    "Never install an unqualified candidate as production",
-    "Use atomic replacement, health checks and tested rollback",
+    // Releases: none since the program left; published tags stay.
+    "Core has no program and cuts no releases",
     "Cut each version once and never move, re-cut or delete its tag",
-    "follow a broken release with a new version",
 ];
 
 #[test]
@@ -135,23 +128,21 @@ fn the_contract_keeps_its_rules_in_their_words() {
     );
 }
 
-/// The agent pointers promise that the contract covers publication, licensing, acceptance and
-/// rollback; each promise has its rule on the page.
+/// The agent pointers promise that the contract covers publication, licensing and acceptance;
+/// each promise has its rule on the page.
 #[test]
 fn the_agent_pointers_promise_only_what_the_contract_holds() {
     let contract = flat("AGENTS.md");
     for pointer in ["CLAUDE.md", "GEMINI.md"] {
         assert!(
-            flat(pointer)
-                .contains("Follow AGENTS.md for publication, licensing, acceptance and rollback"),
-            "{pointer} must point at the contract for its four topics"
+            flat(pointer).contains("Follow AGENTS.md for publication, licensing and acceptance"),
+            "{pointer} must point at the contract for its three topics"
         );
     }
     for (topic, rule) in [
         ("publication", "published one way"),
         ("licensing", "pure Apache-2.0"),
         ("acceptance", "the entire acceptance check passes"),
-        ("rollback", "tested rollback"),
     ] {
         assert!(contract.contains(rule), "AGENTS.md has no {topic} rule");
     }

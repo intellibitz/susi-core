@@ -34,20 +34,13 @@ Certified" are IntelliBitz marks (Apache-2.0 section 6): a fork must not present
 itself as the official Susi or as certified by IntelliBitz. The code comes as
 is, without warranty.
 
-## 3. Build on Susi without forking
+## 3. Use the libraries without forking
 
-Most products need no fork. Core is a lean, vendor-neutral socket
-([`AGENTS.md`](AGENTS.md), "The socket and its size"), and what you build attaches to
-it from the outside:
-
-- **The Model Context Protocol.** `susi mcp serve` serves MCP over standard
-  input and output, and the local daemon serves it on 127.0.0.1 port 9090 (plus
-  `SUSI_PORT_OFFSET`) behind a bearer token. See
-  [docs/integrating-with-susi.md](docs/integrating-with-susi.md); that is the
-  whole surface today, and it grows one working capability at a time.
-
-A plug you write is yours. It lives in your repository under the license you
-choose, and core admits it over the socket.
+Most uses need no fork. Core is the small set of libraries Susi builds on
+([`AGENTS.md`](AGENTS.md), "The libraries and their size"); any Rust project
+may depend on a commit of this repository through Cargo's Git dependencies,
+under Apache-2.0. Core has no program, and there are no releases or registry
+packages.
 
 ## 4. Working in your fork
 
@@ -55,8 +48,8 @@ A fork may change anything. If you want your fork to stay close to this
 repository, these are the invariants its own tests enforce
 (`tests/architecture_tests.rs`, `tests/core_docs_promise_no_ui_or_plugins.rs`):
 
-1. **Pure CLI plus standards socket.** Core ships no UI (no HTML, CSS, JS, GUI
-   or TUI crates) and bundles no third-party plugin catalogs.
+1. **Libraries only.** Core ships no UI (no HTML, CSS, JS, GUI or TUI crates)
+   and bundles no third-party plugin catalogs.
 2. **Zero `unsafe` and zero production panics.** Workspace crates forbid or
    deny `unsafe_code`. Production code returns typed `EaiResult<T>`
    (`crates/susi-error`); `unwrap()`, `expect()`, `panic!()`, `todo!()` and
@@ -124,15 +117,14 @@ the fix is written and published by authorized agents.
 ## 7. Authorized agents
 
 Authorized agents follow [AGENTS.md](AGENTS.md): agent roots, the
-Susi Board, task claims and the vision cycle. They use `susi-tools
-workflow start`, `sync`, `commit` and `ship` from an isolated worktree, reconcile
-with `origin/main` at session start, on resume and before committing, and label
-commits with `Task:` and `Feature:` trailers.
+Susi Board and task claims. They use `susi-tools workflow check`, `tasks
+start`, `ship` and `tasks finish` from an isolated worktree, reconcile with
+`origin/main` at session start, on resume and before committing, and label
+commits with a `Task:` trailer.
 
-`main` is an unqualified raw-source stream with no mandatory publication test
-gate. Susi distills selected work into release candidates and qualifies the
-exact combined tree before publishing immutable release snapshots. See
-[`AGENTS.md`](AGENTS.md), "Publication and Git" and "Releases".
+`main` is the only branch; Susi builds on a pinned commit of it, and Core cuts
+no releases. See [`AGENTS.md`](AGENTS.md), "Publication and Git" and
+"Releases".
 
 ## 8. License
 

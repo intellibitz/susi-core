@@ -9,18 +9,13 @@ repeated here.
 ## Start here
 
 - [The contract: how agents work here and where a feature goes](../AGENTS.md)
-- [The README: what Susi Core is and what runs today](../README.md)
+- [The README: what Susi Core is and what it holds](../README.md)
 
-## What the program is
+## What the libraries are
 
-- [Architecture: what runs, the crates and how they may depend on each other](../ARCHITECTURE.md)
-- [Security: what the program exposes and how to report a vulnerability](../SECURITY.md)
-- [Integrating with Susi Core](integrating-with-susi.md)
-- [Lean core: how the socket's size is measured and reported](lean-core.md)
-
-## Releases
-
-- [Releases: the record format, cutting a release, installing and upgrading](releases.md)
+- [Architecture: the libraries, what Susi uses each for and how they may depend on each other](../ARCHITECTURE.md)
+- [Security: what the libraries touch and how to report a vulnerability](../SECURITY.md)
+- [Lean core: how the libraries' size is measured and reported](lean-core.md)
 
 ## Direction and the project
 
@@ -42,3 +37,6 @@ repeated here.
   still hold are in [`AGENTS.md`](../AGENTS.md); the pages stay in the history
   (the directive documents last in commit `027bab400`, the others in
   `7525cf55b`).
+- On 2026-11-22 the program left (no feature of Susi used it), and with it the
+  integration guide (`integrating-with-susi.md`) and the releases page
+  (`releases.md`); history keeps both.
