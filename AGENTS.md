@@ -196,10 +196,9 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 - **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
   19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
-- **Releases:** `susi-tools release` cuts and publishes a release (`docs/releases.md`); none
-  has been cut with it yet, so the newest release, `v0.21.71` (2026-11-16), predates today's
-  program. The unsafe-code check and the standard-library builder's runner left with Susi's
-  `tools/core-xtask` on 2026-11-22 and are still to be rebuilt.
+- **Releases:** `susi-tools release` cut `v0.21.72`, the first release of today's program
+  (`docs/releases.md`). The unsafe-code check and the standard-library builder's runner left
+  with Susi's `tools/core-xtask` on 2026-11-22 and are still to be rebuilt.
 - **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.

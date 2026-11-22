@@ -92,29 +92,39 @@ host (from Windows, inside WSL2), in a clean checkout of `main` whose
    the tag is `v` plus the workspace version; the version is neither tagged here
    nor published on the remote, and it has no records yet.
 2. `susi-tools release qualify --task <id> [--sign]` runs the gates on that
-   exact commit, each logged with its digest: formatting, Clippy with warnings
-   denied, licences (`cargo deny`), the whole suite (`cargo nextest`),
-   doc-tests, and the reference build with the profile, features and
-   environment the installer will repeat. Then it runs the built program from a
-   private home: `--version`, an MCP session over standard input and output, and
-   the daemon's health, token check and stop. A failing gate writes nothing.
-   When everything passes it creates the annotated tag on the qualified commit
-   (`--sign` makes it a signed tag; the storage sync publishes only signed
-   `v*` tags to the public copies) and commits `releases/<tag>.json` and
-   `releases/qualification/<tag>.json` on top, naming the task. Nothing leaves
-   the machine.
-3. `susi-tools release publish vX.Y.Z` pushes that commit to `main` and the tag
-   in one atomic push, so the tag and its records are published together or
-   not at all, and refuses a version that is already published.
+   exact commit, each logged with its digest: formatting, `cargo check`, Clippy
+   with warnings denied, licences (`cargo deny`), the whole suite
+   (`cargo nextest`), doc-tests, and the reference build with the profile,
+   features and environment the installer will repeat. Then it runs the built
+   program from a private home, recorded as the `smoke` gate: `--version`, an
+   MCP session over standard input and output, and the daemon's health, token
+   check and stop. A failing gate writes nothing. When everything passes it
+   commits `releases/qualification/<tag>.json` alone on top of the qualified
+   commit, creates the annotated tag on that commit (`--sign` makes it a signed
+   tag; the storage sync publishes only signed `v*` tags to the public copies),
+   and commits `releases/<tag>.json`, which names the tagged commit; both
+   commits name the task. Nothing leaves the machine.
+3. `susi-tools release publish vX.Y.Z` pushes the release record's commit to
+   `main` and the tag in one atomic push, so the tag and its records are
+   published together or not at all, and refuses a version that is already
+   published. Core's pre-push hook hands release tags to `push-policy` where it
+   is installed, which admits a tag only on a commit that adds nothing but its
+   qualification record, with every required gate at exit 0 and the tests gate
+   carrying its counts.
 
-Not finished, said plainly: **no release has been cut this way yet.** The
-steps were proven on 2026-11-22 on a scratch copy of core (never published):
-`qualify` took 12 seconds
-warm, the record tests here accepted its records, a second cut and a second
-publish were refused, and `install.sh` rebuilt the published release with a
+From a Windows host the gates run in WSL2, where no signing key is: qualify
+there without `--sign`, bring the two commits and the tag over, and sign the tag
+on the host that holds the key, keeping its message, tagger and date (so the
+record's `tagged` time stays true), before publishing.
+
+The first release cut this way is `v0.21.72` (2026-11-22): every gate and the
+smoke run passed on `f5a0cde7b` in 20 seconds (380 tests across 67 binaries),
+the signed tag names `2f8522f5c`, which adds only its qualification record, and
+a cold `install.sh` from the canonical server rebuilt it in 48 seconds with a
 checksum matching the reference build. Until 2026-11-22 these steps were the
-private repository's `release-qualify` and pre-push `push-policy`, which left
-with its `tools/core-xtask`.
+private repository's `release-qualify`, which left with its `tools/core-xtask`;
+the `push-policy` program built from it is still installed on the development
+host and still checks every release tag.
 
 After a release qualified for the current host is published, the installed
 copy and the live daemon can be synced to it with

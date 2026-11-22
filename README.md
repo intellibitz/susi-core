@@ -88,11 +88,10 @@ The program serves what [What runs today](#what-runs-today) lists and nothing
 more. Core releases target native x86_64 Linux only (since 2026-11-18); other
 platforms remain portable source without core release qualification.
 
-Not finished: no release of the program above has been cut yet. Releases are
-cut with Susi Tools' `susi-tools release` command, rebuilt on 2026-11-22 after
-the earlier release tools left the private product
-([docs/releases.md](docs/releases.md)). The newest release, `v0.21.71`
-(2026-11-16), therefore predates the program above. The warm
+The newest release, `v0.21.72` (2026-11-22), is the program above: it was cut
+with Susi Tools' `susi-tools release` command, rebuilt that day after the earlier
+release tools left the private product ([docs/releases.md](docs/releases.md)).
+The warm
 build, test and release budget is under 10 seconds and the cold compile target
 under 60 seconds; Core's Linux gates take 16 to 36 seconds today.
 
@@ -126,11 +125,8 @@ The installer builds the newest release tag of the clone's `origin` (or of
 clone; `SUSI_RELEASE_TAG` pins a release) with the settings in that release's
 committed record, and installs it only when it reports the tag's version. A
 cold build takes several minutes. Releases, their records and the reference
-checksums are described in [docs/releases.md](docs/releases.md). Until a new
-release is cut, this installs `v0.21.71`, the earlier program, whose commands
-handed their work to a runtime host that no longer exists; to run the program
-described above, build it from `main` (`cargo build --release --locked`); its
-`susi install` then copies it into `$SUSI_HOME/bin`.
+checksums are described in [docs/releases.md](docs/releases.md). It installs
+`v0.21.72` today; a cold build of it took 48 seconds on the development host.
 
 ### Developing susi
 
