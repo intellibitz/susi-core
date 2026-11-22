@@ -80,5 +80,6 @@ publish your branch tip to `refs/agents/<agent>` first.
 
 The rename of this repository's program from `susi` to `susi-core` (the
 repository itself is `susi-core` since 2026-11-22), and the move of
-development-only code to Susi Tools, whose only tool so far is a speed report.
+development-only code to Susi Tools, which is being filled (its README lists what
+it holds).
 The contract's first section lists each open item.

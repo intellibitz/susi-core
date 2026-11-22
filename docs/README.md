@@ -44,8 +44,8 @@ Core's development and release tools (`local-workflow`, `local-release`,
 2026-11-19: build them there from `tools/core-xtask` and run them from a core
 checkout. Paths under `tools/core-xtask/` in these documents are in that
 repository. Development-only code is to move to the public Susi Tools
-repository (decision of 2026-11-22); that move has not started, and Susi Tools
-holds one tool so far, a speed report.
+repository (decision of 2026-11-22); that move has not started. Susi Tools'
+README lists what it holds.
 
 - [Native development bootstrap](native-bootstrap.md)
 - [Evidence: verification and qualification](evidence.md)

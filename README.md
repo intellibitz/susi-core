@@ -13,7 +13,7 @@ Susi Core is one of three repositories that move together (the ecosystem page,
 |------|------------|---------|
 | **Susi** | The product: commercial applications that run on this socket, sold under licence. It is the primary, and the other two derive from it. Its repository is `susi` (it was `susi-commercial-apps` until 2026-11-22), and older text here calls it Susi Commercial Apps. | No. Private and licensed. |
 | **Susi Core** (this repository) | The socket itself and its three core pillars: **GAWD** (agent coordination, A2A, ACP and parallel harness), **GEMI** (inference routing) and **GMCP** (MCP and governed tools). | Yes. Apache-2.0, all of it. |
-| **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Yes, since 2026-11-22. Apache-2.0; it is being assembled and holds one tool so far, a speed report. |
+| **Susi Tools** | The development tooling: whatever is used only while developing, testing and releasing Susi. None of it ships inside a production program. | Yes, since 2026-11-22. Apache-2.0; it is being filled, and its README lists what it holds. |
 
 Nothing in this repository is secret, and it builds and runs without the
 private product. A capability that lives in the product is not here: the core
@@ -28,8 +28,7 @@ or marks.
 Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
 become `susi-core`; development-only code (`scripts/`, `toolchain/`, `fuzz/`)
-is still in this tree and will move to Susi Tools, whose only tool so far is a
-speed report; every command but `help` and `install` forwards to a runtime
+is still in this tree and will move to Susi Tools, which is being filled; every command but `help` and `install` forwards to a runtime
 host that no longer exists, so the program does not yet run on its own; and since
 2026-11-22 the product holds only its licence and vault core while its apps
 are rebuilt, so a capability core points to the product for has no

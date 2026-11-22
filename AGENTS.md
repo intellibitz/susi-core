@@ -41,8 +41,8 @@ something that is not finished, it says so.
   proprietary source, in any file or in the history.
 - **Development-only code never ships with production code.** Whatever is used
   only while developing, testing or releasing gets its home in Susi Tools. Not
-  done yet: Susi Tools holds one tool so far (a speed report, since
-  2026-11-22); `scripts/`, `toolchain/` and `fuzz/`
+  done yet: Susi Tools is being filled (its README lists what it holds);
+  `scripts/`, `toolchain/` and `fuzz/`
   are still in this repository; core's release tools are still built from the
   private repository; and the development program `susi-tools` does not yet
   come from the Susi Tools repository. Tests stay beside the code they test
