@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-443",
+  "title": "Remove Core's dead hooks, scripts, records and moot tasks",
+  "goal": "Fourth round: what nothing uses leaves Core. The post-commit hooks only run two scripts no maintained program answers; eleven scripts run for nothing or only for their own tests; the earlier runtime's roadmap, verdicts, evidence, lanes, features, storage and baselines are read by nothing; twenty GMCP roadmap tasks describe a server that left.",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "nextest",
+      "run",
+      "--workspace",
+      "--offline",
+      "--locked"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795373630
+}
