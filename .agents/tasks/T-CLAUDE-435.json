@@ -1,0 +1,21 @@
+{
+  "id": "T-CLAUDE-435",
+  "title": "Remove Core's unsafe-code baseline that nothing reads",
+  "goal": "Nothing is kept that nothing reads: the two unsafe-code baseline files (13,427 lines) served a check that left with the private repository's tools and still list packages removed on 2026-11-22; a rebuilt check writes its own from the tree it checks",
+  "size": "xs",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "lean_core_ceilings",
+      "--test",
+      "agent_contract"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795339959
+}
