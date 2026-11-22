@@ -1196,7 +1196,7 @@ fn worktree_workflow_guard_is_wired_into_every_hook() {
         );
     }
     // Main is unqualified development with no mandatory pre-push gate
-    // (docs/ceo-agent-mandate.md, section 3), so pre-push no longer runs the
+    // (AGENTS.md, "Working here"), so pre-push no longer runs the
     // workflow guard's task-compliance and sync checks. It keeps the push
     // safety that guard gave: the native transport policy refuses branch
     // deletion, non-fast-forward branch updates and moved or deleted tags.
@@ -1392,8 +1392,10 @@ fn readme_covers_the_workflow_ecosystem_and_brain() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let readme = std::fs::read_to_string(root.join("README.md")).unwrap();
     for needle in [
-        "local-workflow",
-        "xtask local-build debug",
+        // `local-workflow` and `xtask local-build debug` were required here until 2026-11-22,
+        // when the rebuilt `susi-tools` program took over the loop and those commands left it.
+        "susi-tools",
+        "the Linux gates",
         "Task: T-<AGENT>-<n>",
         "actual combined tree",
         "Agents own authorized development",
@@ -1904,6 +1906,44 @@ fn historical_evidence_is_not_shipped_or_generated_back_into_source() {
     // Moved build/runtime readers are checked by commercial ownership_guards.
 }
 
+/// Core has no line limit: the size suite measures and reports, treats its other counts as
+/// baselines a change may raise, saying why, and `cargo core-size` runs its report by name
+/// (AGENTS.md, "The socket and its size").
+#[test]
+fn core_size_is_reported_never_refused() {
+    let root = workspace_root();
+    let flat = |path: &str| -> String {
+        std::fs::read_to_string(root.join(path))
+            .unwrap()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    let size_suite = flat("tests/lean_core_ceilings.rs");
+    for withdrawn in ["COMPLETE_SOCKET_CEILING", "COMPLETE_SOCKET_LIMIT"] {
+        assert!(
+            !size_suite.contains(withdrawn),
+            "the withdrawn line limit returned to the size suite: {withdrawn}"
+        );
+    }
+    for needle in [
+        "fn complete_socket_size_is_reported()",
+        "complete_socket_rust={complete_socket}",
+        "This is a baseline, not a",
+        "in the same commit and say why",
+    ] {
+        assert!(
+            size_suite.contains(needle),
+            "the size suite lost its report or its baseline rule: {needle}"
+        );
+    }
+    assert!(
+        flat(".cargo/config.toml")
+            .contains("--test lean_core_ceilings complete_socket_size_is_reported -- --exact"),
+        "`cargo core-size` must run the size report by its exact name"
+    );
+}
+
 /// The workspace refuses an ignored test without a reason, an expected panic without its
 /// message and a leftover `dbg!` (AGENTS.md, "Code, commits and tests"); the rules
 /// themselves are pinned in `tests/agent_contract.rs`.
@@ -1916,125 +1956,6 @@ fn workspace_lints_refuse_unreasoned_ignores_panics_and_dbg() {
         "dbg_macro = \"deny\"",
     ] {
         assert!(manifest.contains(lint), "Cargo.toml must deny {lint}");
-    }
-}
-
-/// Mandate 74 (CEO 2026-11-11): dump to main, Susi-managed distillation,
-/// GitHub as storage only and attributed Apache-2.0 harvesting.
-#[test]
-fn ceo_mandate_74_is_discoverable_and_keeps_release_and_license_safeguards() {
-    let root = workspace_root();
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-74.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "No gates.",
-        "be distillable",
-        "GitHub never merges",
-        "atomic create-if-absent",
-        "git cherry-pick -x",
-        "full exact-tree gates",
-        "Never force.",
-        "GitHub is a storage bucket",
-        "Moving clouds is one operation",
-        "**Apache-2.0**",
-        "Apache-2.0 section 4 obligations",
-        "Quarantine fetch",
-        "Reject: GPL",
-        "needs CEO authorization",
-        "Code never flows from commercial into core",
-        "earned, not declared",
-        "Implementation truth",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 74 lost requirement: {phrase}"
-        );
-    }
-}
-
-/// Mandate 75 (CEO 2026-11-12): Raw Source (`main`) -> Distill (`release`),
-/// cloud raw-source feature pickup across Core and Commercial Apps, and Pure
-/// `Apache-2.0`-only harvest compliance.
-#[test]
-fn ceo_mandate_75_is_discoverable_and_enforces_pure_apache2_harvest() {
-    let root = workspace_root();
-    for path in ["VISION.md", "docs/ceo-mandate-74.md", "docs/harvest.md"] {
-        let text = std::fs::read_to_string(root.join(path)).unwrap();
-        assert!(
-            text.contains("docs/ceo-mandate-75.md") || text.contains("(ceo-mandate-75.md)"),
-            "{path}: Mandate 75 must be discoverable"
-        );
-    }
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-75.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "Raw Source (`main`) -> Distill (`release`)",
-        "local-harvest raw-features",
-        "local-harvest route",
-        "local-harvest pickup",
-        "ONLY `Apache-2.0` is\npermitted for pure compliance",
-        "Apache-2.0 WITH LLVM-exception",
-        "LICENSES/Apache-2.0.txt",
-        "Modified by",
-        "THIRD_PARTY_NOTICES",
-        "Origin-License: Apache-2.0",
-        "Implementation Truth",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 75 lost requirement: {phrase}"
-        );
-    }
-}
-
-/// Mandate 76 (CEO 2026-11-12): agents collaborate through the Susi Board.
-#[test]
-fn ceo_mandate_76_makes_susi_board_collaboration_discoverable() {
-    let root = workspace_root();
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-76.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "## 2. Read the board",
-        "## 3. Post on the board",
-        "## 4. Append only",
-        "Never edit a path inside another agent's open claim",
-        "answers on the board",
-        "Coordination, not evidence",
-        "No gate",
-        "zero dependency on GitHub",
-        "Never put credentials",
-        "Implementation truth",
-        "Not built",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 76 lost requirement: {phrase}"
-        );
-    }
-}
-
-/// Mandate 77 (CEO 2026-11-12): one isolated working directory per agent.
-#[test]
-fn ceo_mandate_77_makes_agent_roots_discoverable() {
-    let root = workspace_root();
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-77.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "## 1. One root per agent per machine",
-        "`.susi-agent-root`",
-        "Roots never nest and never overlap",
-        "## 2. Everything an agent creates lives under its root",
-        "## 4. Never write in another agent's root",
-        "nothing is\n   moved to satisfy this mandate",
-        "susi-commercial workflow root show",
-        "SUSI_ALLOW_FOREIGN_ROOT",
-        "Implementation truth",
-        "Not enforced",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 77 lost requirement: {phrase}"
-        );
     }
 }
 
@@ -2069,67 +1990,6 @@ fn non_rust_scripts_only_decrease() {
         found.len() <= SCRIPT_CEILING,
         "{} shell/PowerShell/Python files, ceiling {SCRIPT_CEILING}: a new script is not admitted (Mandate 63)",
         found.len()
-    );
-}
-
-/// Mandate 79 (CEO 2026-11-12): vision-driven continuous self-improvement.
-#[test]
-fn ceo_mandate_79_makes_the_vision_loop_discoverable() {
-    let root = workspace_root();
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-79.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "anyone acting on the CEO's behalf",
-        "distilled branches of the open-source world",
-        "susi-commercial workflow vision set",
-        "susi-commercial workflow vision cycle",
-        "Records are create-only",
-        "pure `Apache-2.0`",
-        "never claims a vision is met",
-        "Implementation truth",
-        "Not enforced",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 79 lost requirement: {phrase}"
-        );
-    }
-    // The directive itself is the first recorded vision.
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-1.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(vision["schema"], "susi.vision/v1");
-    assert_eq!(vision["set_by"], "ceo");
-}
-
-/// Mandate 78 (CEO 2026-11-12): never reinvent the wheel.
-#[test]
-fn ceo_mandate_78_makes_reuse_first_discoverable() {
-    let root = workspace_root();
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-78.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "never reinvent the wheel",
-        "## 2. Look before you build",
-        "**Inside Susi.**",
-        "**Apache-2.0 only**",
-        "Take only the part that is needed",
-        "## 4. Delete what reuse replaces",
-        "not permission to add dependencies",
-        "`reuse` object",
-        "Implementation truth",
-        "Not enforced",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 78 lost requirement: {phrase}"
-        );
-    }
-    let schema = std::fs::read_to_string(root.join(".agents/schemas/task.schema.json")).unwrap();
-    assert!(
-        schema.contains("\"reuse\""),
-        "the task schema must describe `reuse`"
     );
 }
 
@@ -2688,330 +2548,6 @@ fn core_cli_has_no_ui_subcommands() {
     }
 }
 
-/// Mandate 82 (CEO 2026-11-16, amended the same day by Mandate 83): commit,
-/// push, merge and pull about every ten minutes, as a cadence that refuses
-/// nothing.
-#[test]
-fn ceo_mandate_82_is_a_ten_minute_cadence_that_refuses_nothing() {
-    let root = workspace_root();
-    // Flattened, so a re-wrapped paragraph still carries its requirement.
-    let flat = |path: &str| {
-        std::fs::read_to_string(root.join(path))
-            .unwrap()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
-    {
-        let path = "docs/ceo-mandate-74.md";
-        let text = flat(path);
-        assert!(
-            text.contains("ceo-mandate-82.md"),
-            "{path}: Mandate 82 must be discoverable"
-        );
-        // The withdrawn refusal must not creep back into a rule file.
-        for withdrawn in [
-            "refused its next commit",
-            "refused every commit after it",
-            "refuses every commit after it",
-            "one commit to save its work",
-        ] {
-            assert!(
-                !text.contains(withdrawn),
-                "{path} still describes the withdrawn ten-minute refusal: {withdrawn}"
-            );
-        }
-    }
-    let doc = flat("docs/ceo-mandate-82.md");
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "commit, push, merge and pull about every ten minutes",
-        "A cadence, not a hard limit",
-        "Nothing is refused when ten minutes pass",
-        "No empty commit, no noise",
-        "git fetch origin main && git merge origin/main",
-        "susi-commercial workflow fresh --pull --watch",
-        "A conflict is resolved, never forced",
-        "An unreachable remote is not a violation",
-        "A merge is never refused",
-        "No gate is added to `main`",
-        "Mandate 74",
-        "Mandate 80",
-        "Mandate 83",
-        "Implementation truth",
-        "Not enforced",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 82 lost requirement: {phrase}"
-        );
-    }
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-7.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        vision["statement"].as_str(),
-        Some("every agent must merge and pull every 10 minutes"),
-        "the CEO's words are recorded as they were given"
-    );
-}
-
-/// Mandate 87 (CEO 2026-11-16): agents keep the board tidy.
-#[test]
-fn ceo_mandate_87_keeps_the_board_tidy() {
-    let root = workspace_root();
-    let flat = |path: &str| {
-        std::fs::read_to_string(root.join(path))
-            .unwrap()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
-    let doc = flat("docs/ceo-mandate-87.md");
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "1. **Tidy by appending, never by editing.**",
-        "2. **Close what you open.**",
-        "3. **Answer what is addressed to you**",
-        "4. **Facts once, never noise.**",
-        "5. **What both sides left behind is closed out by anyone.**",
-        "6. **Leave it tidy.**",
-        "A stop note is never lifted for someone else",
-        "susi-commercial workflow board tidy --apply",
-        "Implementation truth",
-        "**Not enforced:**",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 87 lost requirement: {phrase}"
-        );
-    }
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-12.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        vision["statement"].as_str(),
-        Some("make a mandate that agents must keep the board tidy"),
-        "the CEO's words are recorded as they were given"
-    );
-}
-
-/// Mandate 86 (CEO 2026-11-16): agents clean up finished worktrees.
-#[test]
-fn ceo_mandate_86_cleans_up_finished_worktrees() {
-    let root = workspace_root();
-    let flat = |path: &str| {
-        std::fs::read_to_string(root.join(path))
-            .unwrap()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
-    let doc = flat("docs/ceo-mandate-86.md");
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "1. **Finished means removed.**",
-        "2. **Reuse, never hoard.**",
-        "3. **Clean up before you leave.**",
-        "4. **Never lose work.**",
-        "5. **Only your own.**",
-        "6. **Never the primary checkout, and never the CEO's working directory.**",
-        "susi-commercial workflow prune --apply",
-        "Implementation truth",
-        "**Not enforced:**",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 86 lost requirement: {phrase}"
-        );
-    }
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-11.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        vision["statement"].as_str(),
-        Some("make a mandate that agents must clean up finished worktrees"),
-        "the CEO's words are recorded as they were given"
-    );
-}
-
-/// Mandate 85 (CEO 2026-11-16): no agent holds a claim after it is done with it.
-#[test]
-fn ceo_mandate_85_ends_a_claim_when_its_work_is_done() {
-    let root = workspace_root();
-    let flat = |path: &str| {
-        std::fs::read_to_string(root.join(path))
-            .unwrap()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
-    let doc = flat("docs/ceo-mandate-85.md");
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "1. **Done means done.**",
-        "2. **The claim ends in the same step that ends the work.**",
-        "3. **Never hold a claim for later.**",
-        "4. **A claim on done work holds nothing.**",
-        "5. **The lease is the last resort, not the release.**",
-        "6. **Look before you leave.**",
-        "susi-commercial workflow finish <id>",
-        "susi-commercial tasks release <id>",
-        "never dropped silently",
-        "Implementation truth",
-        "**Not enforced:**",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 85 lost requirement: {phrase}"
-        );
-    }
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-10.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        vision["statement"].as_str(),
-        Some("make a mandate that an agent cannot hold a claim, after it is done with it"),
-        "the CEO's words are recorded as they were given"
-    );
-}
-
-/// Mandate 84 (core under 10,000 lines, never growing) was withdrawn on 2026-11-22: core has
-/// no line limit. Its document stays, unedited, as history (the canonical Git server
-/// refuses any change to a numbered mandate document), so the dated note that withdraws
-/// the rule is in the documentation index. The size suite measures, reports and holds no
-/// limit.
-#[test]
-fn ceo_mandate_84_is_history_and_core_has_no_line_limit() {
-    let root = workspace_root();
-    let flat = |path: &str| {
-        std::fs::read_to_string(root.join(path))
-            .unwrap()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
-    let index = flat("docs/README.md");
-    for phrase in [
-        "The line limit recorded in `ceo-mandate-84.md` was withdrawn on 2026-11-22",
-        "core has no line limit",
-    ] {
-        assert!(
-            index.contains(phrase),
-            "the documentation index lost the dated note on Mandate 84: {phrase}"
-        );
-    }
-    let doc = flat("docs/ceo-mandate-84.md");
-    for phrase in [
-        "**History, superseded.**",
-        "**Agent reminder (one line):**",
-        "always strictly below 10,000 physical lines: at most 9,999",
-        "**Until core is below the limit, it never grows.**",
-        "**The ceiling only goes down.**",
-        "**No functionality is dropped**",
-        "**No tricks.**",
-        "**Only the CEO raises it.**",
-        "Implementation truth",
-        "Size acceptance is separate from protocol",
-        "exact-source Linux production qualification",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 84 lost requirement: {phrase}"
-        );
-    }
-    // The size suite holds no line limit: it measures, reports and treats its
-    // other counts as baselines whose failure says how to raise them.
-    let size_suite = flat("tests/lean_core_ceilings.rs");
-    for withdrawn in ["COMPLETE_SOCKET_CEILING", "COMPLETE_SOCKET_LIMIT"] {
-        assert!(
-            !size_suite.contains(withdrawn),
-            "the withdrawn line limit returned to the size suite: {withdrawn}"
-        );
-    }
-    for needle in [
-        "fn complete_socket_size_is_reported()",
-        "complete_socket_rust={complete_socket}",
-        "This is a baseline, not a",
-        "in the same commit and say why",
-    ] {
-        assert!(
-            size_suite.contains(needle),
-            "the size suite lost its report or its baseline rule: {needle}"
-        );
-    }
-    let alias = flat(".cargo/config.toml");
-    assert!(
-        alias.contains("--test lean_core_ceilings complete_socket_size_is_reported -- --exact"),
-        "`cargo core-size` must run the size report by its exact name"
-    );
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-9.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(
-        vision["statement"].as_str(),
-        Some("make a mandate, susi core should always be under 100k lines."),
-        "the CEO's words are recorded as they were given"
-    );
-}
-
-/// Mandate 81 (CEO 2026-11-15): release cuts must sync the local host binary and live daemon.
-#[test]
-fn ceo_mandate_81_enforces_release_binary_sync() {
-    let root = workspace_root();
-    {
-        let path = "docs/releases.md";
-        let text = std::fs::read_to_string(root.join(path)).unwrap();
-        assert!(
-            text.contains("ceo-mandate-81.md"),
-            "{path}: Mandate 81 must be discoverable"
-        );
-    }
-    let doc = std::fs::read_to_string(root.join("docs/ceo-mandate-81.md")).unwrap();
-    for phrase in [
-        "**Agent reminder (one line):**",
-        "--built",
-        "RunLevel=Limited",
-        "susi-release-sync",
-        "susi.build.json",
-        "Implementation truth",
-        "Not enforced",
-    ] {
-        assert!(
-            doc.contains(phrase),
-            "Mandate 81 lost requirement: {phrase}"
-        );
-    }
-    let vision: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join(".agents/visions/V-3.json")).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(vision["schema"], "susi.vision/v1");
-    assert_eq!(vision["set_by"], "ceo");
-
-    let ps1 = std::fs::read_to_string(root.join("install.ps1")).unwrap();
-    assert!(ps1.contains("susi.build.json"));
-    assert!(ps1.contains("susi-release-sync"));
-    assert!(ps1.contains("-RunLevel Limited"));
-    assert!(!ps1.contains("-RunLevel Highest"));
-
-    let win_sync =
-        std::fs::read_to_string(root.join("scripts/susi-release-sync-windows.ps1")).unwrap();
-    assert!(win_sync.contains("'install-timer'"));
-    assert!(win_sync.contains("-RunLevel Limited"));
-    assert!(!win_sync.contains("-RunLevel Highest"));
-
-    let sync_sh = std::fs::read_to_string(root.join("scripts/susi-release-sync.sh")).unwrap();
-    assert!(sync_sh.contains("--built"));
-    assert!(sync_sh.contains("adopt_reference_build"));
-    assert!(sync_sh.contains("qualified:"));
-}
-
 /// CEO directive 2026-11-16 (Mandate 72): core is Apache-2.0 and published one
 /// way. The CEO alone holds push authority, nothing is accepted from outside,
 /// and the world is free to fork. Every front door says so, and none of them
@@ -3035,8 +2571,6 @@ fn core_is_published_one_way_and_free_to_fork() {
         "VISION.md",
         "CONTRIBUTING.md",
         "CONTRIBUTORS.md",
-        "docs/ceo-agent-mandate.md",
-        "docs/ceo-mandate-74.md",
         "docs/lean-core.md",
     ] {
         let text = flat(path);

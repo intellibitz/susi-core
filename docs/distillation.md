@@ -105,7 +105,7 @@ rules make development main distillable:
 1. **Every commit carries `Task: <id>`** (`T-<AGENT>-<n>`; several ids may be
    comma- or space-separated, or given as repeated trailers). Place `Task:` and
    every companion trailer (`Feature:`, `Depends:`, and for cloud-harvested raw
-   features under [CEO Mandate 75](ceo-mandate-75.md): `Harvest: H-<AGENT>-<n>`,
+   features under the pure Apache-2.0 harvest rule: `Harvest: H-<AGENT>-<n>`,
    `Origin: <url>@<sha>:<path>`, `Origin-License: Apache-2.0`) in the **final
    paragraph** of the commit message with zero blank lines between trailers so
    Git trailer parsing sees all of them. The native launcher's `Task: LOCAL-<name>`
@@ -244,8 +244,7 @@ Treat a plan as an input to those steps, never as evidence that a release
 builds, passes or qualifies. Branch composition, candidate orchestration,
 disjoint release lanes, atomic one-version-one-cut version reservations, and
 pure-`Apache-2.0` harvest release-gate verification under the
-**Raw Source (`main`) -> Distill (`release`)** architecture
-([CEO Mandate 75](ceo-mandate-75.md)) live in the companion binaries documented
+**Raw Source (`main`) -> Distill (`release`)** architecture live in the companion binaries documented
 in [`docs/release-distillation.md`](release-distillation.md),
 [`docs/release-lanes.md`](release-lanes.md), [`docs/releases.md`](releases.md),
 and [`docs/harvest.md`](harvest.md).

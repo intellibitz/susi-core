@@ -1,6 +1,6 @@
 # Release lanes: many agents, one release, no conflicts
 
-`release-lanes` implements CEO Mandate 74 section 3 (`docs/ceo-mandate-74.md`).
+`release-lanes` implements the release-lane process.
 Development `main` is an ungated feature dump. A release is distilled from it,
 and several agents move the same release forward in parallel. GitHub never
 merges and never shows a pull request: every move is a Git operation pushed as

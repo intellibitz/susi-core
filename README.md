@@ -176,13 +176,10 @@ and qualification are recorded in [docs/evidence.md](docs/evidence.md#platforms)
 ### Developing susi
 
 Agents own authorized development, verification, integration and production
-qualification under the [active engineering contract](AGENTS.md). Work in an
-isolated worktree with disjoint scopes (`local-workflow start <agent>
---scope <path>`, `xtask local-build debug`; core's development and release tools
-are still built from Susi Commercial Apps' `tools/core-xtask`, and move to Susi
-Tools later) and private build/runtime state. One page says where a feature
-belongs and how an agent lands one here without being asked:
-[docs/landing-features.md](docs/landing-features.md).
+qualification under the [active engineering contract](AGENTS.md), one page that
+says how work lands here (an isolated worktree, a claimed task, the Linux gates,
+a fast-forward of `main`, all through the `susi-tools` development program from
+the Susi Tools repository) and where a feature belongs.
 
 Use portable Git transport with zero dependency on GitHub or GitLab (canonical
 local or self-hosted Git remote; the copies on GitHub and GitLab are backups
@@ -205,7 +202,7 @@ describes available commands and migration limits.
 ## Read next
 
 - [docs/README.md](docs/README.md): every document, indexed.
-- [docs/landing-features.md](docs/landing-features.md): why agents land features unprompted, where a feature belongs (Susi, Susi Core or Susi Tools) and the loop that lands one here.
+- [AGENTS.md](AGENTS.md): the contract, how agents land features here unprompted and where a feature belongs (Susi, Susi Core or Susi Tools).
 - [docs/architecture.md](docs/architecture.md): pillars, Tier S invariants, plane bus and its loopback rendezvous, implementation services and protocol adapters, the lean-core direction, the command reference.
 - [docs/evidence.md](docs/evidence.md): verified claims, platforms, the delivery workflow and every admitted gap.
 - [ARCHITECTURE.md](ARCHITECTURE.md): the enforceable crate-boundary contract (`tests/architecture_tests.rs`).

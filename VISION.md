@@ -197,8 +197,7 @@ grow disconnected catalogs.
 - Define versioned conformance contracts for providers, MCP servers, agents,
   and extension packs.
 - Prefer protocol admission and **Pure `Apache-2.0` ONLY** cloud raw-source
-  feature pickup ([Mandate 75](docs/ceo-mandate-75.md),
-  [`docs/harvest.md`](docs/harvest.md)) over new vendor-specific core branches
+  feature pickup ([`docs/harvest.md`](docs/harvest.md)) over new vendor-specific core branches
   or external crate bloat: core and Susi Commercial Apps operate on
   **Raw Source (`main`) -> Distill (`release`)**, routing lean 3-pillar socket primitives to Core and
   routing innovative product features, enterprise packs, and visual interfaces

@@ -1,7 +1,7 @@
 # Harvest: `local-harvest`
 
-`local-harvest` is the tooling for [CEO Mandate 74, section 5](ceo-mandate-74.md#5-harvest-the-open-source-world-is-the-oyster)
-and [CEO Mandate 75](ceo-mandate-75.md). Use it to discover, route, and pick up
+`local-harvest` is the tooling for the pure Apache-2.0 harvest rule in
+[`AGENTS.md`](../AGENTS.md). Use it to discover, route, and pick up
 Apache-2.0 code, and **only** pure `Apache-2.0` code (CEO decision 2026-11-12,
 Mandate 75), from any public Git repository on any host while keeping every
 Apache-2.0 section 4 license obligation. It is native Rust (`tools/core-xtask/src/harvest.rs`)
@@ -81,7 +81,7 @@ code, then lists distillable `Task:` / `Feature:` commits and pure-`Apache-2.0`
 Rust modules together with their classified `core` vs. `commercial` destination.
 
 **route** classifies candidate paths, mappings, and summaries into `core` vs.
-`commercial` under [CEO Mandate 75](ceo-mandate-75.md).
+`commercial` under that rule.
 The checkout's package and license layout determines its kind, independently
 of the Git remote's host or owner.
 

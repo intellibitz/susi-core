@@ -7,7 +7,7 @@ for a new one in the same change. The rules agents work by are in
 
 ## Start here
 
-- [Landing a feature in Susi Core](landing-features.md)
+- [The contract: how agents work here and where a feature goes](../AGENTS.md)
 
 ## Architecture and contracts
 
@@ -90,12 +90,10 @@ Kept for reference. Each describes the state on its date, so check the
 current documents and code before relying on it.
 
 - [Historical workflow measurements](workflow-speed.md).
-- [Independent agents, integration and pristine releases](ceo-agent-mandate.md),
-  and the numbered directive documents `ceo-mandate-74.md` to
-  `ceo-mandate-87.md` in this directory: superseded by the active contract in
-  [`AGENTS.md`](../AGENTS.md). The numbered documents are kept unedited (the
-  canonical Git server refuses any change to them), so a later change to what
-  one records is noted here.
-- The line limit recorded in `ceo-mandate-84.md` was withdrawn on 2026-11-22:
-  core has no line limit, and its size is measured and reported
-  ([Lean core](lean-core.md)).
+- The numbered directive documents (`ceo-agent-mandate.md` and
+  `ceo-mandate-74.md` to `ceo-mandate-87.md`) and the landing page
+  (`landing-features.md`) left this directory on 2026-11-22. The rules of
+  theirs that still hold are in [`AGENTS.md`](../AGENTS.md); the documents
+  stay in the history, last in commit `027bab400`. The line limit one of them
+  recorded was withdrawn the same day: core has no line limit, and its size is
+  measured and reported ([Lean core](lean-core.md)).

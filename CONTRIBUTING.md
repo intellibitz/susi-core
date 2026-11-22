@@ -138,9 +138,8 @@ commits with `Task:` and `Feature:` trailers.
 
 `main` is an unqualified raw-source stream with no mandatory publication test
 gate. Susi distills selected work into release candidates and qualifies the
-exact combined tree before publishing immutable release snapshots. See the
-[Agent engineering contract](docs/ceo-agent-mandate.md) and
-[Mandate 75](docs/ceo-mandate-75.md).
+exact combined tree before publishing immutable release snapshots. See
+[`AGENTS.md`](AGENTS.md), "Publication and Git" and "Releases".
 
 ## 8. License
 

@@ -53,7 +53,7 @@ prints both. An explicit `--tag` of a release not qualified for the host is
 refused unless `SUSI_RELEASE_ALLOW_UNQUALIFIED_HOST=1` is set knowingly.
 
 **Keeping it updated is a duty, not only a report** (CEO Mandate 48 & CEO Mandate
-81, [`docs/ceo-mandate-81.md`](ceo-mandate-81.md): cutting or publishing a
+81: cutting or publishing a
 release qualified for the current host must sync `~/.susi/bin/susi` (`susi.exe`)
 and the live daemon before the release is considered complete). Required: the
 installed copy is behind the latest release qualified for the host. Feasible:
