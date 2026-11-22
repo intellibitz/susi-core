@@ -3,9 +3,9 @@
     "Cargo.toml"
   ],
   "mcp.servers": {
-    "susi-harness": {
+    "susi-core": {
       "command": "${workspaceFolder}/target/debug/susi",
-      "args": ["mcp"]
+      "args": ["mcp", "serve"]
     }
   }
 }

@@ -8,22 +8,35 @@
 
 //! `.mcp.json` is read by every Claude Code session that opens this
 //! repository: a laptop's, a teammate's, and a cloud session's disposable
-//! container (docs/cloud-sessions.md). It once named one laptop's build —
+//! container. It once named one laptop's build —
 //! `F:/src/github.com/intellibitz/susi/target/debug/susi.exe`, with
 //! `SUSI_HOME=C:/Users/user/.susi` — so every cloud session started with a
 //! failed `susi-harness` server and a prompt to have the operator fix it on
 //! their machine. A checked-in server names the clone's own build, relative
 //! to the clone, and no host's home. The IDE configs checked in beside it
-//! (VS Code, IntelliJ / Android Studio, the harness descriptor) held the same
-//! paths and are held to the same rule.
+//! (VS Code, IntelliJ / Android Studio) held the same paths and are held to the
+//! same rule. Until 2026-11-22 they also ran `susi mcp`, `susi workflow check`
+//! and `susi tasks list`, which the rebuilt program does not have, so every
+//! session started a failing server; each command they run must now be one the
+//! program's own help lists.
 
 /// The IDE configs that name the susi binary; each is read by every clone.
-const IDE_CONFIGS: [&str; 4] = [
+const IDE_CONFIGS: [&str; 3] = [
     ".vscode/settings.json",
     ".idea/mcp.json",
     ".idea/externalTools.xml",
-    ".agents/susi-ide-harness.json",
 ];
+
+/// Whether the program's help (`USAGE` in `src/main.rs`) lists `susi <words>`.
+fn the_program_lists(words: &str) -> bool {
+    let main = std::fs::read_to_string("src/main.rs").unwrap();
+    let usage = main
+        .split("const USAGE: &str = \"")
+        .nth(1)
+        .and_then(|rest| rest.split("\";").next())
+        .unwrap();
+    usage.contains(&format!("susi {words}"))
+}
 
 fn mcp_servers() -> serde_json::Map<String, serde_json::Value> {
     let text = std::fs::read_to_string(".mcp.json").unwrap();
@@ -68,11 +81,15 @@ fn checked_in_mcp_servers_name_no_machine_path() {
 }
 
 #[test]
-fn susi_harness_runs_the_clones_own_build_with_the_default_home() {
+fn the_mcp_server_runs_the_clones_own_build_with_the_default_home() {
     let servers = mcp_servers();
-    let server = &servers["susi-harness"];
+    let server = &servers["susi-core"];
     assert_eq!(server["command"], "target/debug/susi");
-    assert_eq!(server["args"], serde_json::json!(["mcp"]));
+    assert_eq!(server["args"], serde_json::json!(["mcp", "serve"]));
+    assert!(
+        the_program_lists("mcp serve"),
+        "`susi mcp serve` left the program's help"
+    );
     assert!(
         server["env"].get("SUSI_HOME").is_none(),
         "SUSI_HOME is the host's to set; ~/.susi is the default everywhere"
@@ -124,27 +141,48 @@ fn ide_configs_run_the_clones_own_build() {
     let read = |file: &str| std::fs::read_to_string(file).unwrap();
     let vscode: serde_json::Value = serde_json::from_str(&read(".vscode/settings.json")).unwrap();
     assert_eq!(
-        vscode["mcp.servers"]["susi-harness"]["command"],
+        vscode["mcp.servers"]["susi-core"]["command"],
         "${workspaceFolder}/target/debug/susi"
+    );
+    assert_eq!(
+        vscode["mcp.servers"]["susi-core"]["args"],
+        serde_json::json!(["mcp", "serve"])
     );
     let idea: serde_json::Value = serde_json::from_str(&read(".idea/mcp.json")).unwrap();
     assert_eq!(
-        idea["mcpServers"]["susi-harness"]["command"],
+        idea["mcpServers"]["susi-core"]["command"],
         "target/debug/susi"
     );
-    let harness: serde_json::Value =
-        serde_json::from_str(&read(".agents/susi-ide-harness.json")).unwrap();
-    assert_eq!(harness["executable"], "target/debug/susi");
+    assert_eq!(
+        idea["mcpServers"]["susi-core"]["args"],
+        serde_json::json!(["mcp", "serve"])
+    );
     let tools = read(".idea/externalTools.xml");
     let commands: Vec<&str> = tools
         .lines()
         .filter(|line| line.contains(r#"name="COMMAND""#))
         .collect();
     assert!(!commands.is_empty(), "externalTools.xml declares no tool");
-    for line in commands {
+    for line in &commands {
         assert!(
             line.contains(r#"value="$ProjectFileDir$/target/debug/susi""#),
             "{line}"
+        );
+    }
+    let parameters: Vec<&str> = tools
+        .lines()
+        .filter(|line| line.contains(r#"name="PARAMETERS""#))
+        .filter_map(|line| line.split("value=\"").nth(1)?.split('"').next())
+        .collect();
+    assert_eq!(
+        parameters.len(),
+        commands.len(),
+        "every tool names its command"
+    );
+    for words in parameters {
+        assert!(
+            the_program_lists(words),
+            "externalTools.xml runs `susi {words}`, which the program's help does not list"
         );
     }
 }

@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "susi-harness": {
+    "susi-core": {
       "command": "target/debug/susi",
-      "args": ["mcp"]
+      "args": ["mcp", "serve"]
     }
   }
 }
