@@ -20,8 +20,8 @@ something that is not finished, it says so.
   two public repositories carry no secrets and are how the work earns its name
   in the open. The three move together.
 - **Names are written as they are today.** This repository is `susi-core`
-  since 2026-11-22 (it was `susi`; GitHub and GitLab redirect the old
-  address); its program is still `susi` and becomes `susi-core` in a second
+  since 2026-11-22 (it was `susi`; that old address on GitHub and GitLab now
+  belongs to the private product); its program is still `susi` and becomes `susi-core` in a second
   guarded step. The private repository is `susi` (it was
   `susi-commercial-apps`), and text written before the decision calls the
   product "Susi Commercial Apps"; there, a repository called `susi` is this
