@@ -1,0 +1,25 @@
+{
+  "id": "T-CLAUDE-426",
+  "title": "Remove Core's eight packages that only re-export susi-core",
+  "goal": "Susi Core useful for the world (foundation plan, decision B): the pillar packages that hold nothing go, so the workspace lists only packages with code of their own",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "architecture_tests",
+      "--test",
+      "lean_core_ceilings",
+      "--test",
+      "socket_boundary",
+      "--test",
+      "duplication_tests"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795331860
+}
