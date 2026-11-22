@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-429",
+  "title": "Make Core's checked-in MCP and IDE configs run real commands",
+  "goal": "An editor or agent session that opens Susi Core starts a working MCP server: the checked-in configs ran susi mcp and susi workflow check, which the rebuilt program does not have",
+  "size": "xs",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--offline",
+      "--locked",
+      "--test",
+      "checked_in_mcp_config"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795334041
+}
