@@ -188,9 +188,10 @@ const DIRECT_FACADE_EDGES_BASELINE: usize = 2;
 /// (GEMI holds no code yet).
 const PILLAR_CRATES: [&str; 3] = ["susi-gawd-a2a", "susi-gawd-acp", "susi-gmcp"];
 
-/// Reviewed unsafe-exposure baseline files under `.agents/baseline/`. A file
-/// count, not a line count; like the counts above, a recorded baseline.
-const UNSAFE_BASELINE_FILE_COUNT: usize = 2;
+// The count of reviewed unsafe-exposure baseline files under `.agents/baseline/` was a
+// recorded baseline (2) until 2026-11-22, when those files left: the unsafe-code check that read
+// them left with the private repository's tools, and they listed packages removed that day. A
+// rebuilt check writes its own baseline from the tree it checks, and counts it again.
 
 /// The failure text for a count above its recorded baseline. It tells the
 /// agent what to do, because a baseline is not a ceiling.
@@ -459,26 +460,13 @@ fn is_test_or_bench_rust(rel: &str) -> bool {
 /// for the record: runtime Rust, vendor facades, tests, tooling, vendored sources
 /// and audit trails, with the largest file of each watched kind. Includes
 /// untracked, non-ignored files so a new unstaged source file is not invisible.
-/// No size fails this: core has no line limit. The one count it checks is the
-/// number of reviewed unsafe-baseline files, against its recorded baseline.
+/// No size fails this: core has no line limit.
 #[test]
-fn repository_size_is_reported_and_unsafe_baseline_files_are_counted() {
+fn repository_size_is_reported() {
     let size = repository_size();
     assert!(
-        size.unsafe_baseline_files <= UNSAFE_BASELINE_FILE_COUNT,
-        "{}",
-        above_baseline(
-            "reviewed unsafe-baseline files under .agents/baseline/",
-            size.unsafe_baseline_files,
-            "UNSAFE_BASELINE_FILE_COUNT",
-            UNSAFE_BASELINE_FILE_COUNT
-        )
-    );
-    note_below_baseline(
-        "reviewed unsafe-baseline files under .agents/baseline/",
-        size.unsafe_baseline_files,
-        "UNSAFE_BASELINE_FILE_COUNT",
-        UNSAFE_BASELINE_FILE_COUNT,
+        size.complete_socket > 0,
+        "the size report counted no runtime source"
     );
 }
 
@@ -500,8 +488,6 @@ fn complete_socket_size_is_reported() {
 struct RepositorySize {
     /// First-party runtime Rust plus the in-repository vendor facades.
     complete_socket: usize,
-    /// Reviewed unsafe-baseline files under `.agents/baseline/`.
-    unsafe_baseline_files: usize,
 }
 
 fn repository_size() -> RepositorySize {
@@ -529,7 +515,6 @@ fn repository_size() -> RepositorySize {
     let mut tooling_rust = 0usize;
     let mut vendor_lines = 0usize;
     let mut agents_lines = 0usize;
-    let mut unsafe_baseline_files = 0usize;
     let mut evidence_jsonl_lines = 0usize;
     let mut runtime_by_package: BTreeMap<String, usize> = BTreeMap::new();
     let mut largest_xtask_file = (0usize, String::new());
@@ -552,9 +537,6 @@ fn repository_size() -> RepositorySize {
             vendor_lines += lines;
         } else if rel.starts_with(".agents/") {
             agents_lines += lines;
-            if rel.starts_with(".agents/baseline/unsafe-default") && rel.ends_with(".json") {
-                unsafe_baseline_files += 1;
-            }
             if rel.starts_with(".agents/gmcp/evidence/") && rel.ends_with(".jsonl") {
                 evidence_jsonl_lines += lines;
             }
@@ -601,7 +583,7 @@ fn repository_size() -> RepositorySize {
     }
 
     eprintln!(
-        "lean-core categories: runtime_rust={first_party_runtime_rust}, vendor_facade_rust={vendor_facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, vendor={vendor_lines}, .agents={agents_lines} (append-only evidence={evidence_jsonl_lines}, unsafe_baselines={unsafe_baseline_files} / baseline {UNSAFE_BASELINE_FILE_COUNT})"
+        "lean-core categories: runtime_rust={first_party_runtime_rust}, vendor_facade_rust={vendor_facade_rust}, test_rust={test_rust}, tooling_rust={tooling_rust}, vendor={vendor_lines}, .agents={agents_lines} (append-only evidence={evidence_jsonl_lines})"
     );
     // A missing/empty inventory must not pass as a small measurement.
     for package in PILLAR_CRATES
@@ -635,8 +617,5 @@ fn repository_size() -> RepositorySize {
         eprintln!("lean-core largest {kind} file: {file} = {lines} lines");
     }
 
-    RepositorySize {
-        complete_socket,
-        unsafe_baseline_files,
-    }
+    RepositorySize { complete_socket }
 }

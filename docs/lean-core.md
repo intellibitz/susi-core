@@ -45,14 +45,17 @@ tests, minify, or exclude compiled code to change the number it prints.
 
 ## Recorded baselines
 
-The same test file records six counts that are not line counts:
+The same test file records five counts that are not line counts:
 
 - third-party crates the three measurement roots compile;
 - workspace crates the three measurement roots compile;
 - workspace members declared in `Cargo.toml`;
 - packages resolved in `Cargo.lock`;
-- vendor facades the pillar crates name directly;
-- reviewed unsafe-baseline files under `.agents/baseline/`.
+- vendor facades the pillar crates name directly.
+
+A sixth, the reviewed unsafe-baseline files under `.agents/baseline/`, left on
+2026-11-22 with those files: nothing read them once the unsafe-code check left
+with the private repository's tools.
 
 Each is a baseline, not a ceiling. A change may raise one in the same commit:
 raise the constant in `tests/lean_core_ceilings.rs` to the new count and say

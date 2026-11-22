@@ -203,8 +203,7 @@ to the previous verified artifact; `susi install` never replaces a different exi
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.
 - **Old records:** `config/` holds the earlier runtime's catalogs (models, agents, vendors),
-  `.agents/roadmap.json` its roadmap, and `.agents/baseline/` an unsafe-code baseline that
-  still lists packages removed on 2026-11-22; the goal notes in `.agents/visions/carried/`
+  and `.agents/roadmap.json` its roadmap; the goal notes in `.agents/visions/carried/`
   name sections of the earlier contract by number, and the rules they name are kept here
   word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
