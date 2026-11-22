@@ -1554,10 +1554,10 @@ fn readme_covers_the_workflow_ecosystem_and_brain() {
         "Task: T-<AGENT>-<n>",
         "actual combined tree",
         "Agents own authorized development",
-        "susi ecosystem scan",
-        "susi keys check",
-        "susi brain",
-        "SUSI_BUDGET",
+        // `susi ecosystem scan`, `susi keys check`, `susi brain` and `SUSI_BUDGET` were
+        // required here until 2026-11-22. Those commands hand their work to a runtime host
+        // that left the private product that day, so the README stopped advertising them;
+        // they return to this list when the new runtime serves them.
         "active engineering contract",
         "Operational history",
         "outside source",
