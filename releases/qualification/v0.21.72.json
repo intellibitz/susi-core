@@ -1,0 +1,174 @@
+{
+  "schema": "susi-release-qualification/v1",
+  "product": "susi",
+  "version": "0.21.72",
+  "tag": "v0.21.72",
+  "source": "snapshot",
+  "qualified_commit": "f5a0cde7ba1cdab922f91e8a09e462b9cec32743",
+  "qualified_tree": "26e396cc5ed63cda9b8c04635e343929786c6c0c",
+  "cargo_lock_sha256": "30bc906620f23aa378692ef8fe59357c16c7a25af4af76b677015a0431da0e6c",
+  "toolchain": {
+    "channel": "1.99.0",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "host": "x86_64-unknown-linux-gnu",
+  "gates": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "check",
+      "argv": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--offline",
+        "--locked"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 2,
+      "log_sha256": "aa20d99bead7fa70cbb1b68b954d672ea6a8e9dd645c27626698bad36e15a94f"
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--offline",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 2,
+      "log_sha256": "f5489157ccfc87b9258169009f7c16d9a80f703dbb030c5ad2470f80bf52dfbe"
+    },
+    {
+      "name": "licenses",
+      "argv": [
+        "cargo",
+        "deny",
+        "--offline",
+        "--locked",
+        "check",
+        "licenses"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 0,
+      "log_sha256": "9a5610e87f28d29a8098929c50845a4e17741c0f6d0d0f1b80a9c72a5b43f54e"
+    },
+    {
+      "name": "tests",
+      "argv": [
+        "cargo",
+        "nextest",
+        "run",
+        "--workspace",
+        "--offline",
+        "--locked"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 7,
+      "log_sha256": "4de6f4c2157d53fc7d0663aa333d9171fb17f69ad85f6a7043f6a74808ca21e9",
+      "tests": {
+        "binaries": 67,
+        "passed": 380,
+        "failed": 0,
+        "skipped": 1
+      }
+    },
+    {
+      "name": "doctests",
+      "argv": [
+        "cargo",
+        "test",
+        "--doc",
+        "--workspace",
+        "--offline",
+        "--locked"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 0,
+      "log_sha256": "4aec1b8ced7693a0bf4cb339d9da3b3a7a58f2aab84697a0896a74ca79eefe08"
+    },
+    {
+      "name": "build",
+      "argv": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--profile",
+        "dist",
+        "-p",
+        "susi",
+        "--bin",
+        "susi"
+      ],
+      "env": [
+        "CARGO_PROFILE_DIST_LTO=false",
+        "CARGO_PROFILE_DIST_CODEGEN_UNITS=16"
+      ],
+      "exit_code": 0,
+      "duration_s": 3,
+      "log_sha256": "c64c80497d8d2223054e1344e083e3d3870ac2c8e492a09aa9430b8963035eaa"
+    },
+    {
+      "name": "smoke",
+      "argv": [
+        "susi-tools",
+        "release",
+        "smoke",
+        "/root/susi-gates/claude/target/dist/susi"
+      ],
+      "env": [],
+      "exit_code": 0,
+      "duration_s": 0,
+      "log_sha256": "01c90e29b1417b33e4de07f678930f1ddb3a2412627074824efe0b0270c0373d",
+      "checks": [
+        "--version answered susi 0.21.72",
+        "mcp serve answered initialize and read_file over standard input",
+        "the daemon answered /health with 0.21.72",
+        "/mcp listed the tools with the token and refused without it (401)",
+        "stop ended the daemon"
+      ]
+    }
+  ],
+  "tests": {
+    "binaries": 67,
+    "passed": 380,
+    "failed": 0,
+    "skipped": 1
+  },
+  "assets": [
+    {
+      "file": "susi",
+      "bytes": 705056,
+      "sha256": "c57e37299540cb8628e18d4a1a85af650d60eb4198bd0dc323b5855790ae542d",
+      "version_output": "susi 0.21.72"
+    }
+  ],
+  "owed_platforms": "",
+  "started_unix": 1795338564,
+  "finished_unix": 1795338581,
+  "provenance": "written by susi-tools 0.2.0 release qualify from the gate logs; each gate's log digest is recorded"
+}
