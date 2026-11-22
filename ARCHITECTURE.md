@@ -79,4 +79,5 @@ when they differ. Their licences are checked by `cargo deny` (`deny.toml`).
   are reached only by Susi's Windows crate, and `susi-error` only by one of its tests. Whether
   they stay is decided with a check on a Windows host; Susi's own plan
   (`docs/foundation-plan.md` there, "The fourth round") records it.
-- `scripts/` and the Git hooks are development code that belongs in Susi Tools.
+- The Git hooks are one-line calls to `susi-tools hook <stage>`; their rules are Susi Tools' (since
+  2026-11-23).

@@ -32,9 +32,9 @@ rule in [AGENTS.md](AGENTS.md)).
 After cloning (once per clone; worktrees share it):
 
 ```bash
-scripts/setup-dev.sh
+git config core.hooksPath .githooks
 ```
 
-This enables `.githooks` (`pre-commit`: staged Rust formatting; `pre-push`:
-transport safety only). The CEO's agents work in
+This enables `.githooks`, one-line calls to `susi-tools hook <stage>` from Susi
+Tools, which hold the rules. The CEO's agents work in
 isolated worktrees (see **[AGENTS.md](AGENTS.md)**, "Working here").

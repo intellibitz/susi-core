@@ -1,3 +1,6 @@
-#!/usr/bin/env bash
-# Mandate 49: merges follow the same worktree rules as commits.
-exec "$(dirname "$0")/workflow-guard" merge
+#!/bin/sh
+# pre-merge-commit: merges only in a linked worktree (Mandate 49). The rules are Susi Tools'
+# (`susi-tools hook --help`); this file names only what this repository asks for, and refuses
+# when no installed susi-tools has them.
+susi-tools hook --help >/dev/null 2>&1 || { echo "[pre-merge-commit] install the current susi-tools from Susi Tools' main: it runs this repository's hooks" >&2; exit 1; }
+exec susi-tools hook pre-merge-commit --worktrees

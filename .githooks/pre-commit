@@ -1,61 +1,6 @@
-#!/usr/bin/env bash
-# 🛡️ SUSI pre-commit: fast, local, no network, no build.
-# A commit must not wait on a whole-workspace pass (`cargo fmt --all --check`
-# took 8-11 s per commit). Only the staged Rust files are checked, each with its
-# crate's edition, in well under a second. Only when that fast check fails is
-# the authoritative `cargo fmt --all --check` run, so an edge case of the
-# per-file check (a file outside every crate's module tree) never refuses a
-# commit that the full formatter accepts. Clippy and tests are not hook work:
-# main is unqualified development; release branches run the full gates.
-
-# Standalone pure-local public-core boundary firewall (no external tools).
-"$(dirname "$0")/core-boundary-guard" pre-commit || exit 1
-
-# Mandate checks shared with Susi Commercial Apps (plain bash and git; see the
-# script's header): large blobs, secrets, dbg!, no new numbered mandates.
-"$(dirname "$0")/mandate-checks" pre-commit || exit 1
-
-"$(dirname "$0")/workflow-guard" commit || exit 1
-
-top=$(git rev-parse --show-toplevel) || exit 1
-files=()
-while IFS= read -r -d '' path; do
-    case "$path" in
-    vendor/* | */vendor/*) continue ;; # upstream code, not workspace members
-    *.rs) [ -f "$top/$path" ] && files+=("$path") ;;
-    esac
-done < <(git diff --cached --name-only -z --diff-filter=ACMR)
-[ ${#files[@]} -gt 0 ] || exit 0
-
-# The edition of the nearest Cargo.toml that names one (2021 otherwise).
-edition_of() {
-    local dir
-    dir=$(dirname "$1")
-    while :; do
-        if [ -f "$top/$dir/Cargo.toml" ]; then
-            local ed
-            ed=$(sed -n 's/^edition *= *"\([0-9]*\)".*/\1/p' "$top/$dir/Cargo.toml" | head -1)
-            [ -n "$ed" ] && { echo "$ed"; return; }
-        fi
-        [ "$dir" = . ] && { echo 2021; return; }
-        dir=$(dirname "$dir")
-    done
-}
-
-declare -A by_edition=()
-for f in "${files[@]}"; do
-    ed=$(edition_of "$f")
-    by_edition[$ed]+="$top/$f"$'\n'
-done
-ok=1
-for ed in "${!by_edition[@]}"; do
-    mapfile -t group < <(printf '%s' "${by_edition[$ed]}")
-    rustfmt --edition "$ed" --check "${group[@]}" >/dev/null 2>&1 || ok=0
-done
-[ "$ok" = 1 ] && exit 0
-
-if cargo fmt --all --check; then
-    exit 0
-fi
-echo "❌ Formatting: run 'cargo fmt --all' and commit again." >&2
-exit 1
+#!/bin/sh
+# pre-commit: the agent's own root, a fresh checkout and the staged change, in a linked worktree
+# (Mandate 49). The rules are Susi Tools' (`susi-tools hook --help`); this file names only what
+# this repository asks for, and refuses when no installed susi-tools has them.
+susi-tools hook --help >/dev/null 2>&1 || { echo "[pre-commit] install the current susi-tools from Susi Tools' main: it runs this repository's hooks" >&2; exit 1; }
+exec susi-tools hook pre-commit --worktrees

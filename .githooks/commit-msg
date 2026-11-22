@@ -1,54 +1,6 @@
-#!/usr/bin/env bash
-# Mandate 50: every commit names its task. `commit-msg <message-file>`.
-# Local (bypassable with --no-verify). There is no server-side job (GitHub is
-# storage only): `distill lint --strict` and the gated landing refuse a commit
-# without a task trailer, so a skipped hook cannot reach a release.
-msg_file=$1
-subject=$(sed -n '1p' "$msg_file")
-
-# Exempt: merges, releases, and commits that only add/close task files.
-[ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ] && exit 0
-case "$subject" in "Merge "* | "chore: release v"* | "Revert "*) exit 0 ;; esac
-staged=$(git diff --cached --name-only)
-if [ -n "$staged" ] && [ -z "$(echo "$staged" | grep -v '^\.agents/tasks/')" ]; then
-    exit 0
-fi
-
-# Subject shape (Mandate 94), shared with Susi Commercial Apps.
-"$(dirname "$0")/mandate-checks" commit-msg "$msg_file" || exit 1
-
-# `Task: T-<AGENT>-<n>`, or a native `Task: LOCAL-<name>` (AGENTS.md, "Working here"),
-# which has no task file in .agents/tasks to check.
-if grep -Eq '^Task: LOCAL-[A-Za-z0-9._-]+[[:space:]]*$' "$msg_file"; then
-    exit 0
-fi
-task=$(sed -n 's/^Task: \(T-[A-Z0-9][A-Z0-9]*-[0-9][0-9]*\)[[:space:]]*$/\1/p' "$msg_file" | head -1)
-if [ -z "$task" ]; then
-    cat >&2 <<'MSG'
-❌ Mandate 50: this commit has no task.
-   End the commit message with a task trailer:
-                                Task: LOCAL-<name>    (standalone core work)
-                                Task: T-<AGENT>-<n>   (queued task in .agents/tasks/)
-MSG
-    exit 1
-fi
-root=$(git rev-parse --show-toplevel)
-if [ ! -f "$root/.agents/tasks/$task.json" ]; then
-    echo "❌ Mandate 50: $task is not an open task in this checkout: it was closed (closing deletes the record), or merge origin/main or commit the task file first." >&2
-    exit 1
-fi
-# Mandate 78: look before you build. A feature-sized task's record says where
-# its agent looked for existing work (`reuse`); without it the commit is
-# refused. The rule lives in the Susi development tool, `susi-tools`, and only it
-# is asked. When it does not answer the verb, the check cannot run and one line
-# says so: it is never skipped silently.
-tool=susi-tools
-if "$tool" workflow reuse --help >/dev/null 2>&1; then
-    (cd "$root" && "$tool" workflow reuse "$task") || exit 1
-else
-    echo "[commit-msg] the installed susi-tools does not answer \`susi-tools workflow reuse\` (or is not installed). That check did not run; install the current susi-tools from Susi Tools' main." >&2
-fi
-# One token per worker: two worktrees sharing an identity can renew, close
-"$root/scripts/check-worker-identity.sh" || exit 1
-"$root/scripts/check-task-scope.sh" "$task" || exit 1
-exit 0
+#!/bin/sh
+# commit-msg: the subject, the task trailer and its claim. The rules are Susi Tools'
+# (`susi-tools hook --help`); this file names only what this repository asks for, and refuses
+# when no installed susi-tools has them.
+susi-tools hook --help >/dev/null 2>&1 || { echo "[commit-msg] install the current susi-tools from Susi Tools' main: it runs this repository's hooks" >&2; exit 1; }
+exec susi-tools hook commit-msg "$1"

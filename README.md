@@ -27,8 +27,8 @@ or marks.
 
 Not finished yet, said plainly: what Susi uses here is thin (its vault uses the
 four wrappers; `susi-paths` and `susi-error` are reached only by Susi's Windows
-crate), and development-only code (`scripts/` and the Git hooks) is still in
-this tree and will move to Susi Tools.
+crate). The development-only code moved to Susi Tools: the Git hooks here are
+one-line calls to `susi-tools hook <stage>`.
 
 **[What it holds](#what-it-holds)** · **[Architecture](ARCHITECTURE.md)** · **[Security](SECURITY.md)** · **[Forking](CONTRIBUTING.md)**
 

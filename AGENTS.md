@@ -130,8 +130,12 @@ external messages only with explicit user or invoked-workflow authorization.
   trailing period; a change over 100 lines has a body that says why. Commit only source: no
   build output, scratch, local state, blob of 1 MiB or more, or secret; rotate a committed
   secret at once. Never rewrite published history; correct a published mistake with a new
-  commit. The hooks in `.githooks/` refuse large blobs, secret-shaped lines and an added
-  `dbg!`.
+  commit. The hooks in `.githooks/` (enable them once per clone: `git config core.hooksPath
+  .githooks`) hand each stage to `susi-tools hook`, from Susi Tools, where their rules live:
+  they refuse large blobs, secret-shaped lines, an added `dbg!`, unformatted Rust, a commit
+  outside a linked worktree or straight on `main`, and a commit whose task is neither recorded
+  nor claimed here or whose claim does not cover it. The public boundary (nothing of the
+  private product) is refused by the canonical server at push.
 - Tests are hermetic: private HOME, USERPROFILE, XDG and SUSI_HOME, scratch configuration,
   ports and local Git remotes; no production state or inherited credentials. Do not send real
   coordination messages from tests. Never skip, ignore, loosen or delete a test to get green.
@@ -195,10 +199,10 @@ re-cut or delete its tag.
   tests. Whether they stay is decided with a check on a Windows host.
 - **The public descriptions** of the hosted copies still describe the earlier program until
   they are changed there, which is an external publication.
-- **Development code still here:** the Git hooks and the three scripts they run
-  (`scripts/check-task-scope.sh`, `check-worker-identity.sh`, `setup-dev.sh`) belong in Susi
-  Tools. The hooks and scripts that ran only for the earlier program, and the earlier
-  runtime's roadmap, verdicts, evidence ledger, lanes and baselines, left on 2026-11-22.
+- **Development code:** none is left here. The hooks and scripts that ran only for the
+  earlier program, and the earlier runtime's roadmap, verdicts, evidence ledger, lanes and
+  baselines, left on 2026-11-22; the hooks' rules and the scripts they ran moved to Susi Tools
+  on 2026-11-23, leaving one-line hooks.
 - **Old records:** the goal notes in `.agents/visions/carried/` name sections of the earlier
   contract by number, and the rules they name are kept here word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` are still worded as ceilings

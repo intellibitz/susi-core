@@ -53,19 +53,12 @@ struct Closed {
     by: String,
 }
 
-/// The queue's acceptance rule: a cargo, susi or `scripts/<file>` argv.
+/// The queue's acceptance rule: a cargo or susi argv (`scripts/` left on 2026-11-23).
 fn accept_allowed(cmd: &[String]) -> bool {
     let Some(program) = cmd.first() else {
         return false;
     };
-    let ok_program = program == "cargo"
-        || program == "susi"
-        || program == "./target/debug/susi"
-        || (program.starts_with("scripts/")
-            && !program.contains("..")
-            && program
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b"/._-".contains(&b)));
+    let ok_program = program == "cargo" || program == "susi" || program == "./target/debug/susi";
     ok_program && cmd.iter().all(|a| !a.contains('\0'))
 }
 

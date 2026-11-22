@@ -66,12 +66,13 @@ repository, these are the invariants its own tests enforce
 ```bash
 git clone https://github.com/<you>/susi.git
 cd susi
-scripts/setup-dev.sh
+git config core.hooksPath .githooks
 ```
 
-`scripts/setup-dev.sh` configures the repository hooks and merge drivers.
-Pre-commit checks staged Rust formatting; pre-push enforces transport safety
-for this repository's own storage rules, which a fork may replace.
+The hooks in `.githooks/` are one line each: they run `susi-tools hook <stage>`
+from Susi Tools (build and install `susi-tools` from that repository), which
+checks staged Rust formatting, secret-shaped lines and large blobs at commit,
+and this repository's own push rules at push. A fork may replace them.
 
 ### Checks
 

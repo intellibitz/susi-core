@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-# Mandate 98: `git worktree add` just made this checkout; list the finished
-# worktrees to remove first (advice: post-checkout cannot refuse).
-"$(dirname "$0")/mandate-checks" post-checkout "${1:-}" "${2:-}" "${3:-}" || true
-exit 0
+#!/bin/sh
+# post-checkout: after git worktree add, lists finished worktrees to remove (advice only). The
+# rules are Susi Tools' (`susi-tools hook --help`); this file names only what this repository
+# asks for.
+susi-tools hook --help >/dev/null 2>&1 || { echo "[post-checkout] install the current susi-tools from Susi Tools' main: it runs this repository's hooks" >&2; exit 0; }
+exec susi-tools hook post-checkout "$@"

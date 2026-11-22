@@ -500,65 +500,6 @@ fn every_panic_path_allow_is_justified() {
     );
 }
 
-/// Mandate 49 regression guard: the worktree-workflow guard exists, is
-/// executable, and every hook that must enforce it actually calls it.
-#[cfg(unix)]
-#[test]
-fn worktree_workflow_guard_is_wired_into_every_hook() {
-    use std::os::unix::fs::PermissionsExt;
-    let root = workspace_root();
-    let guard = root.join(".githooks/workflow-guard");
-    let mode = std::fs::metadata(&guard)
-        .expect("workflow-guard missing (Mandate 49)")
-        .permissions()
-        .mode();
-    assert!(mode & 0o111 != 0, "workflow-guard must be executable");
-    for (hook, stage) in [("pre-commit", "commit"), ("pre-merge-commit", "merge")] {
-        let body = std::fs::read_to_string(root.join(".githooks").join(hook))
-            .unwrap_or_else(|_| panic!("{hook} missing (Mandate 49)"));
-        assert!(
-            body.contains(&format!("workflow-guard\" {stage}")),
-            "{hook} must call workflow-guard {stage} (Mandate 49)"
-        );
-    }
-    // Main is unqualified development with no mandatory pre-push gate
-    // (AGENTS.md, "Working here"), so pre-push no longer runs the
-    // workflow guard's task-compliance and sync checks. It keeps the push
-    // safety that guard gave: the native transport policy refuses branch
-    // deletion, non-fast-forward branch updates and moved or deleted tags.
-    let pre_push = std::fs::read_to_string(root.join(".githooks/pre-push"))
-        .expect("pre-push missing (Mandate 49)");
-    assert!(
-        pre_push
-            .lines()
-            .any(|line| line.trim() == "exec push-policy \"$@\""),
-        "pre-push must exec the native push-policy"
-    );
-    // The push-policy rules themselves moved with the tool to Susi Commercial
-    // Apps (tools/core-xtask), which pins them; the hook still fails closed.
-    assert!(
-        pre_push.contains("refusing the push (transport safety)"),
-        "pre-push must refuse a push when push-policy cannot be found or built"
-    );
-    // The guard is a stub for `susi workflow guard`: the rules are Rust's,
-    // reached through `.githooks/run-susi`, which needs sh and git only.
-    let guard_body = std::fs::read_to_string(&guard).unwrap_or_default();
-    assert!(
-        guard_body.contains("run-susi\" workflow guard"),
-        "workflow-guard must exec `susi workflow guard` (Mandate 49)"
-    );
-    let runner = std::fs::metadata(root.join(".githooks/run-susi"))
-        .expect("run-susi missing (Mandate 49)")
-        .permissions()
-        .mode();
-    assert!(runner & 0o111 != 0, "run-susi must be executable");
-    let setup = std::fs::read_to_string(root.join("scripts/setup-dev.sh")).unwrap_or_default();
-    assert!(
-        setup.contains("core.hooksPath .githooks"),
-        "setup-dev.sh must enable the hooks (Mandate 49)"
-    );
-}
-
 /// `-Clinker-features=-lld` is stable only on x86_64 Linux; on any other
 /// target rustc rejects it, which failed v0.16.0's linux-aarch64 release build.
 #[test]
