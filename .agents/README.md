@@ -6,7 +6,6 @@ time (`susi-gawd-agents` `build.rs` → `AlphaSelf`).
 
 | File | Schema | Role |
 |------|--------|------|
-| `identity.json` | `susi/identity/v1` | Constitutional mandates, topology, protocols |
 | `roadmap.json` | `susi/roadmap/v1` | Evolutionary vectors |
 | `evidence.json` | `susi/evidence/v1` | Append-only audit / mission ledger (`entries[]`) |
 | `schemas/*.schema.json` | JSON Schema 2020-12 | Shape contracts |
@@ -45,7 +44,7 @@ The scorecard task establishes baselines and metrics; the final qualification
 task requires measured results and limitations before reporting improvement.
 
 Public host contract and Tier S pillars live in `README.md` (repo
-root). When README and `identity.json` disagree, **source code wins** and both
+root). When README and the source disagree, **source code wins** and both
 are updated in the same change.
 
 Append evidence by pushing an object onto `evidence.json` → `entries` (never

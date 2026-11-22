@@ -151,7 +151,6 @@ legacy schema/API compatibility.
 
 | File | Role |
 |------|------|
-| [`.agents/identity.json`](../.agents/identity.json) | Current rules, component topology and protocols (`susi/identity/v1`) |
 | [`.agents/roadmap.json`](../.agents/roadmap.json) | Current goals (`susi/roadmap/v1`), not completion evidence |
 | The MCP specification | Upstream, in the `modelcontextprotocol/modelcontextprotocol` repository. Core's pinned copy and Susi's GMCP certification were removed on 2026-11-22; history keeps them |
 | [`.agents/evidence.json`](../.agents/evidence.json) | Empty compatibility template (`susi/evidence/v1`); no compiled activity history |
@@ -750,7 +749,7 @@ Editorial model catalog **views** stay separate JSON files under `config/` (not 
 
 ## Design principles
 
-Defined in `.agents/identity.json` (`design_principles`):
+The design principles, as first recorded (the rules themselves live in [`AGENTS.md`](../AGENTS.md)):
 - **Autonomous by default** — Mandate 46; plan and execute via swarm consensus, not step-by-step babysitting; evidence-gated and governance-first (not “100% automation”).
 - **Grounded outputs** — claims checked against tools and workspace state.
 - **Traceable reasoning** — Mandate 26; thinking and tool calls are inspectable (`.susi/last_mission_trace.json`, `.susi/last_blackboard.json`); not “100% transparency” of secrets or vendor internals.

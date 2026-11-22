@@ -19,7 +19,7 @@ mod hosted_scripts {
     //! ```
     //!
     //! `mid` compiles in `config/data.json`, `lone` reads `deploy/assets/` at run
-    //! time, and `top`'s build script reads `.agents/identity.json`.
+    //! time, and `top`'s build script reads a ledger under `.agents/`.
 
     use std::cell::Cell;
     use std::path::{Path, PathBuf};

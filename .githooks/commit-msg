@@ -17,7 +17,7 @@ fi
 # Subject shape (Mandate 94), shared with Susi Commercial Apps.
 "$(dirname "$0")/mandate-checks" commit-msg "$msg_file" || exit 1
 
-# `Task: T-<AGENT>-<n>`, or a native `Task: LOCAL-<name>` (AGENTS.md rule 9),
+# `Task: T-<AGENT>-<n>`, or a native `Task: LOCAL-<name>` (AGENTS.md, "Working here"),
 # which has no task file in .agents/tasks to check.
 if grep -Eq '^Task: LOCAL-[A-Za-z0-9._-]+[[:space:]]*$' "$msg_file"; then
     exit 0

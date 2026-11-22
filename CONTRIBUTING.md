@@ -37,7 +37,7 @@ is, without warranty.
 ## 3. Build on Susi without forking
 
 Most products need no fork. Core is a lean, vendor-neutral socket
-([`AGENTS.md`](AGENTS.md), "Open-core boundary"), and what you build attaches to
+([`AGENTS.md`](AGENTS.md), "The socket and its size"), and what you build attaches to
 it from the outside:
 
 - **The host contract (`9090–9094`).** MCP on `9090` and `9093`, the

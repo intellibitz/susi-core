@@ -44,8 +44,7 @@ uncached installation and first-goal evidence in that VM before Step 1 closes.
 Susi is built and delivered by agents. Agents have
 standing authority to commit, push, resolve conflicts and merge verified work;
 paid services, destructive actions and unrelated publication still require their
-own authorization. The governing requirements live in `.agents/identity.json`
-and `AGENTS.md`. Other agent entrypoints defer to that contract.
+own authorization. The governing requirements live in `AGENTS.md`. Other agent entrypoints defer to that contract.
 
 ## Product proposition
 

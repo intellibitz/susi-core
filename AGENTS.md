@@ -1,444 +1,204 @@
-**START HERE: read this active contract, inspect local state, and reserve an isolated worktree before editing. To land a feature here without being asked, follow [docs/landing-features.md](docs/landing-features.md).**
+# Susi Core: the contract
 
-# Active engineering contract
+Susi Core is a generic standards-protocol AI OS socket: a small Rust runtime that serves
+standard protocols on your own machine. This page is the contract every agent reads before
+editing here. Its requirements are rules, not claims of completed implementation; what is not
+finished is said at the end. Agents own authorized development, verification, integration and
+production qualification end-to-end; do not ask the requester to inspect code or perform
+routine engineering steps.
 
-This repository is Susi Core. Susi Core is a generic standards-protocol AI OS
-socket. The requirements below are not claims of completed implementation.
-Follow the current user instruction where it supersedes older repository text. Agents own authorized development,
-verification, integration and production qualification end-to-end; do not ask
-the requester to inspect code or perform routine engineering steps.
+## What this repository is
 
-## Susi, Susi Core and Susi Tools
+- **Three repositories, one ecosystem.** Susi is the product: a private, licensed set of
+  commercial applications, and the primary. Susi Core (this repository, `susi-core`) and
+  Susi Tools (`susi-tools`, everything used only while developing, testing or releasing) are
+  its public Apache-2.0 derivatives. The three move together. The program built here is
+  still called `susi`; it becomes `susi-core` in a later, announced step. The
+  `crates/susi-tools` crate in this workspace is the tool-socket binding, not Susi Tools.
+- **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never back, and Susi
+  Core and Susi Tools do not depend on each other. Core builds and tests on its own.
+- **Nothing secret and nothing of the private product enters this repository**: no
+  credential, key, licence material, private record or proprietary source, in any file or in
+  the history.
+- **Development-only code never ships with production code.** What is used only while
+  developing, testing or releasing belongs in Susi Tools. Tests stay beside the code they
+  test.
+- **What runs today:** `susi mcp serve` (an MCP server over standard input and output) and
+  the local daemon (`susi start`, `susi status`, `susi stop`); the README says how to use
+  them.
+- **Agents land features without being asked.** Pick up the open task or request that
+  unblocks the most and put it where the next section says.
+- **Nothing is a permanent ceiling, and nothing has a line limit.** A rule that stops serving
+  its reason is corrected in place, saying why.
 
-These rules record the decisions of 2026-11-22. Where a later section names
-something that is not finished, it says so.
+## Where a feature goes
 
-- **Three repositories, one ecosystem.** **Susi**, unqualified, is the product:
-  a private, licensed set of commercial applications, and the primary. **Susi
-  Core** (this repository) and **Susi Tools** are its public Apache-2.0
-  derivatives. The product is what is sold and is built by agents only; the
-  two public repositories carry no secrets and are how the work earns its name
-  in the open. The three move together.
-- **Names are written as they are today.** This repository is `susi-core`
-  since 2026-11-22 (it was `susi`; that old address on GitHub and GitLab now
-  belongs to the private product); its program is still `susi` and becomes `susi-core` in a second
-  guarded step. The private repository is `susi` (it was
-  `susi-commercial-apps`), and text written before the decision calls the
-  product "Susi Commercial Apps"; there, a repository called `susi` is this
-  one. Clone folders kept their old names. Susi Tools is the repository `susi-tools`; it
-  is not the `crates/susi-tools` crate in this workspace, which is the
-  tool-socket binding.
-- **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never
-  the reverse, and Susi Core and Susi Tools do not depend on each other. Susi
-  Core never needs the private product to build or test: the two tests that
-  built core's release tools from a checkout of the private repository left on
-  2026-11-22 with those tools, which are to be rebuilt in Susi Tools. Not done
-  yet: core's release check for unsafe code still builds its tools from a Susi
-  release. Core runs on its own since 2026-11-22: `susi mcp serve` and the
-  local daemon (`susi start`); the 55 commands that only forwarded to a runtime
-  host of the private product left that day.
-- **Nothing secret and nothing of the private product enters this
-  repository**: no credential, key, licence material, private record or
-  proprietary source, in any file or in the history.
-- **Development-only code never ships with production code.** Whatever is used
-  only while developing, testing or releasing gets its home in Susi Tools. Not
-  done yet: Susi Tools is being filled (its README lists what it holds);
-  `scripts/`, `toolchain/` and `fuzz/`
-  are still in this repository; core's release tools are still built from the
-  private repository; and the development program `susi-tools` does not yet
-  come from the Susi Tools repository. Tests stay beside the code they test
-  (they are never part of a production program); only test machinery and
-  proofs that span repositories belong in Susi Tools.
-- **Agents land features without being asked**, in Susi, Susi Core and Susi
-  Tools. Why, what to pick up, where a feature belongs and the loop that lands
-  it here are on one page:
-  [docs/landing-features.md](docs/landing-features.md).
-- **Nothing is a permanent ceiling, and nothing has a line limit.** The aim is
-  to make everything better, more flexible and more dynamic; a rule that stops
-  serving that is corrected in place. Measurements are reported, and a pinned
-  count is a recorded baseline (see the next section). Not done yet: older
-  tests outside `tests/lean_core_ceilings.rs` (in `tests/architecture_tests.rs`
-  and `tests/socket_boundary.rs`) still word their pinned counts as ceilings
-  that only go down.
+Core improves on a weekly cycle: a change proven in dependent work enters only when it helps a
+single developer on its own, is not paid-only value, is fresh code written here under this
+license and passes the Linux gates and the offline test with every mirror cut off. Anything
+paid for, or touching licensing, a vault or anything secret, goes to Susi; anything used only
+while developing, testing or releasing goes to Susi Tools. A cycle that lands anything ships a
+signed release with plain notes.
 
-## Speed: nothing waits more than 10 seconds
+## The socket and its size
 
-Decided on 2026-11-22 for the whole ecosystem, in these words: "no more
-waiting more than 10s for anything - test, releases whatever it is."
+- Preserve exactly three core pillars: **GAWD** (agents: A2A and ACP), **GEMI** (models) and
+  **GMCP** (tools: the Model Context Protocol). Preserve their public capabilities, wire
+  contracts, errors and compatibility as core changes.
+- Core contains generic protocol contracts and socket machinery. Concrete implementations
+  belong in separately hosted implementation packages, including Susi. Prove the destination
+  works through the standard socket before removing its implementation from core. No
+  functionality is dropped, no error stub replaces a working capability, and no
+  implementation is merely relabeled to reduce a count. Keep proprietary source out of core.
+  Core ships no UI or bundled plug content.
+- Core has no line limit. Size is measured and reported, never refused: `cargo core-size`
+  prints the socket's physical runtime Rust lines under the counting contract in
+  `docs/lean-core.md`, and the other counts pinned in `tests/lean_core_ceilings.rs` are
+  recorded baselines that a change may raise in the same commit, saying why. Never hide or
+  minify code, or move it into an excluded category, to change a reported number.
+- Keep runtime and current documentation generic: no personal, corporate or individual
+  identity references. Preserve protocol identifiers and mandatory license and attribution
+  notices.
 
-- **The line:** every operation a developer or agent waits on here (build,
-  test, lint, the Linux gates, commit, release) finishes within 10 seconds
-  warm. Cold timings (empty caches) are measured and reported apart.
-- **Measured, never asserted.** A timing is quoted with its date, machine and
-  commit.
-- **Over the line is a defect,** recorded with its measured cause and its fix
-  in a task and fixed in the next change that can. The line refuses no change,
-  and it is never met by skipping, loosening or narrowing a test.
-- **Run the suite the fast way:** `cargo nextest run --workspace --offline
-  --locked` runs every test in its own process, the test programs side by side
-  (settings in `.config/nextest.toml`; raise `NEXTEST_TEST_THREADS` to the
-  core count on a large machine). It does not run doc-tests: run `cargo test
-  --doc --workspace --offline --locked` beside it (core has none today).
-  `cargo test --workspace` runs the same tests one program after another.
-- **Where it stands** (2026-11-22, a 28-core Windows host through WSL2, core
-  `926972650`): the Linux gates take 33 to 36 seconds on the first run after
-  a change (the test programs are rebuilt, and when WSL has gone idle it
-  takes about 9 seconds to start) and 16 to 19 seconds when run again on the
-  same commit, 9 to 12 of them in the tests (434 run, 14 ignored, the same
-  tests `cargo test` runs). The same repeat run took about 70 seconds while
-  the tests ran one program at a time. One named test program
-  (`-Test architecture_tests`) takes 8 seconds. A brand-new agent's first
-  run takes 69 seconds. The slowest single test was 7.6 seconds
-  (`tests/functional_distillation.rs`, which built core's release tools from
-  a checkout of the private repository); it left core the same day.
-  Not done yet: the whole gates under 10 seconds; the WSL start, the setup
-  before the tests (2 to 6 seconds) and the size step (2 to 3 seconds) still
-  run one after the other.
+## Working here
 
-## Core boundary and size
+1. Work in your own agent root, worktree, branch and identity, with your own `SUSI_HOME`,
+   `CARGO_TARGET_DIR` and `SUSI_PORT_OFFSET`. Never edit the primary checkout, another
+   agent's files or the requester's working directory.
+2. Start every session with `susi-tools workflow check`: it fast-forwards a clean checkout,
+   shows what is addressed to you and says what you hold.
+3. Claim before your first edit: `susi-tools tasks claim <id> --scope <path>`. A claim needs
+   its task on `main`, so add a new one with `susi-tools tasks add`, commit and ship it
+   first. Keep one live claim per worker, and when you stop, hand off or finish, release it
+   in the same step. Preserve unpublished work or deliberately abandon it with explicit
+   authority; never silently discard it.
+4. Commit with a `Task: <id>` trailer. Push the commit to `refs/agents/<your-name>` and run
+   the Linux gates on that exact commit: formatting, Clippy, the whole suite and the size
+   report, offline (from a Windows host, in WSL2). No hook enforces them; every landing runs
+   them.
+5. Ship with `susi-tools ship`, a fast-forward of `main`; merge first when `main` has moved
+   on. Verify the remote contains the commit before claiming it landed.
+6. Close with `susi-tools tasks close <id>`, which runs the task's acceptance: a reservation
+   or successful compile is not acceptance. Close only after the entire acceptance check
+   passes on the actual combined tree.
+7. Remove your finished worktrees once every commit is on `origin/main`, the tree is clean
+   and no live claim or running agent owns them. Never remove the primary checkout, another
+   agent's work, unpublished commits or shared build caches.
 
-- Preserve exactly three core pillars: **GAWD** (A2A, ACP and the parallel
-  harness), **GEMI**, and **GMCP**. Preserve their existing public capabilities,
-  wire contracts, errors, authorization and compatibility as core changes.
-- Core contains generic protocol contracts and socket machinery. Concrete
-  implementations belong in separately hosted implementation packages, including
-  Susi (repository `susi`). Prove the destination works through the standard
-  socket before removing its implementation from core. No functionality is
-  dropped, no error stub replaces a working capability, and no implementation
-  is merely relabeled to reduce the count. A capability moved into
-  Susi, working there with old and new behaviour shown to
-  match, is not dropped (a recorded decision): core forwards to it, and an
-  installation without it names the command that serves it. Keep proprietary
-  source out of core.
-- Core has no line limit (decision of 2026-11-22, which withdrew the 9,999-line
-  limit and the rule that a change adding lines removes as many). Size is
-  measured and reported, never refused: `cargo core-size` prints the complete
-  socket's physical runtime Rust lines, counted with blanks, comments, inline
-  tests, every feature/platform and the `susi-vendor-*` facades under the
-  counting contract in `docs/lean-core.md`. The other counts pinned in
-  `tests/lean_core_ceilings.rs` (third-party crates, workspace crates and
-  members, lock packages, facade edges, unsafe-baseline files) are recorded
-  baselines: a change may raise one in the same commit, saying why. Never hide
-  or minify code, or move it into an excluded category, to change a reported
-  number. A size report is not protocol certification.
-- Keep runtime and current documentation generic: no personal, corporate or
-  individual identity references. Preserve protocol identifiers and mandatory
-  license/attribution notices. Provider-specific compatibility moves with the
-  implementation; blind renaming must not break clients or refusal boundaries.
-- Core ships no UI or bundled plug content. Existing product implementation
-  crates are migration debt that is leaving core. Keep the dependency, unsafe
-  and license checks; a change that raises one of their recorded baselines says
-  why in the same commit. The unsafe check's tools are built from a Susi
-  Commercial Apps release and run against core's reviewed baselines
-  (`.agents/baseline/`).
-- Zero required user configuration means discovery, defaults and agent repair.
-  Measure size, memory, latency and build cost. The warm build + test + release
-  budget is `<10s`; the cold compile target is `<60s`. Report cold and warm
-  separately. The focused warm pipeline never substitutes for full qualification.
+Agents may commit, push and merge authorized work without routine approval. This scope does
+not authorize unrelated spending, destructive operations or external publication. Send
+external messages only with explicit user or invoked-workflow authorization.
 
-## Ownership, collaboration and delivery
+## Publication and Git
 
-1. Use your own registered agent root, isolated worktree, branch and identity.
-   Keep source, build targets, runtime homes, scratch files and ports private.
-   Never edit the primary checkout, another agent's files or the requester's
-   working directory. Roots never nest or overlap; register an existing root in
-   place. Reuse your own idle worktrees where appropriate. Before creating a
-   fresh worktree, first remove your own old finished worktrees (rule 10;
-   `susi-tools workflow prune --apply`); decision of 2026-11-20.
-   `git worktree add` runs the post-checkout hook, which lists the finished
-   worktrees (advice; git cannot refuse a checkout). The pre-commit and
-   commit-msg hooks run `.githooks/mandate-checks`, shared byte-for-byte with
-   Susi Commercial Apps: they refuse a new blob of 1 MiB or more, a
-   secret-shaped line, an added `dbg!`, a new numbered mandate document and a
-   subject of only `wip` or `update`, and advise on a long subject.
-2. Inspect current changes and active claims before editing. Reserve disjoint
-   scopes using available native `local-workflow` tooling (core's development
-   and release tools are still built from Susi Commercial Apps' `tools/core-xtask`
-   and run from a core checkout; they move to Susi Tools, which is not done
-   yet). Development commands are run as `susi-tools workflow`, `susi-tools
-   tasks` and `susi-tools admin`. Keep one live
-   claim per worker and renew active progress; a claim's lease is one hour,
-   renewed by publishing work on the task or `susi-tools tasks renew <id>`.
-   Do not hold a claim for work you
-   have stopped, handed off or completed; release it in the same step. The lease
-   is a last resort, not the release. Preserve unpublished work or deliberately
-   abandon it with explicit authority; never silently discard it.
-3. Collaborate through the authorized coordination surface, respecting other
-   owners. Read relevant state before claiming, integrating or publishing;
-   resolve a stop instruction within its scope. Do independent work while a
-   dependency is pending. Send external messages only with explicit user or
-   invoked-workflow authorization. Coordination text is not acceptance evidence.
-4. Fetch and merge `origin/main` before starting, when resuming and before each
-   commit if reachable. Resolve conflicts while preserving accepted work; do
-   not rebase or overwrite shared history. Offline local development remains
-   available. A failed remote is reported, not mistaken for synchronization.
-   The commit guard refuses a commit more than 20 commits behind `origin/main`
-   (`git config susi.maxBehind <n>` sets the limit); an unreachable remote
-   never refuses, and a merge is never refused.
-5. Commit, push, merge and pull about every ten minutes, meaningfully. This is
-   a cadence against drift, not a hard limit: no empty commits or noise, no
-   refusal merely because time elapsed. Use serialized integration and normal
-   atomic fast-forward publication. Never force-push or change live access
-   controls. Verify the remote contains the commit before claiming it landed.
-6. Agents may commit, push and merge authorized work without routine approval.
-   This scope does not authorize unrelated spending, destructive operations or
-   external publication. Main has no mandatory pre-push gates and remains
-   unqualified development; full exact-tree gates apply to release branches and
-   snapshots. Live controls are not bypassed because tooling lags the contract.
-7. Core is Apache-2.0 and published one way. The designated publisher alone
-   holds push authority. Authorized agents may exercise that authority within
-   their scope; this policy grants no additional write access. Accept no outside
-   pull request, patch or commit. Everyone is free to fork under the license;
-   the license grants code rights, not rights to the Susi name or marks.
-   Core improves on a weekly cycle: a change proven in dependent work enters
-   only when it helps a single developer on its own, is not paid-only value,
-   is fresh code written here under this license and passes the Linux gates
-   and the offline test with every mirror cut off (no size condition applies);
-   from a Windows host the Linux gates run in WSL2 under the same blackout.
-   Anything else goes to Susi or to Susi Tools, as
-   [docs/landing-features.md](docs/landing-features.md) sets out. A cycle that
-   lands anything ships a signed release with plain notes; an unsigned tag is
-   never published (rule 8 says what the public copies receive).
-8. Use portable Git storage, without hosting-service APIs, hosted CI, hosted
-   pull requests or required remote review. The local canonical Git server is
-   the source of truth and the `origin` of every clone and worktree (reached via
-   the configured `https://git.susi.local/<org>/susi-core.git` canonical URL;
-   the old `.../susi.git` address stays an alias of this repository so every
-   earlier commit builds). It holds the three repositories (`susi-core.git`,
-   `susi.git` for Susi and `susi-tools.git`). GitHub and GitLab hold write-only backup copies, which
-   the canonical server's storage sync refreshes every ten minutes; the public
-   copies of this repository receive only `main` and signed release tags.
-   Nothing is ever fetched from a hosted copy. Never fetch from, push to or
-   depend on a mirror: clone, build, test and release must succeed with every
-   mirror and the internet unreachable. The earlier inbound lane for cloud
-   agents is closed: a cloud agent has no delivery path until it can reach the
-   canonical server directly. Only `refs/heads/main` is published
-   as a branch. Agent handoffs use `refs/agents/<agent>`; qualified release lines
-   use fast-forward-only `refs/candidates/release/<name>`. Release tags are
-   immutable. Preserve the source, artifact and license binding of each release.
-9. Use `xtask local-build debug` for a native development candidate. Guarded
-   commits carry task ownership (`Task: T-<AGENT>-<n>` or native
-   `Task: LOCAL-<name>`). Keep active task scopes and meaningful acceptance
-   available to native tooling; a reservation or successful compile is not
-   acceptance. Close only after the entire acceptance check passes on the actual
-   combined tree. A partial result never closes a broader goal. Keep task
-   records tidy: an active record's place is its state, so no status in it says
-   done, failed or canceled while it is open. Close a finished task through its
-   acceptance; retire one that will not be done with its reason instead of
-   marking it; add no duplicate; keep every record readable, with its goal,
-   size and acceptance; and review an open task nobody has claimed or touched
-   for 14 days.
-10. Clean up finished worktrees only after every commit is on `origin/main`,
-    the tree is clean, no live claim or running agent owns it, and no next task
-    is reusing it. Remove only your own worktree, merged branch and private
-    build target. Never remove the primary checkout, the requester's checkout,
-    another agent's work, unpublished commits or shared build caches. Check
-    ownership and state again immediately before removal.
+- Core is Apache-2.0 and published one way. The designated publisher alone holds push
+  authority. Authorized agents may exercise that authority within their scope; this policy
+  grants no additional write access. Accept no outside pull request, patch or commit.
+  Everyone is free to fork under the license; the license grants code rights, not rights to
+  the Susi name or marks.
+- A local canonical Git server is the source of truth and the `origin` of every clone. GitHub
+  and GitLab hold write-only backup copies, refreshed every ten minutes, and the public
+  copies of this repository receive only `main` and signed release tags. Nothing is ever
+  fetched from a hosted copy: clone, build, test and release must succeed with every mirror
+  and the internet unreachable. Use no hosting-service API, hosted CI or hosted review.
+- Only `refs/heads/main` is published as a branch. Agent handoffs use `refs/agents/<agent>`.
+  Release tags are immutable. Never force-push or change live access controls.
 
-When shared coordination messaging is authorized, keep it tidy by appending
-closures rather than editing or deleting items. Close what you open, answer
-addressed requests and post facts once without noise. Only the originating owner
-or an authorized decision may lift a stop. A request with no reply for two days
-may be closed if both parties have also been silent for two days; a claim may be
-closed two days after its lease ends. Before leaving, reconcile those entries,
-release claims and clean eligible worktrees within the same authorization scope.
+## Speed
 
-## Records and verification
+- Every operation a developer or agent waits on here (build, test, lint, the Linux gates,
+  commit, release) finishes within 10 seconds warm. Cold timings (empty caches) are measured
+  and reported apart, and every timing is quoted with its date, machine and commit.
+- Over the line is a defect, recorded in a task with its measured cause and fixed; it is
+  never met by skipping, loosening or narrowing a test.
+- Run the suite with `cargo nextest run --workspace --offline --locked` (settings in
+  `.config/nextest.toml`) and the doc-tests beside it with `cargo test --doc --workspace
+  --offline --locked` (core has none today).
 
-Operational history, completed tasks, growing facts, evidence and audit records
-belong outside checked-out source, in a local database when available; historical
-records may be absent. Do not add source files or append mandate histories merely
-to retain them. Minimal active coordination may remain while native tools need
-it, and is removed on completion. Required license notices and live recovery or
-authorization data retain their own correctness requirements. Missing history
-never proves acceptance, a completed dependency or a qualified release.
+## Code, commits and tests
 
-Use durable local records for outcomes that require later verification. Record
-current goals and revisit unfulfilled goals and moved upstream dependencies;
-never claim progress from a missing record. Keep goals tidy: record each one
-once, in the words it was given, and never edit it; link every task that serves
-it and never strip the link when rewriting the task; when a goal lives on as a
-standing rule, retain its location in a create-only carried note in local storage,
-which never claims the goal met; account for every goal, taking up or carrying one whose
-tasks are all closed. Preserve required artifact provenance
-with the artifact, independently of optional operational history.
-
-Keep the contract tidy. Review the current contract in place instead of adding a
-new numbered historical mandate. State each rule once, here or in the one
-document this contract links, and point to it elsewhere instead of copying it.
-When a rule changes, correct every older text it touches in the same change, so
-no two current texts disagree. Keep every link and named command resolving, and
-every implementation-truth note true, updated in the change that alters what
-holds its rule. Agent rule files stay identical pointers that restate nothing.
-
-Keep documentation tidy. A document says what is true now and changes in the
-change that alters what it describes; correct or remove it when its subject
-goes. Documentation reflects reality at all times: a stranger must be able to
-tell what each repository is, what is public and what is not finished. Keep one topic in one document, found through the documentation index
-(`docs/README.md`) and extended rather than copied, and list every new document
-there. Keep every relative link and named command resolving. Dated records say
-their date and are listed as records; quoted upstream text keeps its words and
-links.
-
-The local delivery goal remains a verified live executable in under 60 seconds,
-with declared millisecond response budgets. Measure cold/warm build, test,
-startup, goal acknowledgment, first useful output and completion separately;
-include repetitions, failures and rollback. Measure from change ready through
-integration, qualified promotion and observed changed behavior. Demonstrate
-plugin updates over the socket without rebuilding core. Report removed source,
-dependency reach, artifact size and wall-clock cost on identified trees.
-
-Available drivers coordinate local or cloud agents through capability contracts.
-Driver and engine roles compose across every container component with cycle,
-termination/cancellation and resource/time/depth budgets. Nested work cannot
-amplify permissions. Concurrency follows measured capacity, not a fixed agent
-count; autonomy does not grant credentials, spending or destructive authority.
-Default-driver status requires measured parity. Distill labelled work into
-conflict-free release candidates with exact-tree qualification and atomic
-publication; retry a lost integration race against the new head.
-
-## Native implementation and licensing
-
-- Runtime, build/install/release tooling and shipped implementation dependencies
-  must be Rust. A facade does not turn foreign runtime code into Rust. Installed
-  compiler/linker tools and OS ABI calls are explicit platform boundaries.
-- Core ships for x86_64 Linux only (decision of 2026-11-18);
-  qualify releases only on a native x86_64 Linux host. Windows is served by
-  Susi Commercial Apps, which installs and manages the Windows channel; the
-  Windows code still in core is migration debt that is leaving it. Development
-  on a Windows host uses native MSVC and OS APIs with no Bash/WSL/MSYS, Python,
-  Node or container prerequisite. Keep portable source for other targets
-  without adding their builds, tests or release legs. Optional legacy scripts remain migration
-  debt, never prerequisites for native users.
-- Before building, inspect the three repositories, suitable Apache-2.0 work, and the
-  locked dependency graph. Prefer reuse of the needed part; delete what it
-  replaces. Keep the decision in active/local task state. A new dependency needs
-  necessity and qualification, and the change that adds it raises its recorded
-  baseline and says why; capability loss remains prohibited.
-- Copied/harvested source must offer pure Apache-2.0, with that alternative
-  explicitly elected for dual licensing. Preserve section 4 notices, licenses,
-  modification attribution and pinned source provenance. Reject unlicensed or
-  incompatible copied source. Never relabel third-party code.
-- Distributed dependencies permit Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause
-  under the existing deny policy. Evaluate AND/OR obligations and nested source
-  exceptions correctly. Audit transitive dependencies, native objects, model
-  assets, build helpers and statically linked standard-library implementation.
-  A Cargo SPDX pass alone does not qualify those sources or generated tables.
-- Custom standard-library replacements require source, builder, compiler,
-  selected dependency graph and linked-artifact evidence. Do not hide source
-  exceptions, broaden the allowlist or omit shipped objects from the audit.
-  External services are protocol peers, not proof of local license compliance.
-
-## Engineering rules
-
-- Preserve `forbid(unsafe_code)` and `deny(unsafe_code)` boundaries. Existing
-  platform FFI exceptions remain narrowly scoped per function or metadata item
-  with `// SAFETY:` reasoning, ownership and lifecycle tests. No module-wide
-  allowance, shell escape, process-global handle change or raw-handle leakage.
-- Production code has no panic-path macros. Justify every lint allowance inline;
-  tests may use the existing test-only allowances. Keep exhaustive enum matches,
-  `unsafe_op_in_unsafe_fn` denial and formatting checks.
-- Keep code tidy. Before publishing, run rustfmt and Clippy with `-D warnings` on
-  every crate a change affects, and leave no `dbg!`. Add no debt: a new lint
-  allowance gives its reason, a marker comment names its task or the work is
-  done now, and commented-out code is deleted. No file has a line limit: a
-  large file's growth is reported, not refused, and new code goes into a focused
-  module where that reads better. Remove what nothing uses in the change that
-  leaves it unused. Follow the crate's existing patterns; comments say why.
-  Clear debt you meet in its own commit.
-- Keep commits tidy. Each commit is one whole change that builds and passes what
-  it affects, with its task and other trailers together in the final paragraph.
-  Its subject says what in at most 72 characters, with no trailing period; a
-  change over 100 lines has a body that says why, what it found and what it
-  leaves out. Commit only source: no build output, scratch, local state, blob of
-  1 MiB or more, or secret; rotate a committed secret at once. Never rewrite
-  published history; correct a published mistake with a new commit.
-- Return typed `Result<T, EaiError>` from I/O, state and IPC. Prefer infallible
-  constructors; preserve poison recovery and pre-epoch timestamp fallback.
-- Keep the leaf dependency order `paths → error → config → core/sandbox →
-  services → daemon`. No inter-crate edge without necessity. External crates
-  remain owned by their `susi-vendor-*` facade; ordinary `susi-*` crates declare
-  no external normal/build/dev/target dependency. Avoid duplicate declarations.
-- Check HTTP status explicitly: transport success may include non-2xx responses.
-  Preserve body bounds and overflow rejection. Standalone services enable only
-  their own feature; root service dispatch may enable all services.
-- No stubs, fake success, dead public interfaces or lowered acceptance baselines.
-  Inspect every platform/feature configuration before migration. On the exact
-  migration tree run `cargo check --workspace --all-targets` and formatting.
-
-## Secrets, testing and releases
-
-Use only the authorized automation vault or scoped process environment. Never
-open a private personal vault, invent a secret, print a value or place it in
-source, logs, chat, task records or command-line arguments. Portable encrypted
-vaults retain cross-platform unlock; local unattended unlock stays bound to the
-host's native mechanism. Inject only a child's required scope, through pipes or
-its environment. Preserve refusing protected vault paths and all compatibility
-checks until the implementation is safely migrated. Never rotate an authority
-secret or alter credential access as routine cleanup.
-
-Tests are hermetic: private HOME/USERPROFILE/XDG/SUSI_HOME, scratch configuration,
-ports and local Git remotes; no production state or inherited credentials. Clear
-child environments and prove fixture routing before side-effecting test actions.
-A command named `check` may mutate: inspect its behavior rather than trusting its
-name. Do not send real coordination messages from tests.
-
-Keep tests tidy. Before publishing, run the tests a change can break: its crates,
-their dependents, and the root tests that read changed documents or data. Fix a
-test your change turned red at once; when its author has not fixed it within an
-hour of a coordination request, any agent may. Never skip, ignore, loosen or
-delete a test to get green. Each test proves one named behavior; an ignored test
-gives its reason and an expected panic names its message. Wait on conditions
-rather than fixed sleeps. Pin a count or phrase only when it is the contract, and
-move the pin in the change that moves it. Remove tests and fixtures with the code
-they cover.
-
-Use the pinned compiler and committed lockfile. Scope development checks to
-changed crates and dependents, and run all required checks before qualification:
+- Runtime, build, install and release tooling and shipped dependencies are Rust. External
+  crates are owned by their `susi-vendor-*` facade; ordinary `susi-*` crates declare no
+  external dependency. Keep the leaf dependency order `paths → error → config → core/sandbox
+  → services → daemon`.
+- Preserve `forbid(unsafe_code)` and `deny(unsafe_code)` boundaries; the existing platform
+  FFI exceptions stay scoped per function with `// SAFETY:` reasoning. Production code has no
+  panic-path macros. Justify every lint allowance inline. Return typed `Result<T, EaiError>`
+  from I/O, state and IPC. Check HTTP status explicitly. No stubs, fake success, dead public
+  interfaces or lowered acceptance baselines.
+- Before publishing, run rustfmt and Clippy with `-D warnings` on every crate a change
+  affects. Remove what nothing uses in the change that leaves it unused. A marker comment
+  names its task, and commented-out code is deleted.
+- Each commit is one whole change that builds and passes what it affects, with its trailers
+  together in the final paragraph. Its subject says what in at most 72 characters, with no
+  trailing period; a change over 100 lines has a body that says why. Commit only source: no
+  build output, scratch, local state, blob of 1 MiB or more, or secret; rotate a committed
+  secret at once. Never rewrite published history; correct a published mistake with a new
+  commit. The hooks in `.githooks/` refuse large blobs, secret-shaped lines and an added
+  `dbg!`.
+- Tests are hermetic: private HOME, USERPROFILE, XDG and SUSI_HOME, scratch configuration,
+  ports and local Git remotes; no production state or inherited credentials. Do not send real
+  coordination messages from tests. Never skip, ignore, loosen or delete a test to get green.
+  Each test proves one named behavior. Pin a count or phrase only when it is the contract,
+  and move the pin in the change that moves it. Remove tests and fixtures with the code they
+  cover. Nonempty executed tests are required; ignored tests and compilation are not passes.
+- Use the pinned compiler and committed lockfile. The required checks:
 
 ```text
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --offline --locked -- -D warnings
-cargo test --workspace --offline --locked
+cargo nextest run --workspace --offline --locked
 cargo deny --offline --locked check licenses
 ```
 
-`cargo nextest run --workspace --offline --locked` with the doc-tests beside it
-runs the same tests side by side and is the fast way (Speed, above).
+## Platform and licensing
 
-Do not enable mutually exclusive accelerator features together. Offline Cargo
-does not sandbox build-script network activity; verify sources and build scripts.
-Nonempty executed tests are required; ignored tests and compilation are not passes.
-Report limitations and keep unmet requirements open.
+- Core ships for x86_64 Linux only; qualify releases only on a native x86_64 Linux host.
+  Keep portable source for other targets without adding their builds, tests or releases.
+- Copied or harvested source must offer pure Apache-2.0, with that alternative explicitly
+  elected for dual licensing. Preserve section 4 notices, licenses, modification attribution
+  and pinned source provenance. Never relabel third-party code.
+- Distributed dependencies permit Apache-2.0, MIT, BSD-2-Clause and BSD-3-Clause under the
+  deny policy in `deny.toml`. Audit transitive dependencies, native objects, build helpers
+  and the statically linked standard library, not only their declared licenses.
 
-Keep debug and optimized candidates separate from installed production. Production
-promotion requires exact source/lock/toolchain/target/feature evidence, license
-and Rust audits, required tests, executable smoke tests and an artifact digest.
-Use atomic replacement, health checks and tested rollback to the previous verified
-artifact, including interruption and native file locks. Never install an
-unqualified candidate as production. A release qualified for this host is complete
-only when the installed binary, `susi.build.json` and live daemon are synchronized
-and healthy. Reuse the qualified artifact after digest verification; keep
-any scheduled task unprivileged (`RunLevel=Limited` where Windows code remains). Keep the installed release current
-when a newer release is already qualified for this host, its remote is reachable
-and no client is mid-mission; verify its artifact and retain rollback. Source
-publication, a model claim
-or an immutable tag alone does not establish production qualification.
+## Secrets
 
-Keep releases tidy. Cut each version once and never move, re-cut or delete its
-tag; follow a broken release with a new version. Publish the tag, its record and
-its qualification record together, agreeing on the commit. Each release says what
-it ships, from its commits' task trailers. Open a candidate line only when none
-serves the version; never move one, and retire it once it has ended (below).
-Remove local build outputs and test-release directories once the release is
-published.
+Use only the authorized automation vault or scoped process environment. Never open a private
+personal vault, invent a secret, print a value or place it in source, logs, chat, task records
+or command-line arguments. Inject only a child's required scope, through pipes or its
+environment. Never rotate an authority secret or alter credential access as routine cleanup.
 
-Keep candidates tidy. A release candidate is `refs/candidates/release/vX.Y.Z-rcN`
-and a distilled feature `refs/candidates/distill/<feature>`; one version has one
-open line, advanced by fast-forward, with a new rcN only when the open line
-cannot fast-forward. Open a line under a task and announce it; release or settle
-a line that has not moved for three days. This contract authorizes deleting a
-candidate line once it has ended (released, superseded or merged into a release):
-delete exactly those lines, each only at the object observed, in one atomic push,
-and record each in `.agents/storage/directed-deletions.txt` in the same session.
-Never delete an open line or any other ref under this authorization.
+## Releases
+
+A release is a signed tag `vX.Y.Z` on `main`; an unsigned tag is never published. Cut each
+version once and never move, re-cut or delete its tag; follow a broken release with a new
+version. Publish the tag, its record and its qualification record together. Never install an
+unqualified candidate as production. Use atomic replacement, health checks and tested rollback
+to the previous verified artifact; `susi install` never replaces a different existing program.
+
+## Records and documents
+
+- Operational history, completed tasks, evidence and audit records belong outside checked-out
+  source. Missing history never proves acceptance, a completed dependency or a qualified
+  release.
+- Documentation reflects reality at all times: a document says what is true now and changes
+  in the change that alters what it describes, and is corrected or removed when its subject
+  goes. One topic lives in one document, listed in `docs/README.md`.
+- State each rule once, here, and point to it elsewhere instead of copying it. Agent rule
+  files stay identical pointers that restate nothing (`CLAUDE.md`, `GEMINI.md`).
+
+## Not finished
+
+- **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
+  19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
+- **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools,
+  and core's release check for unsafe code still builds its tools from a Susi release.
+- **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
+  GEMI holds no code yet.
+- **Old records and pages:** many documents in `docs/` describe features that left core on
+  2026-11-22 and are being removed; finished task records still sit in
+  `.agents/tasks/done/`; the goal notes in `.agents/visions/carried/` name sections of the
+  earlier contract by number, and the rules they name are kept here word for word.
+- **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`
+  are still worded as ceilings that only go down.

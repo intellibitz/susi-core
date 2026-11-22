@@ -15,8 +15,7 @@ This file remains the enforceable contract. Core links no Wasm runtime: the
 Wasmi reflex sandbox (the compatibility-named `susi-vendor-wasmtime` crate) and
 its client are served by Susi Commercial Apps; no Wasmtime is linked.
 
-Constitutional source of truth for product claims remains
-[`.agents/identity.json`](.agents/identity.json). When this file and identity
+The rules live in [`AGENTS.md`](AGENTS.md). When this file and the source
 disagree on host ports or pillar names, **source wins** and both are updated in
 the same change.
 

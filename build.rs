@@ -31,10 +31,7 @@ fn main() {
         .expect("Could not find version in Cargo.toml")
         .to_string();
 
-    for (rel, schema) in [
-        (".agents/identity.json", "susi/identity/v1"),
-        (".agents/roadmap.json", "susi/roadmap/v1"),
-    ] {
+    for (rel, schema) in [(".agents/roadmap.json", "susi/roadmap/v1")] {
         sync_json_version(Path::new(rel), schema, &version);
         println!("cargo:rerun-if-changed={rel}");
     }

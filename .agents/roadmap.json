@@ -1,5 +1,5 @@
 {
-  "description": "Structural roadmap and future evolution goals of the SUSI local-and-cloud AI operating layer (agent governance \u2014 not end-user docs). Implemented truth remains identity.json plus evidence.json; roadmap text is not proof.",
+  "description": "Structural roadmap and future evolution goals of the SUSI local-and-cloud AI operating layer (agent governance \u2014 not end-user docs). Implemented truth remains the source plus evidence.json; roadmap text is not proof.",
   "schema": "susi/roadmap/v1",
   "strategic_priority": "Evidence-Gated Recursive Self-Improvement + Swarm Local/Cloud AI Operations",
   "target_version": "0.15.0",

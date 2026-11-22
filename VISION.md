@@ -157,7 +157,7 @@ As of the evidence ledger's latest verification, SUSI has:
 - cross-process-safe receipt archives and semantic-index persistence.
 
 This list is a summary, not independent proof. Exact evidence and limitations
-remain in `.agents/evidence.json` and `.agents/identity.json`.
+remain in `.agents/evidence.json`.
 
 ## Next horizon: 0.15 local + cloud federation
 
