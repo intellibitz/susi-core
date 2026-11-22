@@ -66,9 +66,10 @@ signed release with plain notes.
    agent's files or the requester's working directory.
 2. Start every session with `susi-tools workflow check`: it fast-forwards a clean checkout,
    shows what is addressed to you and says what you hold.
-3. Claim before your first edit: `susi-tools tasks claim <id> --scope <path>`. A claim needs
-   its task on `main`, so add a new one with `susi-tools tasks add`, commit and ship it
-   first. Keep one live claim per worker, and when you stop, hand off or finish, release it
+3. Claim before your first edit. A new task takes one command, `susi-tools tasks start
+   "<title>" --accept "<cargo command>" --scope <path>`, which adds its record, commits and
+   ships it, and claims it; an open task takes `susi-tools tasks claim <id> --scope <path>`.
+   Keep one live claim per worker, and when you stop, hand off or finish, release it
    in the same step. Preserve unpublished work or deliberately abandon it with explicit
    authority; never silently discard it.
 4. Commit with a `Task: <id>` trailer. Push the commit to `refs/agents/<your-name>` and run
@@ -77,7 +78,8 @@ signed release with plain notes.
    them.
 5. Ship with `susi-tools ship`, a fast-forward of `main`; merge first when `main` has moved
    on. Verify the remote contains the commit before claiming it landed.
-6. Close with `susi-tools tasks close <id>`, which runs the task's acceptance: a reservation
+6. Close with `susi-tools tasks finish <id>`, which runs the task's acceptance, commits the
+   close and ships it (`tasks close` then `ship`): a reservation
    or successful compile is not acceptance. Close only after the entire acceptance check
    passes on the actual combined tree.
 7. Remove your finished worktrees once every commit is on `origin/main`, the tree is clean
