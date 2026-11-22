@@ -18,9 +18,9 @@ Use an external output directory where supported; migrating the remaining
 writers and functional record readers is implementation work. Preserve required
 authorization and recovery behavior until a working replacement is verified.
 
-GMCP evidence is recorded and verified in Susi Commercial Apps, which certifies
-its own runtime against the MCP specification text pinned here
-([provenance](../.agents/gmcp/SPEC-PROVENANCE.md)). No history is proof by itself.
+GMCP evidence was recorded in Susi until 2026-11-22, when the GMCP product and
+its certification were removed; the copy of the MCP specification core pinned
+for it went the same day, and history keeps both. No history is proof by itself.
 
 Qualification evidence must remain available with the artifact it qualifies,
 outside the source checkout. Keep license, copyright and required attribution

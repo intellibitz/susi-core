@@ -153,7 +153,7 @@ legacy schema/API compatibility.
 |------|------|
 | [`.agents/identity.json`](../.agents/identity.json) | Current rules, component topology and protocols (`susi/identity/v1`) |
 | [`.agents/roadmap.json`](../.agents/roadmap.json) | Current goals (`susi/roadmap/v1`), not completion evidence |
-| [`.agents/gmcp/SPEC-PROVENANCE.md`](../.agents/gmcp/SPEC-PROVENANCE.md) | Pinned third-party MCP specification text; GMCP certification is maintained in Susi Commercial Apps |
+| The MCP specification | Upstream, in the `modelcontextprotocol/modelcontextprotocol` repository. Core's pinned copy and Susi's GMCP certification were removed on 2026-11-22; history keeps them |
 | [`.agents/evidence.json`](../.agents/evidence.json) | Empty compatibility template (`susi/evidence/v1`); no compiled activity history |
 | [`.agents/tasks/`](../.agents/tasks/) | Active task intent, scopes and acceptance commands |
 | [`.agents/lanes/`](../.agents/lanes/) | Active worker placement in the learning loop |

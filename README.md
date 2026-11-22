@@ -209,7 +209,7 @@ describes available commands and migration limits.
 - [docs/architecture.md](docs/architecture.md): pillars, Tier S invariants, plane bus and its loopback rendezvous, implementation services and protocol adapters, the lean-core direction, the command reference.
 - [docs/evidence.md](docs/evidence.md): verified claims, platforms, the delivery workflow and every admitted gap.
 - [ARCHITECTURE.md](ARCHITECTURE.md): the enforceable crate-boundary contract (`tests/architecture_tests.rs`).
-- [.agents/gmcp/SPEC-PROVENANCE.md](.agents/gmcp/SPEC-PROVENANCE.md): the pinned third-party MCP specification text core keeps; GMCP certification (requirements ledger, contracts, roadmap and evidence) is maintained in Susi Commercial Apps.
+- The MCP specification: upstream, in the `modelcontextprotocol/modelcontextprotocol` repository. Core kept a pinned copy of it, and Susi a GMCP certification built on that copy, until 2026-11-22, when both were removed; history keeps them.
 - [docs/lean-core.md](docs/lean-core.md#complete-socket-size): how core's size is counted by category (first-party runtime Rust apart from tests, tooling, vendored sources and audit trails), measured and printed by [`tests/lean_core_ceilings.rs`](tests/lean_core_ceilings.rs). Core has no line limit: `cargo core-size` reports the number and never fails on it.
 - [docs/extension-pack.md](docs/extension-pack.md), [docs/harness.md](docs/harness.md), [VISION.md](VISION.md), [CONTRIBUTING.md](CONTRIBUTING.md).
 

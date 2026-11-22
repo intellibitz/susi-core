@@ -63,8 +63,11 @@ holds one tool so far, a speed report.
 ## GMCP
 
 GMCP certification (the requirements ledger, one contract per vector, the
-roadmap and the evidence) is maintained in Susi Commercial Apps. Core keeps the
-MCP socket and the [pinned MCP specification text](../.agents/gmcp/SPEC-PROVENANCE.md).
+roadmap and the evidence) was kept in Susi until 2026-11-22, when it was
+removed with the GMCP product, and the pinned copy of the MCP specification core
+kept for it was removed the same day; history keeps both. Core keeps the MCP
+socket; the specification is upstream, in the
+`modelcontextprotocol/modelcontextprotocol` repository.
 
 ## Elsewhere in the repository
 
