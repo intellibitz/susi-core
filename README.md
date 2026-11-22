@@ -6,8 +6,8 @@
 is a local-first AI OS socket: one Rust daemon exposes models, agents and tools
 through stable protocols on ports `9090-9094`.
 
-Susi Core is one of three repositories that move together ([`ECOSYSTEM.md`](ECOSYSTEM.md)
-is the same page in all three):
+Susi Core is one of three repositories that move together (the ecosystem page,
+`ECOSYSTEM.md` in the Susi Tools repository, says how they fit):
 
 | Name | What it is | Public? |
 |------|------------|---------|
@@ -29,8 +29,8 @@ Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
 become `susi-core`; development-only code (`scripts/`, `toolchain/`, `fuzz/`)
 is still in this tree and will move to Susi Tools, whose only tool so far is a
-speed report;
-two test files still need a checkout of the private repository; and since
+speed report; every command but `help` and `install` forwards to a runtime
+host that no longer exists, so the program does not yet run on its own; and since
 2026-11-22 the product holds only its licence and vault core while its apps
 are rebuilt, so a capability core points to the product for has no
 implementation there today.

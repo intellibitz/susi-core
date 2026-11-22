@@ -71,9 +71,9 @@ socket; the specification is upstream, in the
 
 ## Elsewhere in the repository
 
-- [The Susi AI OS ecosystem](../ECOSYSTEM.md): the three repositories, how they
-  relate and where they stand; the same page in Susi, Susi Core and Susi Tools,
-  held so by `tests/ecosystem_page.rs` here and in Susi.
+- The Susi AI OS ecosystem: the three repositories, how they relate and where
+  they stand. One page, `ECOSYSTEM.md`, kept in the Susi Tools repository since
+  2026-11-22 (it was a copy in each repository, held the same by a test).
 - [SUSI architecture](../ARCHITECTURE.md)
 - [SUSI vision](../VISION.md)
 - [Forking and contributing to Susi](../CONTRIBUTING.md)

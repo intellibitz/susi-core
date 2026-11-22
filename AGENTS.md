@@ -29,11 +29,13 @@ something that is not finished, it says so.
   is not the `crates/susi-tools` crate in this workspace, which is the
   tool-socket binding.
 - **Dependencies flow one way**: from Susi to Susi Core and Susi Tools, never
-  the reverse. Susi Core never needs the private product to build or run, and
-  Susi Tools stands on Susi Core alone. Not done yet: two of this repository's
-  test files (`tests/functional_distillation.rs` and
-  `tests/pure_apache2_cloud_harvest.rs`) still build core's release tools from
-  a checkout of the private repository and fail without one.
+  the reverse, and Susi Core and Susi Tools do not depend on each other. Susi
+  Core never needs the private product to build or test: the two tests that
+  built core's release tools from a checkout of the private repository left on
+  2026-11-22 with those tools, which are to be rebuilt in Susi Tools. Not done
+  yet: core's release check for unsafe code still builds its tools from a Susi
+  release, and every command but `help` and `install` still forwards to a
+  runtime host that no longer exists, so core does not yet run on its own.
 - **Nothing secret and nothing of the private product enters this
   repository**: no credential, key, licence material, private record or
   proprietary source, in any file or in the history.
@@ -85,9 +87,9 @@ waiting more than 10s for anything - test, releases whatever it is."
   tests `cargo test` runs). The same repeat run took about 70 seconds while
   the tests ran one program at a time. One named test program
   (`-Test architecture_tests`) takes 8 seconds. A brand-new agent's first
-  run takes 69 seconds. The slowest single test takes 7.6 seconds
-  (`tests/functional_distillation.rs`, which builds core's release tools from
-  a checkout of the private repository), so it bounds the whole test run.
+  run takes 69 seconds. The slowest single test was 7.6 seconds
+  (`tests/functional_distillation.rs`, which built core's release tools from
+  a checkout of the private repository); it left core the same day.
   Not done yet: the whole gates under 10 seconds; the WSL start, the setup
   before the tests (2 to 6 seconds) and the size step (2 to 3 seconds) still
   run one after the other.
