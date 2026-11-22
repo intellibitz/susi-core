@@ -1,0 +1,17 @@
+{
+  "id": "T-CLAUDE-439",
+  "title": "Say Core's measured speed, upgrade path and purpose truthfully",
+  "goal": "Advisor review 2026-11-22: the speed note quoted a test-file edit, not a library edit; the upgrade claim was untested; the package description still advertised the removed runtime.",
+  "size": "s",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "test",
+      "--test",
+      "agent_contract"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795346574
+}
