@@ -109,5 +109,5 @@ and wires each command to them. Libraries never link a composition root.
 ## Not finished
 
 - GAWD and GEMI have no code; a pillar returns when a program serves it.
-- `toolchain/` (the standard-library builder) and `scripts/` are development code that belongs
-  in Susi Tools.
+- `scripts/` and the Git hooks are development code that belongs in Susi Tools.
+  (`toolchain/linux_link.rs` stays: it is the build script's native link policy.)

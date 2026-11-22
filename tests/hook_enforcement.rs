@@ -160,14 +160,21 @@ fn a_trailer_naming_an_open_task_is_accepted() {
     assert!(err.contains("not an open task"), "{err}");
 }
 
-#[test]
-fn standalone_pre_push_allows_ff_and_blocks_force_delete_tag_move_and_board_refs() {
-    let f = Fixture::new("prepush");
-    // Strip PATH down to system essentials without any push-policy binary, and
-    // run in an isolated temp root with zero sibling commercial checkout.
-    let empty_bin = f.root.join("no-tools");
-    std::fs::create_dir_all(&empty_bin).unwrap();
-    let base_sha = command(&f.work, "git", &["rev-parse", "HEAD"], "", &[])
+/// What a pre-push case is handed: the commit before the fixture's commit, the fixture's
+/// commit, and the all-zero id Git uses for "no object".
+struct Push<'a> {
+    base: &'a str,
+    head: &'a str,
+    zero: &'a str,
+}
+
+/// Run the real pre-push hook, with no `push-policy` anywhere on `PATH`, on one ref update
+/// `line` builds, in a fixture of its own. Each case is its own test so they run side by
+/// side: until 2026-11-22 the eight ran one after another in one test, 4 to 7 seconds of the
+/// gate's 10.
+fn pre_push(tag: &str, strict: bool, line: impl Fn(&Push) -> String) -> (i32, String) {
+    let f = Fixture::new(tag);
+    let base = command(&f.work, "git", &["rev-parse", "HEAD"], "", &[])
         .1
         .trim()
         .to_string();
@@ -183,14 +190,12 @@ fn standalone_pre_push_allows_ff_and_blocks_force_delete_tag_move_and_board_refs
             "Task: LOCAL-prepush-fixture",
         ],
     );
-    let head_sha = command(&f.work, "git", &["rev-parse", "HEAD"], "", &[])
+    let head = command(&f.work, "git", &["rev-parse", "HEAD"], "", &[])
         .1
         .trim()
         .to_string();
     let zero = "0000000000000000000000000000000000000000";
-
-    // Filter out any directory containing push-policy from PATH so the
-    // standalone pure-local fallback inside .githooks/pre-push always executes.
+    // Leave out every directory holding push-policy, so the hook's own checks run.
     let clean_path = std::env::var_os("PATH")
         .map(|raw| {
             std::env::join_paths(std::env::split_paths(&raw).filter(|dir| {
@@ -201,119 +206,90 @@ fn standalone_pre_push_allows_ff_and_blocks_force_delete_tag_move_and_board_refs
             .into_owned()
         })
         .unwrap_or_default();
-    let envs = [("PATH", clean_path.as_str())];
-
-    // 1. Clean fast-forward push on main succeeds standalone.
-    let ff = format!("refs/heads/main {head_sha} refs/heads/main {base_sha}\n");
+    let mut envs = vec![("PATH", clean_path.as_str())];
+    if strict {
+        envs.push(("SUSI_REQUIRE_PUSH_POLICY", "1"));
+    }
+    let stdin = line(&Push {
+        base: &base,
+        head: &head,
+        zero,
+    });
     let (code, _, err) = hook(
         &f.work,
         "pre-push",
         &["origin", "file:///tmp/bare"],
-        &ff,
+        &stdin,
         &envs,
     );
-    assert_eq!(code, 0, "standalone FF push must succeed: {err}");
+    (code, err)
+}
 
-    // 2. Non-fast-forward (rewind) push is refused.
-    let non_ff = format!("refs/heads/main {base_sha} refs/heads/main {head_sha}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &non_ff,
-        &envs,
-    );
-    assert_ne!(code, 0, "non-FF push must be refused");
+fn refused_for_transport_safety((code, err): (i32, String)) {
+    assert_ne!(code, 0, "the push must be refused: {err}");
     assert!(
         err.contains("refusing the push (transport safety)"),
         "{err}"
     );
+}
 
-    // 3. Branch deletion is refused.
-    let del_branch = format!("(delete) {zero} refs/heads/main {head_sha}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &del_branch,
-        &envs,
-    );
-    assert_ne!(code, 0, "branch deletion must be refused");
-    assert!(
-        err.contains("refusing the push (transport safety)"),
-        "{err}"
-    );
+#[test]
+fn pre_push_admits_a_fast_forward() {
+    let (code, err) = pre_push("prepush-ff", false, |p| {
+        format!("refs/heads/main {} refs/heads/main {}\n", p.head, p.base)
+    });
+    assert_eq!(code, 0, "a fast-forward push must succeed: {err}");
+}
 
-    // 4. Moving or deleting an existing tag is refused; creating a new tag succeeds.
-    let new_tag = format!("refs/tags/v0.1.0 {head_sha} refs/tags/v0.1.0 {zero}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &new_tag,
-        &envs,
-    );
-    assert_eq!(code, 0, "new tag push must succeed: {err}");
+#[test]
+fn pre_push_refuses_a_rewind() {
+    refused_for_transport_safety(pre_push("prepush-rewind", false, |p| {
+        format!("refs/heads/main {} refs/heads/main {}\n", p.base, p.head)
+    }));
+}
 
-    let move_tag = format!("refs/tags/v0.1.0 {head_sha} refs/tags/v0.1.0 {base_sha}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &move_tag,
-        &envs,
-    );
-    assert_ne!(code, 0, "moving an existing tag must be refused");
-    assert!(
-        err.contains("refusing the push (transport safety)"),
-        "{err}"
-    );
+#[test]
+fn pre_push_refuses_deleting_a_branch() {
+    refused_for_transport_safety(pre_push("prepush-delete-branch", false, |p| {
+        format!("(delete) {} refs/heads/main {}\n", p.zero, p.head)
+    }));
+}
 
-    let del_tag = format!("(delete) {zero} refs/tags/v0.1.0 {head_sha}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &del_tag,
-        &envs,
-    );
-    assert_ne!(code, 0, "deleting an existing tag must be refused");
-    assert!(
-        err.contains("refusing the push (transport safety)"),
-        "{err}"
-    );
+#[test]
+fn pre_push_admits_a_new_tag() {
+    let (code, err) = pre_push("prepush-new-tag", false, |p| {
+        format!("refs/tags/v0.1.0 {} refs/tags/v0.1.0 {}\n", p.head, p.zero)
+    });
+    assert_eq!(code, 0, "a new tag push must succeed: {err}");
+}
 
-    // 5. Private board refs are refused by core-boundary-guard.
-    let board_name = ["refs", "board", "item-1"].join("/");
-    let board_ref = format!("{board_name} {head_sha} {board_name} {zero}\n");
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &board_ref,
-        &envs,
-    );
-    assert_ne!(code, 0, "private board ref push must be refused");
+#[test]
+fn pre_push_refuses_moving_a_tag() {
+    refused_for_transport_safety(pre_push("prepush-move-tag", false, |p| {
+        format!("refs/tags/v0.1.0 {} refs/tags/v0.1.0 {}\n", p.head, p.base)
+    }));
+}
+
+#[test]
+fn pre_push_refuses_deleting_a_tag() {
+    refused_for_transport_safety(pre_push("prepush-delete-tag", false, |p| {
+        format!("(delete) {} refs/tags/v0.1.0 {}\n", p.zero, p.head)
+    }));
+}
+
+#[test]
+fn pre_push_refuses_a_private_board_ref() {
+    let board = ["refs", "board", "item-1"].join("/");
+    let (code, err) = pre_push("prepush-board", false, |p| {
+        format!("{board} {} {board} {}\n", p.head, p.zero)
+    });
+    assert_ne!(code, 0, "a private board ref push must be refused");
     assert!(err.contains("core-boundary-guard"), "{err}");
+}
 
-    // 6. Opt-in strict mode fails closed without push-policy.
-    let strict_envs = [
-        ("PATH", clean_path.as_str()),
-        ("SUSI_REQUIRE_PUSH_POLICY", "1"),
-    ];
-    let (code, _, err) = hook(
-        &f.work,
-        "pre-push",
-        &["origin", "file:///tmp/bare"],
-        &ff,
-        &strict_envs,
-    );
-    assert_ne!(
-        code, 0,
-        "SUSI_REQUIRE_PUSH_POLICY=1 must refuse when push-policy is absent"
-    );
-    assert!(
-        err.contains("refusing the push (transport safety)"),
-        "{err}"
-    );
+#[test]
+fn pre_push_fails_closed_without_push_policy_in_strict_mode() {
+    refused_for_transport_safety(pre_push("prepush-strict", true, |p| {
+        format!("refs/heads/main {} refs/heads/main {}\n", p.head, p.base)
+    }));
 }

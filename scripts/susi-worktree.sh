@@ -45,5 +45,5 @@ for bin in "${SUSI_WORKFLOW_BIN:-}" "$(command -v susi-commercial 2>/dev/null)" 
         exec "$bin" workflow start "$@" 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
     fi
 done
-echo "susi-worktree: no susi with \`workflow start\` found (SUSI_WORKFLOW_BIN, the installed susi, this checkout's target/): no worktree made. Install the current release: scripts/susi-release-sync.sh — or build this checkout: cargo build" >&2
+echo "susi-worktree: no susi with \`workflow start\` found (SUSI_WORKFLOW_BIN, the installed susi, this checkout's target/): no worktree made. Build this checkout: cargo build" >&2
 exit 1

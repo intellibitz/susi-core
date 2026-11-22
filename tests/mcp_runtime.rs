@@ -45,6 +45,45 @@ fn susi(place: &Path, offset: u16) -> Command {
     command
 }
 
+/// Zero configuration: with an empty home, no Susi variable and no argument but the command, the
+/// program serves the folder it is started in and writes nothing anywhere. Until 2026-11-22 this
+/// was claimed by tests that wrote their own stand-in files and checked those.
+#[test]
+fn mcp_serve_needs_no_setting_and_writes_nothing() {
+    let p = place("zero-config");
+    let mut command = Command::new(env!("CARGO_BIN_EXE_susi"));
+    susi_paths::test_env::isolate_home(&mut command, &p.dir.join("home"));
+    for (name, _) in std::env::vars_os() {
+        if name.to_string_lossy().starts_with("SUSI_") {
+            command.env_remove(&name);
+        }
+    }
+    let mut child = command
+        .args(["mcp", "serve"])
+        .current_dir(p.dir.join("work"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    writeln!(
+        input,
+        "{}",
+        json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"notes.txt"}}})
+    )
+    .unwrap();
+    drop(input);
+    let out = child.wait_with_output().unwrap();
+    assert!(out.status.success());
+    let answer: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(
+        answer["result"]["content"][0]["text"],
+        "the plan is small\n"
+    );
+    let written: Vec<_> = std::fs::read_dir(p.dir.join("home")).unwrap().collect();
+    assert!(written.is_empty(), "the home stays empty: {written:?}");
+}
+
 #[test]
 fn mcp_serve_answers_a_client_session_over_stdio() {
     let p = place("stdio");

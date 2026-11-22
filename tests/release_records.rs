@@ -7,7 +7,7 @@
 //! each reference binary's sha256, the targets that have no reference build,
 //! and the checks run. No host's release page is the record.
 //!
-//! `scripts/susi-release-sync.sh`, `install.sh` and the commercial
+//! `install.sh` and the commercial
 //! `scripts/refresh-certified-core.sh` read these files with plain line tools
 //! (no JSON parser is assumed on a fresh host), so this suite pins the layout
 //! they rely on as well as the content: the scalar fields they read are on

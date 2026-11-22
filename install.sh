@@ -38,14 +38,13 @@ fi
 set -e
 set -o pipefail
 
-# Release scope (CEO decision 2026-11-03): the free public core release is
-# published for x86_64 Windows and x86_64 Linux only. macOS and non-x86_64
-# Linux support stays in the source, but core publishes no binary for them;
-# certified builds for other platforms come from the Susi commercial suite.
-# Refuse before any directory is created, download attempted or build run.
+# Release scope: Susi Core is Linux-only, and its release is for x86_64 Linux
+# (CEO decisions 2026-11-03 and 2026-11-22). Other platforms are served by the
+# Susi commercial suite. Refuse before any directory is created, download
+# attempted or build run.
 case "$(uname -s)" in
     Darwin*)
-        echo "Error: this is macOS. The free Susi core release supports x86_64 Windows and x86_64 Linux only." >&2
+        echo "Error: this is macOS. The free Susi core release supports x86_64 Linux only." >&2
         echo "Other platforms, including macOS, are served by the Susi commercial suite. Nothing was installed." >&2
         exit 1
         ;;
@@ -53,7 +52,7 @@ case "$(uname -s)" in
         case "$(uname -m)" in
             x86_64|amd64) ;;
             *)
-                echo "Error: this is $(uname -m) Linux. The free Susi core release supports x86_64 Windows and x86_64 Linux only." >&2
+                echo "Error: this is $(uname -m) Linux. The free Susi core release supports x86_64 Linux only." >&2
                 echo "Other platforms, including non-x86_64 Linux, are served by the Susi commercial suite. Nothing was installed." >&2
                 exit 1
                 ;;
@@ -77,12 +76,11 @@ OS_TYPE="$(uname -s | tr '[:upper:]' '[:lower:]')"
 case "$OS_TYPE" in
     linux*)  PLATFORM="linux" ;;
     mingw*|cygwin*|msys*)
-        echo "Error: Native Windows shell detected ($OS_TYPE). Use the native Windows PowerShell installer from a checkout instead:" >&2
-        echo "  powershell -NoProfile -ExecutionPolicy Bypass -File ./install.ps1" >&2
+        echo "Error: native Windows shell detected ($OS_TYPE). Susi Core is Linux-only: on Windows, run this installer inside WSL2. Nothing was installed." >&2
         exit 1
         ;;
     *)
-        echo "Error: unsupported platform $(uname -s). The free Susi core release supports x86_64 Windows and x86_64 Linux only." >&2
+        echo "Error: unsupported platform $(uname -s). The free Susi core release supports x86_64 Linux only." >&2
         exit 1
         ;;
 esac
@@ -144,9 +142,9 @@ if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
 fi
 VERSION="${TAG#v}"
 
-# 4. Check the tag out into the private release checkout the upgrade script
-# (scripts/susi-release-sync.sh) also uses, and read its record from the
-# repository's default branch.
+# 4. Check the tag out into the private release checkout, and read its record
+# from the repository's default branch. Running this installer again is how an
+# installation moves to a newer release.
 SRC="$GLOBAL_SUSI_DIR/release-src"
 if [ ! -d "$SRC/.git" ]; then
     echo "Cloning $SOURCE_REPO into $SRC..."
@@ -287,7 +285,7 @@ echo "Deployed susi $VERSION to $GLOBAL_BIN_DIR"
 # 5. Daemon Persistence
 # susi starts no daemon by itself: `susi start --root <folder>` runs one in the
 # background, and `susi stop` ends it. SUSI_ALWAYS_ON=1 registers a login service
-# (systemd user unit / launchd agent) that runs `susi daemon run --root $HOME` in the
+# (a systemd user unit) that runs `susi daemon run --root $HOME` in the
 # foreground and restarts it on exit - opt-in because an always-on background
 # process is a commitment the user should choose, not a silent default.
 # SUSI_NO_DAEMON=1 skips this section entirely.
@@ -334,37 +332,6 @@ EOF
             echo "  Warning: could not reach the systemd user session bus; skipping service start."
             echo "  start the daemon yourself with: susi start --root <folder>"
         fi
-    fi
-elif [ -n "$SUSI_ALWAYS_ON" ] && [[ "$PLATFORM" == "macos" ]]; then
-    echo "Registering susi daemon with launchd (Always-On Mode, SUSI_ALWAYS_ON=1)."
-    LAUNCHD_PLIST="$HOME/Library/LaunchAgents/com.susi.daemon.plist"
-    cat <<EOF > "$LAUNCHD_PLIST"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.susi.daemon</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>$GLOBAL_BIN_DIR/susi</string>
-        <string>daemon</string>
-        <string>run</string>
-        <string>--root</string>
-        <string>$HOME</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>ThrottleInterval</key>
-    <integer>30</integer>
-</dict>
-</plist>
-EOF
-    if ! launchctl load "$LAUNCHD_PLIST" 2>/dev/null; then
-        echo "  Warning: could not register with launchd; skipping service start."
-        echo "  start the daemon yourself with: susi start --root <folder>"
     fi
 else
     echo "No service registered: start the daemon with 'susi start --root <folder>' (SUSI_ALWAYS_ON=1 registers one that starts at login)."

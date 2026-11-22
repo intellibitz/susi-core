@@ -71,7 +71,7 @@ for bin in "${SUSI_WORKFLOW_BIN:-}" "$(command -v susi-commercial 2>/dev/null)" 
         exec "$bin" workflow seed-target "$@" 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
     fi
 done
-echo "target: no susi with \`workflow seed-target\` found (SUSI_WORKFLOW_BIN, installed, this/primary/sibling target/): nothing is copied, and the first build compiles everything. Install the current release: scripts/susi-release-sync.sh" >&2
+echo "target: no susi with \`workflow seed-target\` found (SUSI_WORKFLOW_BIN, installed, this/primary/sibling target/): nothing is copied, and the first build compiles everything." >&2
 # The worktree named (the last argument that is no flag), else this one;
 # --refresh has nothing to fall back on.
 dir=

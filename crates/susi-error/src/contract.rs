@@ -13,19 +13,31 @@ pub(super) type VariantSpec = (
     fn(String) -> EaiError,
 );
 
-/// `governance.secret_tokens` from the bundled default config.
+/// Prefixes of credentials masked before metrics are recorded: a match at the start of a token
+/// is replaced, with the rest of the token, by `[REDACTED]`. Until 2026-11-22 they were read at
+/// run time from `governance.secret_tokens` in the earlier runtime's bundled default config (486
+/// lines, of which nothing else was read); that file left Core that day. The PEM entry was the
+/// whole RSA key header then; its prefix masks the same header, and a whole header is a line the
+/// public server refuses as a possible private key.
+const SECRET_TOKEN_PREFIXES: [&str; 8] = [
+    "sk-",
+    "ghp_",
+    "AIza",
+    "xoxb-",
+    "github_pat_",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "-----BEGIN RSA PRIVATE",
+];
+
+/// [`SECRET_TOKEN_PREFIXES`] in the form the redaction functions take.
 fn bundled_secret_tokens() -> &'static [String] {
     static TOKENS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
     TOKENS.get_or_init(|| {
-        serde_json::from_str::<serde_json::Value>(include_str!(
-            "../../../config/config.default.json"
-        ))
-        .ok()
-        .and_then(|cfg| {
-            cfg.pointer("/governance/secret_tokens")
-                .and_then(|v| serde_json::from_value(v.clone()).ok())
-        })
-        .unwrap_or_default()
+        SECRET_TOKEN_PREFIXES
+            .iter()
+            .map(|t| (*t).to_owned())
+            .collect()
     })
 }
 

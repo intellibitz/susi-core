@@ -35,40 +35,25 @@ record on every gate run.
 | `checks` | the checks run on the reference build, what passed, what did not run and why; `locally_qualified` says whether the release was qualified on its build host |
 | `provenance` | where each fact in the record came from |
 
-The scripts read the record with line tools, because a fresh host may have no
-JSON parser. The test therefore also pins the layout: the scalar fields sit on
+The installer reads the record with line tools, because a fresh host may have
+no JSON parser. The test therefore also pins the layout: the scalar fields sit on
 lines of their own, `env` is one line, each asset is one line, and every value
 passed to cargo is a plain word.
 
 ### Which release a host installs
 
-The installed Susi is the stable copy and tracks the latest release qualified
-for the host it runs on. A record lists every released target
-either with a reference build under `assets` or under `missing_targets`, so a
-release whose record has no reference build for a host was not qualified there.
-`scripts/susi-release-sync.sh` therefore installs the newest tag whose record
-has a reference build for this host and skips newer ones that do not; `--check`
-prints both. An explicit `--tag` of a release not qualified for the host is
-refused unless `SUSI_RELEASE_ALLOW_UNQUALIFIED_HOST=1` is set knowingly.
+A record lists every released target either with a reference build under
+`assets` or under `missing_targets`, so a release whose record has no reference
+build for a host was not qualified there. `install.sh` builds the newest tag,
+or the one `SUSI_RELEASE_TAG` names.
 
-**Keeping it updated is a duty, not only a report** (cutting or publishing a
-release qualified for the current host must sync `~/.susi/bin/susi` (`susi.exe`)
-and the live daemon before the release is considered complete). Required: the
-installed copy is behind the latest release qualified for the host. Feasible:
-that release is qualified here, the remote answers and no susi client is
-mid-mission (the updater waits for an idle susi). The hourly timer
-(`susi-release-sync.sh --install-timer`, registering `systemd --user`
-`susi-release-sync.timer` on Linux or `RunLevel=Limited` Task Scheduler task
-`susi-release-sync` on Windows) does it unattended; `susi-tools workflow
-check` shows where the installed copy stands and starts the updater on both
-Windows and Linux when it is behind. `--check` reports `installed:`,
-`qualified:`, and `latest:`. "Remote binary" means the remote release: no
-binary is downloaded, the release is built from its tag on the host and
-compared with the record's reference checksum. When promoting the exact
-reference binary produced by `release-qualify` on the qualifying host after Step
-5 lands on `origin`, `susi-release-sync.sh --tag vX.Y.Z --built <path>`
-verifies `<path>`'s SHA-256 against `releases/vX.Y.Z.json` and promotes with
-health check and rollback without a second cold build.
+**Upgrading is running `install.sh` again**: it builds the newest release from
+its tag and replaces the installed program only when the build reports the
+tag's version. There is no automatic updater today. The earlier one,
+`scripts/susi-release-sync.sh` with its hourly timer, still drove the program of
+before 2026-11-22 (a `restart` command and a health port the program no longer
+has), so it could not update today's program; it left on 2026-11-22 and returns
+only when it works with the program it updates.
 
 ### What the sha256 means
 
@@ -126,9 +111,7 @@ private repository's `release-qualify`, which left with its `tools/core-xtask`;
 the `push-policy` program built from it is still installed on the development
 host and still checks every release tag.
 
-After a release qualified for the current host is published, the installed
-copy and the live daemon can be synced to it with
-`scripts/susi-release-sync.sh --tag vX.Y.Z` (see below).
+After a release is published, `install.sh` installs it (see below).
 
 ## Distilled releases
 
@@ -145,9 +128,9 @@ exited 0 on the composed tree. Such a record carries a `distillation` block:
 
 ## Installing and upgrading
 
-Core standalone installation and upgrades target native `x86_64` Linux
-(`install.ps1` stays in this repository only as legacy migration debt). Both
-active Linux paths resolve the newest tag with `git ls-remote --tags` against a
+Core installation and upgrades target native `x86_64` Linux; on Windows, run
+the installer inside WSL2 (the Windows installer, `install.ps1`, left on
+2026-11-22). The installer resolves the newest tag with `git ls-remote --tags` against a
 configured zero-GitHub canonical or mirror Git remote, check that tag out, read
 its record from the remote's default branch, build `susi` natively with the
 recorded profile, features and environment, and install the result only when it
@@ -156,18 +139,15 @@ reports the tag's version.
 They need git and a Rust toolchain installed through rustup (plus a local or
 self-hosted Cargo crate mirror when building completely offline). The tag's
 `rust-toolchain.toml` pins the compiler (for example, 1.99.0); when that
-toolchain is not installed the installers stop and print the
-`rustup toolchain install` command. They never install system software.
+toolchain is not installed the installer stops and prints the
+`rustup toolchain install` command. It never installs system software.
 
 | Path | Remote |
 |---|---|
-| `install.sh` (Linux x86_64) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
-| `scripts/susi-release-sync.sh` (Linux x86_64 upgrades; installs its own next copy from the default branch, not from the tag) | `SUSI_RELEASE_REMOTE`, else the `origin` of the private release checkout `~/.susi/release-src` that the installer or an earlier sync made |
-| `install.ps1` (legacy Windows migration debt) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
+| `install.sh` (Linux x86_64; install and upgrade) | `SUSI_SOURCE_REPO`, else the `origin` of the checkout the script runs from |
 
-`SUSI_RELEASE_TAG` (installers) and `--tag` (sync) pin a specific release.
-There is no built-in default remote: a script that finds none says which
-variable to set.
+`SUSI_RELEASE_TAG` pins a specific release. There is no built-in default
+remote: the installer that finds none says which variable to set.
 
 ## Commercial certification
 

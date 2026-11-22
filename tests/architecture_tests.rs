@@ -790,8 +790,6 @@ fn zc_quickstart_budget() {
             // pipe are the same manual step for budget purposes.
             let canonical = if t.contains("install.sh") {
                 "install.sh | bash".to_string()
-            } else if t.contains("install.ps1") {
-                "install.ps1".to_string()
             } else {
                 t.to_string()
             };
@@ -847,73 +845,6 @@ fn vendor_patches_are_local_and_preserve_upstream_licenses() {
         "Cargo.lock must not carry unused [patch.crates-io] entries"
     );
 }
-/// The release installer builds the newest tag from source on this host (CEO
-/// decision 2026-11-09 00:22: release binaries are built from git tags; no
-/// artifact store) and asks nothing of a git host beyond git itself. The tag
-/// comes from `git ls-remote --tags`; its record `releases/<tag>.json` comes
-/// from the remote's default branch and must name the commit the tag points
-/// at; the build uses the record's profile, features and environment under
-/// the tag's toolchain pin; the version is the gate, and the reference
-/// checksum is reported, never enforced. The idle wait, the atomic swap, the
-/// rollback and the Windows ownership guard stay as they were.
-#[test]
-fn release_sync_builds_the_release_tag_with_its_recorded_settings() {
-    let script =
-        std::fs::read_to_string(workspace_root().join("scripts/susi-release-sync.sh")).unwrap();
-    for needle in [
-        "git ls-remote --tags --refs \"$REMOTE\"",
-        "show \"FETCH_HEAD:releases/${tag}.json\"",
-        "refusing to build",
-        "rust-toolchain.toml",
-        "RUSTUP_AUTO_INSTALL=0",
-        "--profile \"$profile\"",
-        "report_reference \"$built\"",
-        "wait_for_idle",
-        "swap_in \"$built\"",
-        "rollback || true",
-        "susi-release-sync-windows.ps1",
-    ] {
-        assert!(
-            script.contains(needle),
-            "susi-release-sync.sh lacks {needle:?}"
-        );
-    }
-    for retired in [
-        "gh ",
-        "github.com",
-        "download",
-        "SUSI_RELEASE_BUILD",
-        "susi-macos-aarch64",
-        "susi-linux-aarch64",
-        "susi-windows-aarch64",
-    ] {
-        assert!(
-            !script.contains(retired),
-            "susi-release-sync.sh still contains {retired:?}"
-        );
-    }
-    let flow = script
-        .split("sync_release() {")
-        .nth(1)
-        .expect("sync_release exists");
-    let order = [
-        "checkout_tag \"$tag\"",
-        "read_record \"$tag\"",
-        "build_tag \"$tag\" \"$features\"",
-        "expected '${want}'",
-        "report_reference \"$built\"",
-        "wait_for_idle",
-        "swap_in \"$built\"",
-    ];
-    let mut at = 0;
-    for step in order {
-        let found = flow[at..]
-            .find(step)
-            .unwrap_or_else(|| panic!("sync_release runs {step:?} after the steps before it"));
-        at += found + step.len();
-    }
-}
-
 /// Susi is licensed under Apache-2.0 and admits only Apache-2.0, MIT, and
 /// BSD-family permissive licenses into its dependency graph. Strong copyleft
 /// (GPL-2.0, GPL-3.0, AGPL), weak copyleft (LGPL, MPL-2.0), and license
@@ -1223,71 +1154,6 @@ fn core_serves_no_html() {
         "core serves no HTML (JSON/SSE/MCP/A2A only); offending sources:\n{}",
         offenders.join("\n")
     );
-}
-
-/// A9: core bundles no launchable vendor catalog. The leading-MCP list, the
-/// MCP scout registry, and the execution-agent / agent-engine catalogs ship
-/// in extension packs (Susi, repository `susi`), never as compiled defaults,
-/// and core's `config.default.json` lists no vendor peers or bootstrap MCP
-/// servers. Model catalogs, prices and cloud-vendor aliases stay (NP-04,
-/// NP-18, NP-19).
-#[test]
-fn core_bundles_no_launchable_vendor_catalogs() {
-    let root = workspace_root();
-    let banned = [
-        "leading-mcp",
-        "mcp.registry",
-        "execution-agents",
-        "agent-engines",
-    ];
-    let mut paths = Vec::new();
-    rust_files(&root.join("src"), &mut paths);
-    rust_files(&root.join("crates"), &mut paths);
-    rust_files(&root.join("tests"), &mut paths);
-    let mut offenders = Vec::new();
-    for path in paths {
-        let rel = zero_ui_rel(&path);
-        if rel == "tests/architecture_tests.rs" {
-            continue;
-        }
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        for (i, _) in text.match_indices("include_str!") {
-            let arg = text[i..].split(')').next().unwrap_or_default();
-            if let Some(name) = banned.iter().find(|name| arg.contains(*name)) {
-                offenders.push(format!("{rel}: include_str! of {name}"));
-            }
-        }
-    }
-    assert!(
-        offenders.is_empty(),
-        "launchable vendor catalogs belong in extension packs, not core:\n{}",
-        offenders.join("\n")
-    );
-    for rel in [
-        "config/leading-mcp.json",
-        "config/mcp.registry.default.json",
-        "config/execution-agents.json",
-        "config/agent-engines.json",
-    ] {
-        assert!(
-            !root.join(rel).exists(),
-            "{rel} is a launchable vendor catalog; it ships in an extension pack"
-        );
-    }
-    let defaults: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join("config/config.default.json"))
-            .expect("read config.default.json"),
-    )
-    .expect("config.default.json is JSON");
-    for key in ["external_peer_agents", "bootstrap_mcp_servers"] {
-        assert_eq!(
-            defaults[key],
-            serde_json::json!([]),
-            "config.default.json `{key}` must list no vendor entries"
-        );
-    }
 }
 
 /// BT-07: the CLI has no UI subcommands: nothing in `src/` (or the clap

@@ -50,5 +50,5 @@ done
 case " $* " in
 *" --sync-only "*) exit 0 ;;
 esac
-echo "park-primary: no susi with \`workflow park-primary\` found (SUSI_WORKFLOW_BIN, the installed susi, this checkout's target/): not moving anything. Install the current release: scripts/susi-release-sync.sh" >&2
+echo "park-primary: no susi with \`workflow park-primary\` found (SUSI_WORKFLOW_BIN, the installed susi, this checkout's target/): not moving anything." >&2
 exit 1

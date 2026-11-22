@@ -28,7 +28,7 @@ or marks.
 
 Not finished yet, said plainly: this repository is `susi-core` since
 2026-11-22 (it was `susi`), but its program is still named `susi` and will
-become `susi-core`; development-only code (`scripts/`, `toolchain/`)
+become `susi-core`; development-only code (`scripts/` and the Git hooks)
 is still in this tree and will move to Susi Tools, which is being filled; the
 program's own runtime is small (an MCP server and a local daemon) and grows one
 working capability at a time; and since
@@ -106,8 +106,8 @@ Susi never downloads anything by itself.
 Native installation does not by itself qualify a candidate for production;
 qualification, promotion and rollback have separate evidence gates.
 
-From source on `x86_64` Linux, install with `install.sh` from a clone of this
-repository (`install.ps1` remains in this tree only as legacy migration debt). This
+From source on `x86_64` Linux (on Windows, inside WSL2), install with `install.sh`
+from a clone of this repository; running it again upgrades to the newest release. This
 needs Git and a Rust toolchain from [rustup](https://rustup.rs): the release tag
 pins its compiler in `rust-toolchain.toml` (for example, 1.99.0), and when that
 toolchain is missing the installer stops and prints the `rustup toolchain

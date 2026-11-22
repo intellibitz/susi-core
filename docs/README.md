@@ -20,7 +20,7 @@ repeated here.
 
 ## Releases
 
-- [Releases: the record format, installing, and what is not available today](releases.md)
+- [Releases: the record format, cutting a release, installing and upgrading](releases.md)
 
 ## Direction and the project
 

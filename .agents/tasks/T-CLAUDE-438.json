@@ -13,5 +13,9 @@
     ]
   },
   "created_by": "CLAUDE",
-  "created_unix": 1795343420
+  "created_unix": 1795343420,
+  "reuse": {
+    "decision": "existing",
+    "searched": "Core: the zero-configuration check reuses tests/mcp_runtime.rs and susi_paths::test_env::isolate_home; the secret-token prefixes move from the removed config file into susi-error beside their one reader. Nothing new is built."
+  }
 }

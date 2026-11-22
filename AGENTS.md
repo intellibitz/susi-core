@@ -205,17 +205,20 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 ## Not finished
 
-- **Speed:** a warm repeat of the Linux gates takes 6.9 seconds, the tests 5 (2026-11-22, a
-  28-core host through WSL2, after the packages no program used left); the first run after a
-  change is still over the line (39 seconds of steps after that change, 29 of them compiling,
-  linking and running 54 test binaries).
+- **Speed:** the Linux gates with lint take 5 seconds of steps on the first run after a small
+  change (build 1, tests 3, size 1) and 5.9 seconds of wall time on a warm repeat, the whole
+  suite 1.6 (2026-11-22, a 28-core host through WSL2, 196 tests across 43 binaries). A change
+  to the lock file or many crates still compiles for longer (39 seconds once that day); that
+  cold case is measured apart.
 - **Releases:** `susi-tools release` cut `v0.21.72`, the first release of today's program
-  (`docs/releases.md`). The unsafe-code check and the standard-library builder's runner left
-  with Susi's `tools/core-xtask` on 2026-11-22 and are still to be rebuilt.
-- **Development code still here:** `scripts/` and `toolchain/` belong in Susi Tools.
+  (`docs/releases.md`). The unsafe-code check left with Susi's `tools/core-xtask` on 2026-11-22
+  and is still to be rebuilt; the standard-library builder, which nothing ran, left the same
+  day. There is no automatic updater: upgrading is running `install.sh` again.
+- **Development code still here:** `scripts/` and the Git hooks belong in Susi Tools; several
+  still call workflow commands of the earlier program and do nothing when it is absent.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD and GEMI hold no code yet.
-- **Old records:** `config/` holds the earlier runtime's catalogs (models, agents, vendors),
-  and `.agents/roadmap.json` its roadmap; the goal notes in `.agents/visions/carried/`
+- **Old records:** `.agents/roadmap.json` holds the earlier runtime's roadmap (its catalogs
+  in `config/` left on 2026-11-22, read by nothing); the goal notes in `.agents/visions/carried/`
   name sections of the earlier contract by number, and the rules they name are kept here
   word for word.
 - **Older pins:** counts pinned in `tests/architecture_tests.rs` and `tests/socket_boundary.rs`

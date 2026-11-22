@@ -21,9 +21,6 @@ path = [
     ".githooks/**",
     ".cargo/**",
     "install.sh",
-    "install.ps1",
-    "build-gpu.sh",
-    "build-gpu.ps1",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 IntelliBitz"
@@ -33,7 +30,6 @@ SPDX-License-Identifier = "Apache-2.0"
 path = [
     "docs/**",
     "deploy/**",
-    "config/**",
     "releases/**",
     "*.md",
     "Cargo.toml",
