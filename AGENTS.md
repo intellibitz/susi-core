@@ -170,7 +170,9 @@ environment. Never rotate an authority secret or alter credential access as rout
 
 ## Releases
 
-A release is a signed tag `vX.Y.Z` on `main`; an unsigned tag is never published. Cut each
+A release is a signed tag `vX.Y.Z` on `main`, cut with `susi-tools release qualify --task <id>
+--sign` on a native x86_64 Linux host and published with `susi-tools release publish vX.Y.Z`;
+an unsigned tag is never published. Cut each
 version once and never move, re-cut or delete its tag; follow a broken release with a new
 version. Publish the tag, its record and its qualification record together. Never install an
 unqualified candidate as production. Use atomic replacement, health checks and tested rollback
@@ -191,10 +193,12 @@ to the previous verified artifact; `susi install` never replaces a different exi
 
 - **Speed:** the Linux gates take 33 to 36 seconds on the first run after a change and 16 to
   19 seconds on a repeat (2026-11-22, a 28-core host through WSL2), over the line.
-- **Releases:** no tool cuts or qualifies a release. The release tools, the unsafe-code check
-  and the standard-library builder's runner were in Susi's `tools/core-xtask`, which left Susi
-  on 2026-11-22; they are to be rebuilt in Susi Tools. The newest release, `v0.21.71`
-  (2026-11-16), predates today's program.
+- **Releases:** `susi-tools release` cuts and publishes a release (`docs/releases.md`), but
+  its licences gate refuses today's tree: `unicode-ident`, a build-time crate, carries the
+  Unicode-3.0 licence, which `deny.toml` does not allow, and that is still to be settled. The
+  unsafe-code check and the standard-library builder's runner left with Susi's
+  `tools/core-xtask` on 2026-11-22 and are still to be rebuilt. The newest release,
+  `v0.21.71` (2026-11-16), predates today's program.
 - **Development code still here:** `scripts/`, `toolchain/` and `fuzz/` belong in Susi Tools.
 - **The pillars:** GMCP serves (`susi mcp serve`); GAWD holds the A2A and ACP wire contracts;
   GEMI holds no code yet.

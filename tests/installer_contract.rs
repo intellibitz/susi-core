@@ -194,7 +194,9 @@ echo INSTALLER_CONTRACT_PASSED
         );
         assert!(stdout.contains("INSTALLER_CONTRACT_PASSED"));
         assert!(stdout.contains("the release records no reference build for susi-linux-x86_64"));
-        assert!(stdout.contains("Open Susi and give it a goal:"));
+        // Until 2026-11-22 this read "Open Susi and give it a goal:", a command the rebuilt
+        // program does not have; the installer now names the ones it has.
+        assert!(stdout.contains("mcp serve --root <folder>"));
     }
 }
 

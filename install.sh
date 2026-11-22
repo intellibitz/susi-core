@@ -284,21 +284,13 @@ chmod +x "$GLOBAL_BIN_DIR/susi"
 rm -f "$RECORD"
 echo "Deployed susi $VERSION to $GLOBAL_BIN_DIR"
 
-# 4. Opening performs discovery without blocking the first goal prompt.
-
 # 5. Daemon Persistence
-# susi self-daemonizes on demand: every CLI invocation checks for a running
-# daemon and spawns one detached (scoped to the invoking directory) if absent.
-# No service registration is needed for that path - the daemon starts the
-# first time a goal needs it. On Linux, when a systemd user manager is reachable, the
-# spawn lands in a real cgroup (MemoryMax=2G, CPUQuota=50%) via systemd-run.
-#
-# SUSI_ALWAYS_ON=1 additionally registers a boot-persistent service
-# (systemd user unit / launchd agent) that starts the daemon at login and
-# restarts it on exit - opt-in because an always-on background process is a
-# resource/UX commitment the user should choose, not a silent default.
-# SUSI_NO_DAEMON=1 skips this section entirely (self-daemonization still
-# applies at runtime regardless).
+# susi starts no daemon by itself: `susi start --root <folder>` runs one in the
+# background, and `susi stop` ends it. SUSI_ALWAYS_ON=1 registers a login service
+# (systemd user unit / launchd agent) that runs `susi daemon run --root $HOME` in the
+# foreground and restarts it on exit - opt-in because an always-on background
+# process is a commitment the user should choose, not a silent default.
+# SUSI_NO_DAEMON=1 skips this section entirely.
 if [ "$ISOLATED_INSTALL" = "1" ]; then
     echo "Skipping service registration for isolated installation."
 elif [ -n "$SUSI_NO_DAEMON" ]; then
@@ -313,7 +305,7 @@ Description=susi Intelligence Substrate Daemon (Always-On)
 After=network.target
 
 [Service]
-ExecStart=$GLOBAL_BIN_DIR/susi daemon-start --workspace $HOME
+ExecStart=$GLOBAL_BIN_DIR/susi daemon run --root $HOME
 Restart=always
 RestartSec=5
 MemoryMax=2G
@@ -340,7 +332,7 @@ EOF
             echo "  Always-on service registered. Manage: systemctl --user [start|stop|status] susi.service"
         else
             echo "  Warning: could not reach the systemd user session bus; skipping service start."
-            echo "  susi still self-daemonizes on first use - no action needed."
+            echo "  start the daemon yourself with: susi start --root <folder>"
         fi
     fi
 elif [ -n "$SUSI_ALWAYS_ON" ] && [[ "$PLATFORM" == "macos" ]]; then
@@ -356,8 +348,9 @@ elif [ -n "$SUSI_ALWAYS_ON" ] && [[ "$PLATFORM" == "macos" ]]; then
     <key>ProgramArguments</key>
     <array>
         <string>$GLOBAL_BIN_DIR/susi</string>
-        <string>daemon-start</string>
-        <string>--workspace</string>
+        <string>daemon</string>
+        <string>run</string>
+        <string>--root</string>
         <string>$HOME</string>
     </array>
     <key>RunAtLoad</key>
@@ -371,10 +364,10 @@ elif [ -n "$SUSI_ALWAYS_ON" ] && [[ "$PLATFORM" == "macos" ]]; then
 EOF
     if ! launchctl load "$LAUNCHD_PLIST" 2>/dev/null; then
         echo "  Warning: could not register with launchd; skipping service start."
-        echo "  susi still self-daemonizes on first use - no action needed."
+        echo "  start the daemon yourself with: susi start --root <folder>"
     fi
 else
-    echo "No service registration needed: susi self-daemonizes on first use (SUSI_ALWAYS_ON=1 for boot persistence)."
+    echo "No service registered: start the daemon with 'susi start --root <folder>' (SUSI_ALWAYS_ON=1 registers one that starts at login)."
 fi
 
 # 6. PATH Management
@@ -411,12 +404,11 @@ if [ "$ISOLATED_INSTALL" = "0" ] && [[ ":$PATH:" != *":$GLOBAL_BIN_DIR:"* ]]; th
     fi
 fi
 
-# 7. Finalize. Core has no interactive prompt: it takes one-shot goals, and the
-# conversation lives in the Susi desktop app. Show usage once on a terminal;
-# never in headless automation. `--help` never reads the installer's stdin.
+# 7. Finalize. Show usage once on a terminal; never in headless automation.
+# `--help` never reads the installer's stdin.
 export PATH="$GLOBAL_BIN_DIR:$PATH"
 echo "Susi is installed. No terminal restart is needed."
 if [ -t 1 ] && [ -z "${NONINTERACTIVE:-}" ] && [ -z "${SUSI_NO_DAEMON:-}" ] && [ -x "$GLOBAL_BIN_DIR/susi" ]; then
     "$GLOBAL_BIN_DIR/susi" --help
 fi
-printf 'Open Susi and give it a goal: %q "<what you want done>"\n' "$GLOBAL_BIN_DIR/susi"
+printf 'Use it: %q mcp serve --root <folder>   (or %q start --root <folder> for the daemon)\n' "$GLOBAL_BIN_DIR/susi" "$GLOBAL_BIN_DIR/susi"

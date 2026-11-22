@@ -81,23 +81,47 @@ matches the reference digest, and they never refuse a build for differing.
 **The gate is the version check**: the built binary must report the tag's
 version, and the tag must point at the record's commit.
 
-## Cutting a release: not available today
+## Cutting a release
 
-Until 2026-11-22 a release was cut with the release tools in the private
-repository's `tools/core-xtask`: `release-qualify vX.Y.Z` ran every gate on the
-exact tree from a snapshot of main (format, check, Clippy, licences, the whole
-test suite, the reference build, smoke, startup and conformance), wrote
-`releases/qualification/<tag>.json` only when all passed, and created the
-annotated tag; its `--verify-only` ran the checks before the gates and wrote
-nothing; and the pre-push `push-policy` admitted a `vX.Y.Z` tag only on a tree
-whose record showed every gate at exit 0. Those tools left with
-`tools/core-xtask` when the private repository was cut to its licence and vault
-core on 2026-11-22. They are to be rebuilt in Susi Tools. Until then no tool cuts
-or qualifies a Core release, and no new `vX.Y.Z` tag is published; the tags and
-records already published stay valid.
+A release is cut with Susi Tools' development program, on a native x86_64 Linux
+host (from Windows, inside WSL2), in a clean checkout of `main` whose
+`Cargo.toml` already carries the new version:
 
-After a release qualified for the current host was published, the installed
-copy and the live daemon were synced to it with
+1. `susi-tools release check` runs every check that comes before the gates and
+   changes nothing: the checkout is Susi Core, clean and at the remote's `main`;
+   the tag is `v` plus the workspace version; the version is neither tagged here
+   nor published on the remote, and it has no records yet.
+2. `susi-tools release qualify --task <id> [--sign]` runs the gates on that
+   exact commit, each logged with its digest: formatting, Clippy with warnings
+   denied, licences (`cargo deny`), the whole suite (`cargo nextest`),
+   doc-tests, and the reference build with the profile, features and
+   environment the installer will repeat. Then it runs the built program from a
+   private home: `--version`, an MCP session over standard input and output, and
+   the daemon's health, token check and stop. A failing gate writes nothing.
+   When everything passes it creates the annotated tag on the qualified commit
+   (`--sign` makes it a signed tag; the storage sync publishes only signed
+   `v*` tags to the public copies) and commits `releases/<tag>.json` and
+   `releases/qualification/<tag>.json` on top, naming the task. Nothing leaves
+   the machine.
+3. `susi-tools release publish vX.Y.Z` pushes that commit to `main` and the tag
+   in one atomic push, so the tag and its records are published together or
+   not at all, and refuses a version that is already published.
+
+Not finished, said plainly: **no release has been cut this way yet.** The
+licences gate refuses today's tree: `unicode-ident`, which the procedural
+macros use while compiling, carries the Unicode-3.0 licence, which the policy in
+`deny.toml` does not allow, since the table-free replacement core once carried
+left with its local patches. Until that is settled, `qualify` stops at that
+gate. The steps were proven on 2026-11-22 on a scratch copy of core whose
+`deny.toml` allowed Unicode-3.0 (never published): `qualify` took 12 seconds
+warm, the record tests here accepted its records, a second cut and a second
+publish were refused, and `install.sh` rebuilt the published release with a
+checksum matching the reference build. Until 2026-11-22 these steps were the
+private repository's `release-qualify` and pre-push `push-policy`, which left
+with its `tools/core-xtask`.
+
+After a release qualified for the current host is published, the installed
+copy and the live daemon can be synced to it with
 `scripts/susi-release-sync.sh --tag vX.Y.Z` (see below).
 
 ## Distilled releases

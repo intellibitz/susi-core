@@ -88,10 +88,12 @@ The program serves what [What runs today](#what-runs-today) lists and nothing
 more. Core releases target native x86_64 Linux only (since 2026-11-18); other
 platforms remain portable source without core release qualification.
 
-Not finished: no tool cuts a release today. Core's release tools were in the
-private product's development tooling and left it on 2026-11-22; they are to be
-rebuilt in Susi Tools ([docs/releases.md](docs/releases.md)). The newest
-release, `v0.21.71` (2026-11-16), therefore predates the program above. The warm
+Not finished: no release of the program above has been cut yet. Releases are
+cut with Susi Tools' `susi-tools release` command, rebuilt on 2026-11-22 after
+the earlier release tools left the private product; its licences gate refuses
+today's tree over one build-time crate's Unicode-3.0 licence, which is still to
+be settled ([docs/releases.md](docs/releases.md)). The newest release,
+`v0.21.71` (2026-11-16), therefore predates the program above. The warm
 build, test and release budget is under 10 seconds and the cold compile target
 under 60 seconds; Core's Linux gates take 16 to 36 seconds today.
 
