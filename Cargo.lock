@@ -164,7 +164,6 @@ dependencies = [
  "susi-paths",
  "susi-vendor-serde",
  "susi-vendor-serde-json",
- "susi-vendor-sha2",
 ]
 
 [[package]]

@@ -73,11 +73,10 @@ serde_json = "1.0"
 sha2 = "0.10.9"
 getrandom = "0.2"
 
-# The repository's own tests read JSON records and hash files through the same wrappers.
+# The repository's own tests read JSON records through the same wrappers.
 [dev-dependencies]
 serde = { package = "susi-vendor-serde", path = "crates/susi-vendor-serde" }
 serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }
-sha2 = { package = "susi-vendor-sha2", path = "crates/susi-vendor-sha2" }
 # Test homes are isolated through the path library's test helpers.
 susi-paths = { workspace = true }
 

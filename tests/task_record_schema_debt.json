@@ -1,6 +1,0 @@
-{
-  "schema": "susi/task-schema-debt/v1",
-  "source_commit": "fa616c19632049b657ad924285fb5eebbcde93d9",
-  "note": "Unresolved legacy task records, pinned by SHA-256 after CRLF-to-LF normalization only. Remove entries when repaired or deleted. Do not add or refresh entries to permit new invalid data. This snapshot is not acceptance evidence. SAES-22: removed deleted-task paths left behind after a6b0056d8 task cleanup.",
-  "records": {}
-}
