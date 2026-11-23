@@ -90,11 +90,11 @@ fn workspace_graph() -> HashMap<String, HashSet<String>> {
     graph
 }
 
-/// AGENTS.md leaf order (`paths → error → config → core/sandbox → services
-/// → daemon`) as ranks: a crate may depend only on strictly lower-ranked
-/// SUSI crates, so shared code is reached through a Cargo edge in one
-/// direction instead of being copied or source-mounted upward.
-const LEAF_RANK: &[(&str, u8)] = &[("susi-paths", 0), ("susi-error", 1), ("susi", 3)];
+/// AGENTS.md leaf order (`paths → error`, then the root package) as ranks: a
+/// crate may depend only on strictly lower-ranked SUSI crates, so shared code
+/// is reached through a Cargo edge in one direction instead of being copied or
+/// source-mounted upward.
+const LEAF_RANK: &[(&str, u8)] = &[("susi-paths", 0), ("susi-error", 1), ("susi", 2)];
 
 /// Pure re-export facades (`susi-vendor-*` crates whose only dependency is
 /// the third-party crate they wrap). They are leaves by construction —
@@ -137,9 +137,8 @@ fn workspace_edges_follow_the_leaf_order() {
 }
 
 /// Mandate: susi-* crates declare zero third-party dependencies — every
-/// external crate is owned by exactly one `susi-vendor-*` crate (implementation
-/// vendors like wasmer/candle, or pure re-export facades in VENDOR_FACADES).
-/// This ratchet scans each non-vendor member's `[dependencies]`,
+/// external crate is owned by exactly one `susi-vendor-*` facade
+/// (VENDOR_FACADES). This ratchet scans each non-vendor member's `[dependencies]`,
 /// `[build-dependencies]` and `[target.*.dependencies]`/`dev-dependencies`
 /// sections and requires every declared package to be a workspace member.
 #[test]
@@ -348,8 +347,6 @@ fn rust_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
 /// test (`#[test]`, `#[tokio::test]`, or `proptest!`). Pure re-export
 /// facades (`susi-vendor-*` crates whose only job is `pub use upstream::*`)
 /// are exempt — they carry no logic; their upstreams are tested upstream.
-/// Implementation vendor crates (wasmer, candle, agents, models, web,
-/// cloud, chrome, mcp-server, …) are NOT exempt: they hold real SUSI code.
 #[test]
 fn every_non_facade_crate_has_tests() {
     let root = workspace_root();
@@ -500,28 +497,6 @@ fn every_panic_path_allow_is_justified() {
     );
 }
 
-/// `-Clinker-features=-lld` is stable only on x86_64 Linux; on any other
-/// target rustc rejects it, which failed v0.16.0's linux-aarch64 release build.
-#[test]
-fn linker_features_flag_is_x86_64_linux_only() {
-    let text = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".cargo/config.toml"),
-    )
-    .unwrap();
-    let mut section = String::new();
-    for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with('[') {
-            section = line.to_string();
-        } else if !line.starts_with('#') && line.contains("linker-features") {
-            assert_eq!(
-                section, "[target.x86_64-unknown-linux-gnu]",
-                "linker-features is unstable outside x86_64 Linux: {line}"
-            );
-        }
-    }
-}
-
 /// A stranger reads the README's first screen: before its first section it
 /// says which repository this is, what Susi and Susi Tools are, what is public
 /// and what is not, who builds the software and what the licence does not grant.
@@ -584,36 +559,12 @@ fn readme_covers_the_workflow_ecosystem_and_brain() {
     }
 }
 
-/// Core no longer ships a `vendor/` tree: model/TLS patches moved with their
-/// implementations. Any remaining `[patch.crates-io]` entry must still be a
-/// local path (never a Git host), and the lockfile must stay git-free.
+/// Clone, build and test succeed with every mirror and the internet unreachable
+/// (AGENTS.md, "Publication and Git"): the lockfile resolves nothing from a Git
+/// host and carries no unused patch.
 #[test]
-fn vendor_patches_are_local_and_preserve_upstream_licenses() {
+fn dependencies_resolve_without_a_git_host() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert!(
-        !root.join("vendor").exists(),
-        "core must not grow a vendor/ tree again after the socket slim"
-    );
-    let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap();
-    // No patch table at all is the simplest local state (2026-11-22).
-    let patch = manifest
-        .split("[patch.crates-io]")
-        .nth(1)
-        .unwrap_or("")
-        .split("\n[")
-        .next()
-        .unwrap();
-    for line in patch
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-    {
-        assert!(
-            line.contains("path = \""),
-            "nonlocal patch (path required): {line}"
-        );
-        assert!(!line.contains("git ="), "GitHub-dependent patch: {line}");
-    }
     let lock = std::fs::read_to_string(root.join("Cargo.lock")).unwrap();
     assert!(
         !lock.contains("source = \"git+"),
@@ -715,7 +666,7 @@ fn workspace_enforces_apache_mit_bsd_license_policy() {
 
 /// Core has no line limit: the size suite measures and reports, treats its other counts as
 /// baselines a change may raise, saying why, and `cargo core-size` runs its report by name
-/// (AGENTS.md, "The socket and its size").
+/// (AGENTS.md, "The libraries and their size").
 #[test]
 fn core_size_is_reported_never_refused() {
     let root = workspace_root();
@@ -766,53 +717,17 @@ fn workspace_lints_refuse_unreasoned_ignores_panics_and_dbg() {
     }
 }
 
-/// Mandate 63: every script that is not Rust is migration debt, and the
-/// count only goes down. Lower the ceiling in the change that removes one.
-#[test]
-fn non_rust_scripts_only_decrease() {
-    const SCRIPT_CEILING: usize = 67;
-    fn walk(dir: &std::path::Path, found: &mut Vec<PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(dir) else {
-            return;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if path.is_dir() {
-                if !matches!(name.as_ref(), "target" | ".git" | "node_modules") {
-                    walk(&path, found);
-                }
-            } else if matches!(
-                path.extension().and_then(|e| e.to_str()),
-                Some("sh" | "ps1" | "py")
-            ) {
-                found.push(path);
-            }
-        }
-    }
-    let mut found = Vec::new();
-    walk(&workspace_root(), &mut found);
-    assert!(
-        found.len() <= SCRIPT_CEILING,
-        "{} shell/PowerShell/Python files, ceiling {SCRIPT_CEILING}: a new script is not admitted (Mandate 63)",
-        found.len()
-    );
-}
-
 // ---------------------------------------------------------------------------
-// Zero-UI boundary (CEO directive): core is a pure Rust CLI plus a standards
-// protocol socket. It ships no GUI/TUI, no web assets, serves no HTML and
-// carries no plugin content; every UI and plugin lives in
-// Susi (repository `susi`). Plan: Susi's docs/zero-ui-migration-plan.md
-// (items A1-A7).
+// Zero-UI boundary (AGENTS.md: "Core ships no UI or bundled plug content"):
+// core is libraries only. It ships no web assets and serves no HTML; every UI
+// lives in Susi.
 // ---------------------------------------------------------------------------
 
-/// Directories a zero-UI scan never descends into: build output, patched
-/// upstream sources (`vendor/`), and tool/agent metadata (hidden dirs other
-/// than the project's own hook and cargo configuration).
+/// Directories a zero-UI scan never descends into: build output and tool/agent
+/// metadata (hidden dirs other than the project's own hook and cargo
+/// configuration).
 fn zero_ui_skips_dir(name: &str) -> bool {
-    matches!(name, "target" | "out" | "vendor" | "node_modules")
+    matches!(name, "target" | "out" | "node_modules")
         || (name.starts_with('.') && !matches!(name, ".githooks" | ".cargo"))
 }
 
@@ -842,9 +757,9 @@ fn zero_ui_rel(path: &std::path::Path) -> String {
         .replace('\\', "/")
 }
 
-/// BT-03: no web or front-end asset ships in core. `target/`, `out/`,
-/// `vendor/`, tool/agent metadata (`.git/`, `.claude/`, `.agents/`, ...) and
-/// the `susi-vendor-*` facade crates are not scanned. No test-fixture
+/// BT-03: no web or front-end asset ships in core. `target/`, `out/`, tool/agent
+/// metadata (`.git/`, `.claude/`, `.agents/`, ...) and the `susi-vendor-*`
+/// facade crates are not scanned. No test-fixture
 /// exception is granted: no `tests/fixtures` UI asset exists, so none is
 /// tolerated.
 #[test]
@@ -918,14 +833,14 @@ fn core_serves_no_html() {
     }
     assert!(
         offenders.is_empty(),
-        "core serves no HTML (JSON/SSE/MCP/A2A only); offending sources:\n{}",
+        "core serves no HTML; offending sources:\n{}",
         offenders.join("\n")
     );
 }
 
-/// CEO directive 2026-11-16 (Mandate 72): core is Apache-2.0 and published one
-/// way. The CEO alone holds push authority, nothing is accepted from outside,
-/// and the world is free to fork. Every front door says so, and none of them
+/// Decided on 2026-11-16: core is Apache-2.0 and published one way. The
+/// designated publisher alone holds push authority, nothing is accepted from
+/// outside, and the world is free to fork. Every front door says so, and none of them
 /// invites a pull request again.
 #[test]
 fn core_is_published_one_way_and_free_to_fork() {

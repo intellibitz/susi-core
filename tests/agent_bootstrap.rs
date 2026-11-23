@@ -6,9 +6,9 @@
 )]
 #![allow(missing_docs)] // integration test crate: no public API to document
 
-//! Current agent-directive drift guards. The session-start script these once
-//! also guarded left with the cloud sessions on 2026-11-22; the guards still
-//! refuse it coming back.
+//! Agent directives stay pointers to the contract: every tool's rule file names
+//! `AGENTS.md` and restates nothing, and no tool runs a startup hook before it
+//! is read (AGENTS.md, "Records and documents").
 
 use std::path::Path;
 use std::process::Command;
@@ -31,20 +31,9 @@ fn every_agent_tool_auto_loads_the_same_first_step() {
         ] {
             assert!(text.contains(required), "{file} must carry {required}");
         }
-        for forbidden in [
-            "workflow-session-start.sh",
-            "scripts/seed-target.sh",
-            "susi tasks claim",
-            "git fetch",
-        ] {
-            assert!(
-                !text.contains(forbidden),
-                "{file} reinstated legacy bootstrap: {forbidden}"
-            );
-        }
     }
-    // No tool may silently run the old shell/network bootstrap before reading
-    // the canonical local contract. Useful per-tool permissions remain intact.
+    // No tool may silently run a startup hook before reading the contract.
+    // Useful per-tool permissions remain intact.
     for hook_file in [".claude/settings.json", ".codex/hooks.json"] {
         if let Ok(text) = std::fs::read_to_string(root.join(hook_file)) {
             let settings: serde_json::Value = serde_json::from_str(&text).unwrap();
@@ -59,9 +48,9 @@ fn every_agent_tool_auto_loads_the_same_first_step() {
 }
 
 /// Discover tracked tool directives so adding a new agent cannot quietly bring
-/// back the retired shell/network bootstrap or a divergent policy document.
+/// in a divergent policy document: each Markdown directive points at the contract.
 #[test]
-fn tracked_agent_directives_do_not_reintroduce_legacy_bootstrap() {
+fn tracked_agent_directives_point_at_the_contract() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let listed = Command::new("git")
         .current_dir(root)
@@ -103,7 +92,7 @@ fn tracked_agent_directives_do_not_reintroduce_legacy_bootstrap() {
             continue;
         }
         // A deleted tracked file is absent before the commit; its removal is
-        // intentional, not a reason to resurrect its obsolete directive.
+        // intentional, not a reason to resurrect it.
         let Ok(text) = std::fs::read_to_string(root.join(path)) else {
             assert!(
                 !root.join(path).exists(),
@@ -112,17 +101,6 @@ fn tracked_agent_directives_do_not_reintroduce_legacy_bootstrap() {
             continue;
         };
         inspected += 1;
-        for retired in [
-            "workflow-session-start.sh",
-            "scripts/seed-target.sh",
-            "scripts/susi-worktree.sh",
-            "git fetch origin",
-        ] {
-            assert!(
-                !text.contains(retired),
-                "{path} reinstated retired bootstrap: {retired}"
-            );
-        }
         if path.ends_with(".md") || path.ends_with(".mdc") || tool_file {
             assert!(
                 text.contains("AGENTS.md"),

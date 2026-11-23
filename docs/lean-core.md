@@ -40,13 +40,13 @@ it prints.
 
 ## Recorded baselines
 
-The same test file records five counts that are not line counts:
+The same test file records two counts that are not line counts:
 
-- third-party crates the root package compiles;
-- workspace packages the root package compiles;
 - workspace members declared in `Cargo.toml`;
-- packages resolved in `Cargo.lock`;
-- vendor facades the root package names directly.
+- packages resolved in `Cargo.lock`.
+
+Until 2026-11-23 it also recorded what the root package compiles; that package has no code, so
+those counts measured nothing.
 
 Each is a baseline, not a ceiling. A change may raise one in the same commit: raise the
 constant in `tests/lean_core_ceilings.rs` to the new count and say why, in the constant's

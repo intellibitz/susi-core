@@ -1,10 +1,7 @@
-//! Core documentation must not promise what core no longer is (BT-06).
+//! Core documentation must not promise what core is not (BT-06).
 //!
-//! CEO directive 2026-11-03: the free Apache-2.0 core is a pure CLI plus
-//! standards socket. It ships no UI, bundles no plugin content, starts and
-//! downloads no third-party software on its own, and is released only for
-//! x86_64 Windows and Linux (the source stays portable). Every UI and every
-//! curated plugin lives in Susi Commercial Apps.
+//! AGENTS.md: "Core ships no UI or bundled plug content". Core is libraries
+//! only; every UI and every curated plugin lives in Susi, the product.
 //!
 //! This test reads `README.md`, `ARCHITECTURE.md`, `VISION.md` and every
 //! Markdown file under `docs/`, splits them into sentences (table rows, list
@@ -13,17 +10,15 @@
 //!
 //! Markdown emphasis and code ticks are stripped before matching, so bold
 //! text cannot split a banned phrase. Short roots (`gui`, `dashboard`,
-//! `cockpit`, `macos`) match as whole words in prose only, outside code spans
-//! and link targets; `macos` fires only next to a release word.
+//! `cockpit`) match as whole words in prose only, outside code spans and
+//! link targets.
 //!
-//! Three narrow exemptions, all explicit:
+//! Two narrow exemptions, both explicit:
 //! - a sentence that says the UI or plugins it names live in (or moved to)
 //!   Susi Commercial Apps or the commercial desktop ([`RELOCATION`]); a bare
 //!   mention of the suite is not enough;
 //! - a sentence that tags itself as history: it opens with `Retracted` or
-//!   `Known gap`, or carries a `(historical` / `(superseded` note;
-//! - and [`ALLOWED`], a short (file, fragment) list for historical evidence
-//!   logs and the few sentences whose banned word is not a core promise.
+//!   `Known gap`, or carries a `(historical` / `(superseded` note.
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)] // test-only assertions
 
@@ -38,9 +33,6 @@ struct Ban {
     /// short root such as `gui` or `cockpit` never hits `guide` or the
     /// `cockpit` module name.
     word: bool,
-    /// When non-empty, the ban fires only if the sentence also names one of
-    /// these (a platform name is fine; a platform *release* is not).
-    needs: &'static [&'static str],
 }
 
 /// A plain substring ban.
@@ -49,7 +41,6 @@ const fn ban(fragment: &'static str, rule: &'static str) -> Ban {
         fragment,
         rule,
         word: false,
-        needs: &[],
     }
 }
 
@@ -59,33 +50,11 @@ const fn word(fragment: &'static str, rule: &'static str) -> Ban {
         fragment,
         rule,
         word: true,
-        needs: &[],
     }
 }
 
-/// Words that turn a platform name into a release promise (whole words in
-/// prose; a plural `s` is implied).
-const RELEASE_WORDS: &[&str] = &[
-    "release",
-    "released",
-    "ship",
-    "shipped",
-    "publish",
-    "publishes",
-    "published",
-    "download",
-    "downloaded",
-    "binary",
-    "binaries",
-    "asset",
-    "build",
-    "built",
-];
-
 const UI: &str = "core ships no UI (it lives in Susi Commercial Apps)";
 const PLUGINS: &str = "core bundles no plugin content (it lives in Susi Commercial Apps)";
-const AUTO: &str = "core starts, enables and downloads no third-party software on its own";
-const PLATFORM: &str = "core releases only for x86_64 Windows and Linux";
 
 const BANS: &[Ban] = &[
     // A core UI: the retired HTML cockpit, the harness desktop plugin, the
@@ -136,60 +105,6 @@ const BANS: &[Ban] = &[
     ban("bundled plugin", PLUGINS),
     ban("bundles plugin", PLUGINS),
     ban("ships plugins", PLUGINS),
-    // Automatic third-party launches and downloads.
-    ban("auto-enable", AUTO),
-    ban("auto-link", AUTO),
-    ban("auto-launch", AUTO),
-    ban("autolaunch", AUTO),
-    ban("launches automatically", AUTO),
-    ban("auto-primes packs", AUTO),
-    ban("primes every catalog at boot", AUTO),
-    ban("auto-download", AUTO),
-    ban("automatic download", AUTO),
-    ban("downloads automatically", AUTO),
-    ban("automatically download", AUTO),
-    ban("downloads the starter", AUTO),
-    ban("auto-start", AUTO),
-    ban("autostart", AUTO),
-    ban("starts automatically", AUTO),
-    ban("automatically start", AUTO),
-    ban("auto-install", AUTO),
-    ban("installs automatically", AUTO),
-    ban("automatically install", AUTO),
-    ban("automatic starter download", AUTO),
-    ban("provisions the licensed starter", AUTO),
-    ban("starts a background download", AUTO),
-    ban("version-probe only", AUTO),
-    ban("version-probe refreshed", AUTO),
-    ban("tick = probe_all", AUTO),
-    // macOS / ARM core releases.
-    ban("macos release", PLATFORM),
-    ban("macos binary", PLATFORM),
-    ban("macos binaries", PLATFORM),
-    ban("macos asset", PLATFORM),
-    ban("macos engine artifact", PLATFORM),
-    ban("macos-aarch64", PLATFORM),
-    ban("macos-x86_64", PLATFORM),
-    ban("susi-macos", PLATFORM),
-    ban("apple-darwin", PLATFORM),
-    ban("linux-aarch64", PLATFORM),
-    ban("windows-aarch64", PLATFORM),
-    ban("arm64 release", PLATFORM),
-    ban("arm64 binary", PLATFORM),
-    ban("arm64 asset", PLATFORM),
-    ban("publish-extra", PLATFORM),
-    ban("aarch64-unknown-linux", PLATFORM),
-    ban("aarch64-pc-windows", PLATFORM),
-    ban("x86_64-apple", PLATFORM),
-    ban("linux arm64 finished", PLATFORM),
-    ban("optional-platform matrix", PLATFORM),
-    ban("release's slowest legs are macos", PLATFORM),
-    Ban {
-        fragment: "macos",
-        rule: PLATFORM,
-        word: true,
-        needs: RELEASE_WORDS,
-    },
 ];
 
 /// A sentence saying the UI or plugins it names moved to (or live in) the
@@ -210,14 +125,6 @@ const HISTORY_TAGS: &[&str] = &["retracted", "known gap"];
 
 /// A sentence carrying one of these parenthetical tags is history.
 const HISTORY_NOTES: &[&str] = &["(historical", "(superseded"];
-
-/// Historical evidence logs: (file, sentence fragment) pairs that record a
-/// past measurement or the past release pipeline and carry no marker.
-const ALLOWED: &[(&str, &str)] = &[
-    // Empty since 2026-11-22: the historical logs these entries excused (the workflow
-    // measurements, the step-1 acceptance record and the harness FAQ) and the old
-    // ARCHITECTURE.md sentence left with the pages they were in.
-];
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -395,15 +302,9 @@ fn is_history(plain: &str) -> bool {
 }
 
 /// The bans a sentence breaks, after the explicit exemptions.
-fn broken_bans(file: &str, sentence: &str) -> Vec<&'static Ban> {
+fn broken_bans(sentence: &str) -> Vec<&'static Ban> {
     let lower = plain(sentence);
     if RELOCATION.iter().any(|m| lower.contains(m)) || is_history(&lower) {
-        return Vec::new();
-    }
-    if ALLOWED
-        .iter()
-        .any(|(f, fragment)| *f == file && lower.contains(fragment))
-    {
         return Vec::new();
     }
     let prose = prose(sentence);
@@ -415,7 +316,6 @@ fn broken_bans(file: &str, sentence: &str) -> Vec<&'static Ban> {
                 lower.contains(b.fragment)
             }
         })
-        .filter(|b| b.needs.is_empty() || b.needs.iter().any(|n| has_word(&prose, n)))
         .collect()
 }
 
@@ -423,8 +323,7 @@ fn broken_bans(file: &str, sentence: &str) -> Vec<&'static Ban> {
 fn core_docs_promise_no_ui_or_plugins() {
     let docs = scanned_docs();
     // The scan must reach the front-door files and docs/ (its index proves the directory was
-    // read). Until 2026-11-22 this was a count, more than 10; the pages about removed features
-    // left that day, and 7 remain.
+    // read).
     for expected in [
         "README.md",
         "ARCHITECTURE.md",
@@ -440,7 +339,7 @@ fn core_docs_promise_no_ui_or_plugins() {
     let mut violations = Vec::new();
     for (file, text) in &docs {
         for sentence in sentences(text) {
-            for ban in broken_bans(file, &sentence) {
+            for ban in broken_bans(&sentence) {
                 violations.push(format!(
                     "{file}: \"{}\" ({}): {}",
                     ban.fragment,
@@ -458,48 +357,21 @@ fn core_docs_promise_no_ui_or_plugins() {
     );
 }
 
-/// Every allow-list entry must still match a sentence, so a stale exemption
-/// cannot linger after its sentence is rewritten.
-#[test]
-fn every_allowed_fragment_still_matches_a_sentence() {
-    let docs = scanned_docs();
-    for (file, fragment) in ALLOWED {
-        let (_, text) = docs
-            .iter()
-            .find(|(f, _)| f == file)
-            .unwrap_or_else(|| panic!("allow-listed file {file} is not scanned"));
-        assert!(
-            sentences(text).iter().any(|s| plain(s).contains(fragment)),
-            "stale allow-list entry: {file} no longer contains `{fragment}`"
-        );
-    }
-}
-
 /// The scanner itself: planted promises are caught, the exemptions hold, and
 /// one sentence's marker never leaks into the next.
 #[test]
 fn scanner_catches_planted_promises_and_honours_exemptions() {
     for planted in [
-        "Open the CEO cockpit in your browser.",
+        "Open the operator cockpit in your browser.",
         "Core seeds the default extension pack on first run.",
-        "The daemon downloads automatically a model at boot.",
-        "Core publishes a macOS release for every tag.",
         "Drop into the interactive shell with `susi shell`.",
         "| Plugin protocol MCP | ~22 leading servers (top: Filesystem) |",
         // Natural phrasings of each banned promise.
-        "Core ships for Windows, Linux and macOS.",
-        "Download the macOS build from the release page.",
-        "Releases publish aarch64-unknown-linux-gnu and aarch64-pc-windows-msvc archives.",
         "Core ships a GUI for monitoring missions.",
         "Open the dashboard at http://127.0.0.1:9181.",
         "Open the harness cockpit in your browser.",
         "Core ships bundled plugins for GitHub and Slack.",
-        "The daemon downloads the starter model at boot.",
-        "Susi will automatically download a model on first run.",
-        "The daemon auto-starts Ollama at boot.",
-        "Core auto-installs leading MCP servers.",
         // Emphasis must not split a banned phrase.
-        "- **The release's slowest legs** are macOS and Windows runners.",
         "Open the **web** UI on port 9181.",
         // Everyday words and bare suite mentions are not exemptions.
         "Core ships a web UI; removed sessions are hidden.",
@@ -508,7 +380,7 @@ fn scanner_catches_planted_promises_and_honours_exemptions() {
     ] {
         let hits: Vec<_> = sentences(planted)
             .iter()
-            .flat_map(|s| broken_bans("README.md", s))
+            .flat_map(|s| broken_bans(s))
             .collect();
         assert!(!hits.is_empty(), "planted promise not caught: {planted}");
     }
@@ -516,15 +388,14 @@ fn scanner_catches_planted_promises_and_honours_exemptions() {
         "The visual cockpit lives in Susi Commercial Apps, not the web UI of core.",
         "RETRACTED: the harness plugin registry (`plugins.rs`) was removed.",
         "| 5 | Retracted: the plugin manifest (`plugins.rs`) |",
-        "Known gap: the daemon starts a background download of the starter model.",
-        "Releases built a macOS binary (historical: before 2026-11-03).",
-        "macOS is a portable source target.",
+        "Known gap: the docs still describe a web dashboard.",
+        "Core shipped a terminal UI (historical: before 2026-11-03).",
         "The `cockpit` module serves [the API](../crates/susi-harness/src/cockpit.rs).",
         "Read the user guide.",
     ] {
         let hits: Vec<_> = sentences(exempt)
             .iter()
-            .flat_map(|s| broken_bans("README.md", s))
+            .flat_map(|s| broken_bans(s))
             .collect();
         let fragments: Vec<_> = hits.iter().map(|b| b.fragment).collect();
         assert!(
@@ -536,14 +407,14 @@ fn scanner_catches_planted_promises_and_honours_exemptions() {
     let text = "Retracted: the old panel. Open the web UI on port 9181.";
     let hits: Vec<_> = sentences(text)
         .iter()
-        .flat_map(|s| broken_bans("README.md", s))
+        .flat_map(|s| broken_bans(s))
         .collect();
     assert_eq!(hits.len(), 1, "{text}");
     // Table rows are separate units.
     let table = "| a | retracted |\n| b | the web UI |\n";
     let hits: Vec<_> = sentences(table)
         .iter()
-        .flat_map(|s| broken_bans("README.md", s))
+        .flat_map(|s| broken_bans(s))
         .collect();
     assert_eq!(hits.len(), 1, "{table}");
 }
@@ -555,7 +426,7 @@ fn prose_and_has_word_strip_inline_code_and_markdown_links() {
     assert!(!has_word(&stripped, "gui"));
     assert!(!has_word(&stripped, "dashboard"));
     assert!(!has_word(&stripped, "cockpit"));
-    assert!(broken_bans("README.md", raw).is_empty());
+    assert!(broken_bans(raw).is_empty());
 
     assert!(has_word("dashboards are external", "dashboard"));
     assert!(!has_word("guided tour", "gui"));

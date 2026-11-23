@@ -1,30 +1,25 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-//! Lean-core baselines: what the program `susi` compiles, and the size of the workspace in
-//! packages, as last measured. Each constant here is a baseline, not a ceiling. A change may
-//! raise one in the same commit, saying why in the constant's comment and in the commit body;
-//! a change that lowers a count lowers its baseline too, so the record stays true. The history
-//! of each number is in Git, not here (until 2026-11-22 these comments carried it, 170 lines).
+//! Lean-core baselines: the size of the workspace in packages, as last measured. Each constant
+//! here is a baseline, not a ceiling. A change may raise one in the same commit, saying why in
+//! the constant's comment and in the commit body; a change that lowers a count lowers its
+//! baseline too, so the record stays true. The history of each number is in Git, not here.
 //!
-//! Core has no line limit (decision of 2026-11-22). The complete socket is measured and its size
-//! reported, by every ordinary run and by `cargo core-size`; no size fails a test.
-//!
-//! The reach is measured from `cargo metadata` (normal and build edges, the way the program is
-//! built; dev edges excluded), from the program's own package. Until 2026-11-22 it was measured
-//! from the GAWD and GMCP packages; the GAWD ones left that day, reached by no program.
+//! Core has no line limit (decision of 2026-11-22). The complete socket (the libraries and the
+//! vendor facades) is measured and its size reported, by every ordinary run and by
+//! `cargo core-size`; no size fails a test.
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// The root package, whose reach is measured. Since 2026-11-22 it has no program and compiles
-/// nothing of its own: it holds the repository's tests (T-CLAUDE-441).
-const PROGRAM: &str = "susi";
+/// The root package. It has no code: it holds the repository's tests.
+const ROOT_PACKAGE: &str = "susi";
 
 /// The libraries Susi, the product, builds on (its manifest names them); `ARCHITECTURE.md` says
 /// so in its package table, with what Susi uses each for. They are why this repository exists
-/// (the CEO, 2026-11-22: Core holds only what Susi's features use). Any other package is bloat,
-/// and this suite fails on it.
+/// (decided on 2026-11-22: Core holds only what Susi's features use). Any other package is
+/// bloat, and this suite fails on it.
 const LIBRARIES_FOR_SUSI: [&str; 6] = [
     "susi-error",
     "susi-paths",
@@ -34,20 +29,12 @@ const LIBRARIES_FOR_SUSI: [&str; 6] = [
     "susi-vendor-sha2",
 ];
 
-/// Third-party crates the root package compiles. 2026-11-22: 21 -> 0 when the program left
-/// (T-CLAUDE-441).
-const THIRD_PARTY_BASELINE: usize = 0;
-/// Workspace packages the root package compiles, itself included. 2026-11-22: 7 -> 1
-/// (T-CLAUDE-441).
-const WORKSPACE_BASELINE: usize = 1;
 /// Workspace members in `Cargo.toml`. 2026-11-22: 19 -> 10 (T-CLAUDE-437), 10 -> 8
 /// (T-CLAUDE-440: `susi-config`, `susi-vendor-libc`), 8 -> 7 (T-CLAUDE-441: `susi-gmcp`).
 const WORKSPACE_MEMBERS_BASELINE: usize = 7;
 /// Packages resolved in `Cargo.lock`. 2026-11-22: 89 -> 33 (T-CLAUDE-437), 33 -> 30
-/// (T-CLAUDE-440, T-CLAUDE-441); most are what the tests and Susi's libraries need.
+/// (T-CLAUDE-440, T-CLAUDE-441); most are what Susi's libraries need.
 const CARGO_LOCK_PACKAGES_BASELINE: usize = 30;
-/// `susi-vendor-*` facades the root package names directly. 2026-11-22: 3 -> 0 (T-CLAUDE-441).
-const DIRECT_FACADE_EDGES_BASELINE: usize = 0;
 
 /// The failure text for a count above its recorded baseline. It tells the
 /// agent what to do, because a baseline is not a ceiling.
@@ -90,128 +77,64 @@ fn metadata() -> Value {
     serde_json::from_slice(&output.stdout).expect("cargo metadata is JSON")
 }
 
-struct Reach {
-    members: BTreeSet<String>,
-    workspace: BTreeSet<String>,
-    third_party: BTreeSet<String>,
-    direct_facades: BTreeSet<String>,
-}
-
-/// The normal and build closure of the program's package.
-fn program_reach(metadata: &Value) -> Reach {
-    let member_ids: BTreeSet<&str> = metadata["workspace_members"]
+/// The names of the workspace's members.
+fn members(metadata: &Value) -> BTreeSet<String> {
+    let ids: BTreeSet<&str> = metadata["workspace_members"]
         .as_array()
         .expect("members")
         .iter()
         .filter_map(Value::as_str)
         .collect();
-    let names: BTreeMap<&str, &str> = metadata["packages"]
+    metadata["packages"]
         .as_array()
         .expect("packages")
         .iter()
-        .map(|p| {
-            (
-                p["id"].as_str().expect("id"),
-                p["name"].as_str().expect("name"),
-            )
-        })
-        .collect();
-    let nodes: BTreeMap<&str, &Value> = metadata["resolve"]["nodes"]
-        .as_array()
-        .expect("resolve nodes")
-        .iter()
-        .map(|n| (n["id"].as_str().expect("node id"), n))
-        .collect();
-    let built_edge = |dep: &Value| {
-        dep["dep_kinds"].as_array().is_none_or(|kinds| {
-            kinds
-                .iter()
-                .any(|k| matches!(k["kind"].as_str(), None | Some("normal" | "build")))
-        })
-    };
-    let root = member_ids
-        .iter()
-        .copied()
-        .find(|id| names[id] == PROGRAM)
-        .expect("the program's package is a workspace member");
-    let mut direct_facades = BTreeSet::new();
-    for dep in nodes[root]["deps"].as_array().expect("deps") {
-        let id = dep["pkg"].as_str().expect("pkg");
-        if built_edge(dep) && names[id].starts_with("susi-vendor-") {
-            direct_facades.insert(names[id].to_owned());
-        }
-    }
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
-    let mut stack = vec![root];
-    while let Some(id) = stack.pop() {
-        if !seen.insert(id) {
-            continue;
-        }
-        for dep in nodes[id]["deps"].as_array().expect("deps") {
-            if built_edge(dep) {
-                stack.push(dep["pkg"].as_str().expect("pkg"));
-            }
-        }
-    }
-    let (workspace, third_party): (Vec<&str>, Vec<&str>) =
-        seen.iter().copied().partition(|id| member_ids.contains(id));
-    let name_all = |ids: Vec<&str>| -> BTreeSet<String> {
-        ids.into_iter().map(|id| names[id].to_owned()).collect()
-    };
-    Reach {
-        members: name_all(member_ids.iter().copied().collect()),
-        workspace: name_all(workspace),
-        third_party: name_all(third_party),
-        direct_facades,
-    }
+        .filter(|p| ids.contains(p["id"].as_str().expect("id")))
+        .map(|p| p["name"].as_str().expect("name").to_owned())
+        .collect()
 }
 
-/// Every workspace package is one Susi builds on (or the root package that holds the tests):
+/// Every workspace package is one Susi builds on, or the root package that holds the tests:
 /// nothing in the workspace is there for nobody.
 #[test]
-fn every_package_is_used_by_the_program_or_by_susi() {
-    let reach = program_reach(&metadata());
-    let unused: Vec<&String> = reach
-        .members
+fn every_package_is_one_susi_builds_on() {
+    let members = members(&metadata());
+    let unused: Vec<&String> = members
         .iter()
-        .filter(|m| !reach.workspace.contains(*m) && !LIBRARIES_FOR_SUSI.contains(&m.as_str()))
+        .filter(|m| *m != ROOT_PACKAGE && !LIBRARIES_FOR_SUSI.contains(&m.as_str()))
         .collect();
     assert!(
         unused.is_empty(),
-        "packages neither the program `{PROGRAM}` compiles nor Susi builds on: {unused:?}; \
-         remove them, or name them in LIBRARIES_FOR_SUSI and in ARCHITECTURE.md with the reason"
+        "packages Susi does not build on: {unused:?}; remove them, or name them in \
+         LIBRARIES_FOR_SUSI and in ARCHITECTURE.md with the reason"
     );
     for library in LIBRARIES_FOR_SUSI {
         assert!(
-            reach.members.contains(library),
+            members.contains(library),
             "{library} is listed as a library for Susi but is not a workspace member"
         );
     }
 }
 
-/// The dependency reach and the workspace's size in packages, against the recorded baselines.
-/// A count above its baseline fails with what to do: raise the baseline in the same commit and
-/// say why, or remove what raised it.
+/// The workspace's size in packages, against the recorded baselines. A count above its
+/// baseline fails with what to do: raise the baseline in the same commit and say why, or
+/// remove what raised it.
 #[test]
-fn program_dependency_reach_stays_within_its_recorded_baselines() {
+fn workspace_size_stays_within_its_recorded_baselines() {
     let meta = metadata();
     let lock_packages = meta["packages"].as_array().expect("packages").len();
-    let reach = program_reach(&meta);
+    let members = members(&meta);
     eprintln!(
-        "lean-core: the program compiles {} workspace packages, {} third-party crates, {} direct facade edges (workspace members: {}, Cargo.lock packages: {})",
-        reach.workspace.len(),
-        reach.third_party.len(),
-        reach.direct_facades.len(),
-        reach.members.len(),
-        lock_packages
+        "lean-core: workspace members: {}, Cargo.lock packages: {lock_packages}",
+        members.len()
     );
     for (what, now, constant, baseline, named) in [
         (
             "workspace members declared in Cargo.toml",
-            reach.members.len(),
+            members.len(),
             "WORKSPACE_MEMBERS_BASELINE",
             WORKSPACE_MEMBERS_BASELINE,
-            Some(&reach.members),
+            Some(&members),
         ),
         (
             "packages resolved in Cargo.lock",
@@ -219,27 +142,6 @@ fn program_dependency_reach_stays_within_its_recorded_baselines() {
             "CARGO_LOCK_PACKAGES_BASELINE",
             CARGO_LOCK_PACKAGES_BASELINE,
             None,
-        ),
-        (
-            "third-party crates the program compiles",
-            reach.third_party.len(),
-            "THIRD_PARTY_BASELINE",
-            THIRD_PARTY_BASELINE,
-            Some(&reach.third_party),
-        ),
-        (
-            "workspace packages the program compiles",
-            reach.workspace.len(),
-            "WORKSPACE_BASELINE",
-            WORKSPACE_BASELINE,
-            Some(&reach.workspace),
-        ),
-        (
-            "vendor facades the program names directly",
-            reach.direct_facades.len(),
-            "DIRECT_FACADE_EDGES_BASELINE",
-            DIRECT_FACADE_EDGES_BASELINE,
-            Some(&reach.direct_facades),
         ),
     ] {
         assert!(

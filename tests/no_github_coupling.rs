@@ -1,16 +1,15 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-//! GitHub is storage only (CEO mandate 2026-11-09 00:15 IST).
+//! GitHub is storage only (decided on 2026-11-09).
 //!
 //! The repositories may move to another git host at any time, so nothing in
 //! the tree may depend on a GitHub feature: no `gh` invocation, no REST or
 //! GraphQL call, no commit status, no release-asset download. Git itself
 //! (`git push`, `git fetch`, tags, branches) is the only contact with the host,
 //! and the remote URL lives in configuration (`git remote`, an environment
-//! variable), never in code. Releases are tags plus committed records
-//! (`releases/<tag>.json`, `docs/releases.md`); a landing's record is its gate
-//! receipt, retained under `refs/susi/receipts/`.
+//! variable), never in code. A release is a signed tag (Core has cut none
+//! since 2026-11-22), and a landing is a fast-forward of `main`.
 //!
 //! GitLab is held to the same rule (decision of 2026-11-22: zero dependency on
 //! GitHub or GitLab). A hosted copy on either service is a write-only backup,
@@ -257,15 +256,15 @@ fn nothing_tracked_depends_on_a_github_feature() {
     }
     assert!(
         hits.is_empty(),
-        "GitHub and GitLab are storage only (AGENTS.md; CEO mandate 2026-11-09, extended to GitLab on 2026-11-22): use git push/fetch, tags and committed records instead of:\n{}",
+        "GitHub and GitLab are storage only (AGENTS.md; decided on 2026-11-09, extended to GitLab on 2026-11-22): use git push/fetch and tags instead of:\n{}",
         hits.join("\n")
     );
 }
 
 /// GitHub-only integration files: the `.github/` directory (issue, pull-request
 /// and discussion templates, Copilot instructions, workflows) and the
-/// root-level files GitHub alone reads. CEO 2026-11-11: zero dependency on
-/// GitHub, no GitHub hooks.
+/// root-level files GitHub alone reads. Decided on 2026-11-11: zero dependency
+/// on GitHub, no GitHub hooks.
 fn github_only_path(path: &str) -> bool {
     path.starts_with(".github/") || matches!(path, "CODEOWNERS" | "FUNDING.yml" | "dependabot.yml")
 }
