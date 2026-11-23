@@ -1,0 +1,19 @@
+{
+  "id": "T-CLAUDE-444",
+  "title": "Cut what Susi does not use from Core's libraries, tests and config",
+  "goal": "Core holds only what Susi's features use (AGENTS.md): an audit by grep found code, tests and config in susi-paths, susi-error and the root package that neither Susi nor Core's kept items reach",
+  "size": "m",
+  "deps": [],
+  "accept": {
+    "cmd": [
+      "cargo",
+      "nextest",
+      "run",
+      "--workspace",
+      "--offline",
+      "--locked"
+    ]
+  },
+  "created_by": "CLAUDE",
+  "created_unix": 1795416255
+}
