@@ -854,9 +854,18 @@ fn core_ships_zero_ui_assets() {
     ];
     let mut files = Vec::new();
     zero_ui_walk(&workspace_root(), true, &mut files);
-    // A floor that proves the walk saw the tree, not a size rule: about 120 files are walked
-    // since the program left (2026-11-22).
-    assert!(files.len() > 60, "asset walk found too few files");
+    // Proof that the walk saw the tree (the root, the documents and a library), not a size rule.
+    let walked: Vec<String> = files.iter().map(|path| zero_ui_rel(path)).collect();
+    for expected in [
+        "Cargo.toml",
+        "docs/README.md",
+        "crates/susi-paths/src/lib.rs",
+    ] {
+        assert!(
+            walked.iter().any(|file| file == expected),
+            "the asset walk missed {expected}"
+        );
+    }
     let offenders: Vec<String> = files
         .iter()
         .filter(|path| {

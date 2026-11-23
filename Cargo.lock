@@ -161,7 +161,6 @@ dependencies = [
 name = "susi"
 version = "0.21.72"
 dependencies = [
- "susi-paths",
  "susi-vendor-serde",
  "susi-vendor-serde-json",
 ]
@@ -177,9 +176,6 @@ dependencies = [
 [[package]]
 name = "susi-paths"
 version = "0.1.0"
-dependencies = [
- "susi-vendor-serde-json",
-]
 
 [[package]]
 name = "susi-vendor-getrandom"

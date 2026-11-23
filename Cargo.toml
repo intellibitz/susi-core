@@ -15,7 +15,7 @@ exclude = ["vendor"]
 name = "susi"
 version = "0.21.72"
 edition = "2021"
-description = "Susi Core: the small libraries Susi, the product, builds on (home and path resolution, the metrics sink, and the wrappers of serde, serde_json, sha2 and getrandom)."
+description = "Susi Core: the small libraries Susi, the product, builds on (the platform-service table, a windowless command launcher, the metrics sink, and the wrappers of serde, serde_json, sha2 and getrandom)."
 license = "Apache-2.0"
 repository = "https://github.com/intellibitz/susi-core"
 homepage = "https://github.com/intellibitz/susi-core"
@@ -76,8 +76,6 @@ getrandom = "0.2"
 [dev-dependencies]
 serde = { package = "susi-vendor-serde", path = "crates/susi-vendor-serde" }
 serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-serde-json" }
-# Test homes are isolated through the path library's test helpers.
-susi-paths = { workspace = true }
 
 
 # dev and test must keep identical settings: any difference (codegen-units

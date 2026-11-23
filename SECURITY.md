@@ -13,12 +13,12 @@ longer maintained.
 
 ## What the libraries touch
 
-Read from `crates/` on 2026-11-22. No library opens a network connection, listens on a port or
+Read from `crates/` on 2026-11-23. No library opens a network connection, listens on a port or
 starts another program.
 
-- **`susi-paths`** resolves the Susi home and the standard folders from `SUSI_HOME`, `HOME` and
-  the XDG settings, and creates owner-only directories (mode 0700) when asked. Its test helpers
-  isolate a test's home and scrub those variables.
+- **`susi-paths`** holds the platform-service table (Susi installs an owner-only file opener in
+  it on Windows) and builds a command for its caller to start without a console window; it
+  starts nothing itself and reads no setting.
 - **`susi-error`** is a metrics sink: it appends the JSON line its caller gives it to the file
   its caller names, creating the file owner-only, and rotates it once past 64 MiB.
 - **The four `susi-vendor-*` facades** only re-export serde, serde_json, sha2 and getrandom.

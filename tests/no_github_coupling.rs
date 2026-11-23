@@ -214,7 +214,7 @@ fn tracked_files(root: &Path) -> &'static [String] {
 fn nothing_tracked_depends_on_a_github_feature() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut hits = Vec::new();
-    let mut scanned = 0usize;
+    let mut scanned = Vec::new();
     for path in tracked_files(root) {
         let normalized = path.replace('\\', "/");
         if ALLOWED
@@ -229,7 +229,7 @@ fn nothing_tracked_depends_on_a_github_feature() {
         let Ok(text) = String::from_utf8(bytes) else {
             continue; // binary
         };
-        scanned += 1;
+        scanned.push(normalized.clone());
         if !may_hold_a_coupling(&text) {
             continue;
         }
@@ -243,12 +243,18 @@ fn nothing_tracked_depends_on_a_github_feature() {
             }
         }
     }
-    assert!(
-        // A floor that proves the scan saw the tree (about 180 tracked text files since the
-        // program left, 2026-11-22), not a size rule.
-        scanned > 60,
-        "only {scanned} tracked text files were scanned"
-    );
+    // Proof that the scan saw the tree (the root, the documents and a library), not a size rule.
+    for expected in [
+        "Cargo.toml",
+        "docs/README.md",
+        "crates/susi-paths/src/lib.rs",
+    ] {
+        assert!(
+            scanned.iter().any(|file| file == expected),
+            "the scan missed {expected}; it read {} tracked text files",
+            scanned.len()
+        );
+    }
     assert!(
         hits.is_empty(),
         "GitHub and GitLab are storage only (AGENTS.md; CEO mandate 2026-11-09, extended to GitLab on 2026-11-22): use git push/fetch, tags and committed records instead of:\n{}",
