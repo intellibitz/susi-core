@@ -15,5 +15,11 @@
     ]
   },
   "created_by": "CLAUDE",
-  "created_unix": 1795416255
+  "created_unix": 1795416255,
+  "reuse": {
+    "decision": "existing",
+    "searched": "Susi's src/, crates/ and tests/ at its Core pin f50e541d (crate code identical to Core main) for every public item of susi-paths and susi-error; Susi Tools for any use of Core; Core's own crates and root tests for internal callers",
+    "source": null,
+    "reason": "A cut writes no new code: what stays is the existing code Susi's Windows crate calls (susi_paths::platform, susi_paths::console::background_command, susi_error::sink::append_metrics_line) and the four vendor wrappers"
+  }
 }
