@@ -8,7 +8,7 @@ derivatives, and every line here must trace to a feature of Susi that uses it (d
 What that means in practice:
 
 - **Only what Susi uses.** A library enters when a feature of Susi needs it and it is useful
-  without a licence: home and path resolution, typed errors, the wrappers of the third-party
+  without a licence: home and path resolution, a metrics sink, the wrappers of the third-party
   crates Susi uses. A library no feature of Susi uses leaves. [`ARCHITECTURE.md`](ARCHITECTURE.md)
   names each one with what Susi uses it for, and the tests fail on anything else.
 - **No program.** Until 2026-11-22 Core had one, a Model Context Protocol server with

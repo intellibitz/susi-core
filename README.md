@@ -4,7 +4,7 @@
 
 **This repository is Susi Core, the public Apache-2.0 derivative of Susi.** It
 is the small set of Rust libraries that Susi, the product, builds on: home and
-path resolution, a typed error, and the wrappers through which Susi uses serde,
+path resolution, an owner-only metrics sink, and the wrappers through which Susi uses serde,
 serde_json, sha2 and getrandom. It has no program.
 
 Susi Core is one of three repositories that move together (the ecosystem page,

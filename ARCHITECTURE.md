@@ -24,7 +24,7 @@ Every package of the workspace, and nothing else, has a row here; a test fails w
 |---|---:|---|---|
 | `susi` | 0 | The root package: no code; it holds this repository's own tests. | These tests |
 | `susi-paths` | 915 | The host directory contract: the Susi home, test isolation, standard-output guards, the platform-service table. | Susi on Windows: its Windows crate fills the platform-service table at start-up; these tests |
-| `susi-error` | 849 | A typed error, secret redaction and an append-only metrics sink. | Susi on Windows: one test of its Windows crate writes to the metrics sink |
+| `susi-error` | 247 | An append-only, owner-only JSONL metrics sink. | Susi on Windows: one test of its Windows crate writes to the metrics sink |
 | `susi-vendor-serde` | 6 | The only owner of the serde crates. | Susi's vault: the sealed store's records |
 | `susi-vendor-serde-json` | 6 | The only owner of serde_json. | Susi's vault: the sealed store's JSON |
 | `susi-vendor-sha2` | 6 | The only owner of sha2. | Susi's vault: key fingerprints and the master key's form |

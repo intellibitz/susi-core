@@ -171,7 +171,6 @@ name = "susi-error"
 version = "0.1.0"
 dependencies = [
  "susi-paths",
- "susi-vendor-serde",
  "susi-vendor-serde-json",
 ]
 

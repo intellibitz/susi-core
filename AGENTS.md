@@ -117,11 +117,10 @@ external messages only with explicit user or invoked-workflow authorization.
 - Library code, build tooling and dependencies are Rust. External crates are owned by their
   `susi-vendor-*` facade; ordinary `susi-*` crates declare no external dependency. Keep the
   leaf dependency order `paths → error`.
-- Preserve `forbid(unsafe_code)` and `deny(unsafe_code)` boundaries; the existing platform
-  FFI exceptions stay scoped per function with `// SAFETY:` reasoning. Production code has no
-  panic-path macros. Justify every lint allowance inline. Return typed `Result<T, EaiError>`
-  from I/O, state and IPC. Check HTTP status explicitly. No stubs, fake success, dead public
-  interfaces or lowered acceptance baselines.
+- Preserve `forbid(unsafe_code)` and `deny(unsafe_code)` boundaries: no library here has
+  unsafe code. Production code has no panic-path macros. Justify every lint allowance inline.
+  Return a typed `Result` from every fallible operation, I/O above all. No stubs, fake
+  success, dead public interfaces or lowered acceptance baselines.
 - Before publishing, run rustfmt and Clippy with `-D warnings` on every crate a change
   affects. Remove what nothing uses in the change that leaves it unused. A marker comment
   names its task, and commented-out code is deleted.

@@ -51,10 +51,9 @@ repository, these are the invariants its own tests enforce
 1. **Libraries only.** Core ships no UI (no HTML, CSS, JS, GUI or TUI crates)
    and bundles no third-party plugin catalogs.
 2. **Zero `unsafe` and zero production panics.** Workspace crates forbid or
-   deny `unsafe_code`. Production code returns typed `EaiResult<T>`
-   (`crates/susi-error`); `unwrap()`, `expect()`, `panic!()`, `todo!()` and
-   `unimplemented!()` are denied by Clippy unless an inline `#[allow(...)]`
-   carries a written justification.
+   deny `unsafe_code`. Production code returns a typed `Result`; `unwrap()`,
+   `expect()`, `panic!()`, `todo!()` and `unimplemented!()` are denied by
+   Clippy unless an inline `#[allow(...)]` carries a written justification.
 3. **Facade dependency rule.** `susi-*` crates declare zero direct third-party
    dependencies; each external crate is wrapped once in a `susi-vendor-*`
    facade crate.

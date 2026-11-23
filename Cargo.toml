@@ -15,7 +15,7 @@ exclude = ["vendor"]
 name = "susi"
 version = "0.21.72"
 edition = "2021"
-description = "Susi Core: the small libraries Susi, the product, builds on (home and path resolution, the typed error, and the wrappers of serde, serde_json, sha2 and getrandom)."
+description = "Susi Core: the small libraries Susi, the product, builds on (home and path resolution, the metrics sink, and the wrappers of serde, serde_json, sha2 and getrandom)."
 license = "Apache-2.0"
 repository = "https://github.com/intellibitz/susi-core"
 homepage = "https://github.com/intellibitz/susi-core"
@@ -51,10 +51,9 @@ ignore_without_reason = "deny"
 should_panic_without_expect = "deny"
 # No debugging leftovers.
 dbg_macro = "deny"
-# Hard-denied: production code returns typed `EaiResult`s; panic-capable
+# Hard-denied: production code returns a typed `Result`; panic-capable
 # macros require an inline `#[allow]` + justification comment (the audit
-# trail), same pattern as `#[allow(unsafe_code)]` on justified FFI sites.
-# Test code is exempt via `#![cfg_attr(test, allow(...))]` crate shims.
+# trail). Test code is exempt via `#![cfg_attr(test, allow(...))]` crate shims.
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"

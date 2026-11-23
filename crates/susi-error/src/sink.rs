@@ -1,5 +1,5 @@
-//! Append-only writer for `error_metrics.jsonl`, used by the `susi-error`
-//! service and by every client's local fallback so both write the same way.
+//! Append-only, owner-only writer for a JSONL metrics file
+//! (`error_metrics.jsonl`).
 
 /// The sink is append-only and error paths are hot — without a cap the
 /// file grows without bound (178MB observed). Past the cap it rotates one
@@ -10,12 +10,11 @@ pub const METRICS_CAP_BYTES: u64 = 64 * 1024 * 1024;
 /// Append one JSONL record to the metrics file at `path`.
 ///
 /// The record goes out in a single `write_all` on an append handle so
-/// concurrent writers (service plus local fallbacks) do not interleave
-/// inside a line — `writeln!` could split a record across writes. Error text
-/// is redacted, but only with the bundled patterns (see
-/// `contract::redact_for_metrics`), so a file this call creates is
-/// owner-only from birth: `0600` on Unix, and elsewhere the installed
-/// platform service (`susi_paths::platform`) or no file at all. Create-or-open
+/// concurrent writers do not interleave inside a line — `writeln!` could
+/// split a record across writes. The record is written as given, nothing in
+/// it masked, so a file this call creates is owner-only from birth: `0600`
+/// on Unix, and elsewhere the installed platform service
+/// (`susi_paths::platform`) or no file at all. Create-or-open
 /// is one call, so no concurrent writer or reader can open the file before
 /// it is restricted, and a failure creates nothing, so nothing is ever
 /// deleted (a delete by name could remove a replacement another writer made
