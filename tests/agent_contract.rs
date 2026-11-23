@@ -52,7 +52,7 @@ const RULES: &[&str] = &[
     "an unsigned tag is never published",
     "Nothing is ever fetched from a hosted copy",
     "receive only `main` and signed release tags",
-    "clone, build and test must succeed with every mirror and the internet unreachable",
+    "once cloned, build and test succeed with the internet unreachable",
     "Only `refs/heads/main` is published as a branch",
     "Agent handoffs use `refs/agents/<agent>`",
     "Release tags are immutable",

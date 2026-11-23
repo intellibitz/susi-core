@@ -93,11 +93,12 @@ external messages only with explicit user or invoked-workflow authorization.
   grants no additional write access. Accept no outside pull request, patch or commit.
   Everyone is free to fork under the license; the license grants code rights, not rights to
   the Susi name or marks.
-- A local canonical Git server is the source of truth and the `origin` of every clone. GitHub
-  and GitLab hold write-only backup copies, refreshed every ten minutes, and the public
-  copies of this repository receive only `main` and signed release tags; an unsigned tag is
-  never published. Nothing is ever fetched from a hosted copy: clone, build and test must
-  succeed with every mirror and the internet unreachable. Use no hosting-service API, hosted CI or hosted review.
+- A private Cloudflare Artifacts repository is the source of truth and the `origin` of every
+  clone (since 2026-11-23). GitHub and GitLab hold the public copies, storage only, which
+  receive only `main` and signed release tags; an unsigned tag is never published. Every ship
+  pushes `main` there in the background; a signed release tag is published by hand. Nothing is
+  ever fetched from a hosted copy, and once cloned, build and test succeed with the internet
+  unreachable. This repository's code uses no hosting-service API, hosted CI or hosted review.
 - Only `refs/heads/main` is published as a branch. Agent handoffs use `refs/agents/<agent>`.
   Release tags are immutable. Never force-push or change live access controls.
 
@@ -134,7 +135,8 @@ external messages only with explicit user or invoked-workflow authorization.
   they refuse large blobs, secret-shaped lines, an added `dbg!`, unformatted Rust, a commit
   outside a linked worktree or straight on `main`, and a commit whose task is neither recorded
   nor claimed here or whose claim does not cover it. The public boundary (nothing of the
-  private product) is refused by the canonical server at push.
+  private product) is refused at every push by the firewall the private product keeps, which
+  the push guard runs (`git config susi.publicFirewall`); a push without it is refused.
 - Tests are hermetic: private HOME, USERPROFILE, XDG and SUSI_HOME, scratch configuration,
   ports and local Git remotes; no production state or inherited credentials. Do not send real
   coordination messages from tests. Never skip, ignore, loosen or delete a test to get green.
