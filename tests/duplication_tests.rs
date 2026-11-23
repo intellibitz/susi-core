@@ -19,9 +19,7 @@ fn workspace_root() -> PathBuf {
 #[test]
 fn checked_in_rust_implementations_are_not_byte_duplicates() {
     let root = workspace_root();
-    // `xtask/` moved to Susi Commercial Apps (`tools/core-xtask`); only scan
-    // directories that still exist in the slim core checkout.
-    let mut pending: Vec<PathBuf> = ["crates", "src", "tests", "toolchain"]
+    let mut pending: Vec<PathBuf> = ["crates", "src", "tests"]
         .into_iter()
         .map(|name| root.join(name))
         .filter(|path| path.is_dir())

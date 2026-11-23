@@ -7,9 +7,6 @@ members = [
     "crates/susi-vendor-serde",
     "crates/susi-vendor-serde-json",
     "crates/susi-vendor-sha2"]
-# Historical `vendor/` tree is gone (model/TLS patches moved with their plugs).
-# Keep the exclude so a stray directory never becomes a workspace member.
-exclude = ["vendor"]
 
 [package]
 name = "susi"
@@ -20,9 +17,8 @@ license = "Apache-2.0"
 repository = "https://github.com/intellibitz/susi-core"
 homepage = "https://github.com/intellibitz/susi-core"
 publish = false
-# Last toolchain this was actually built and tested against; CI tracks
-# `stable` rather than pinning to this, so treat it as a floor, not a
-# guarantee earlier versions work.
+# The minimum compiler this manifest declares; the libraries are built and
+# tested only with the one pinned in rust-toolchain.toml.
 rust-version = "1.98"
 
 [lints.rust]
@@ -67,10 +63,6 @@ complexity = { level = "warn", priority = -1 }
 [workspace.dependencies]
 susi-paths = { path = "crates/susi-paths" }
 susi-error = { path = "crates/susi-error" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-sha2 = "0.10.9"
-getrandom = "0.2"
 
 # The repository's own tests read JSON records through the same wrappers.
 [dev-dependencies]
@@ -80,9 +72,7 @@ serde_json = { package = "susi-vendor-serde-json", path = "crates/susi-vendor-se
 
 # dev and test must keep identical settings: any difference (codegen-units
 # included) gives every dependency a second fingerprint, so a `cargo build`
-# followed by a `cargo test` compiles the whole graph twice. 16 units also
-# measured faster than 256 for the cold `cargo build -p susi` on Linux
-# (T-BUILDTIME-1, docs/lean-core.md wave log).
+# followed by a `cargo test` compiles the whole graph twice.
 [profile.dev]
 opt-level = 0
 debug = 0
@@ -96,10 +86,4 @@ debug = 0
 codegen-units = 16
 incremental = true
 split-debuginfo = "unpacked"
-
-[profile.dev.package.sha2]
-opt-level = 3
-
-[profile.test.package.sha2]
-opt-level = 3
 

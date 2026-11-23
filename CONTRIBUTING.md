@@ -1,8 +1,7 @@
 # Forking and contributing to Susi
 
 Susi core is open source under the [Apache License, Version 2.0](LICENSE). It is
-**published one way** (publication policy, Mandate 72 in
-[`AGENTS.md`](AGENTS.md)).
+**published one way** ([`AGENTS.md`](AGENTS.md), "Publication and Git").
 
 ## 1. How this repository is published
 
@@ -88,17 +87,6 @@ cargo test --test architecture_tests --locked
 
 # 4. License compliance
 cargo deny --locked check licenses
-```
-
-### A live, isolated host
-
-Never test against your own `~/.susi` state. Start an isolated instance with
-`SUSI_HOME` and `SUSI_PORT_OFFSET`:
-
-```bash
-SUSI_HOME=/tmp/susi-dev SUSI_PORT_OFFSET=700 cargo run -- start
-cargo run -p susi-conformance -- --port-offset 700 --token-file /tmp/susi-dev/api_token
-SUSI_HOME=/tmp/susi-dev SUSI_PORT_OFFSET=700 cargo run -- stop
 ```
 
 ## 5. If your fork has something Susi wants

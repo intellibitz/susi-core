@@ -1,8 +1,6 @@
-# Classify vendored dependencies, generated/append-only agent records, and docs
-# separately from first-party runtime Rust while preserving offline builds and auditability.
-vendor/** linguist-vendored
+# Classify generated/append-only agent records and docs separately from
+# first-party library Rust.
 .agents/** linguist-generated
 docs/** linguist-documentation
-# Keep Git hooks and POSIX shell scripts on LF across Windows and Linux checkouts.
+# Keep the Git hooks on LF across Windows and Linux checkouts.
 .githooks/* text eol=lf
-*.sh text eol=lf

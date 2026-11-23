@@ -22,13 +22,13 @@ Every package of the workspace, and nothing else, has a row here; a test fails w
 
 | Package | Rust lines (`src`) | What it holds | Who uses it |
 |---|---:|---|---|
-| `susi` | 0 | The root package: no code; it holds this repository's own tests. | These tests |
+| `susi` | 6 | The root package: no code (its `src/lib.rs` holds only attributes and a comment); it holds this repository's own tests. | These tests |
 | `susi-paths` | 101 | The platform-service table (the owner-only file opener `susi-error`'s sink uses off Unix) and a command launcher that opens no console window. | Susi on Windows: its Windows crate fills the platform-service table at start-up, and one of its tests launches through the command launcher |
 | `susi-error` | 247 | An append-only, owner-only JSONL metrics sink. | Susi on Windows: one test of its Windows crate writes to the metrics sink |
-| `susi-vendor-serde` | 6 | The only owner of the serde crates. | Susi's vault: the sealed store's records |
-| `susi-vendor-serde-json` | 6 | The only owner of serde_json. | Susi's vault: the sealed store's JSON |
-| `susi-vendor-sha2` | 6 | The only owner of sha2. | Susi's vault: key fingerprints and the master key's form |
-| `susi-vendor-getrandom` | 25 | The only owner of getrandom. | Susi's vault: keys and nonces |
+| `susi-vendor-serde` | 7 | The only owner of the serde crates. | Susi's vault: the sealed store's records |
+| `susi-vendor-serde-json` | 7 | The only owner of serde_json. | Susi's vault: the sealed store's JSON |
+| `susi-vendor-sha2` | 7 | The only owner of sha2. | Susi's vault: key fingerprints and the master key's form |
+| `susi-vendor-getrandom` | 30 | The only owner of getrandom. | Susi's vault: keys and nonces |
 
 These are `LIBRARIES_FOR_SUSI` in `tests/lean_core_ceilings.rs`. Counted on 2026-11-23;
 `cargo core-size` prints the current total.

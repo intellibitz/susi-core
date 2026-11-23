@@ -3,7 +3,6 @@
     "allow": [
       "Bash(cargo*)",
       "Bash(git*)",
-      "Bash(target/debug/susi*)",
       "Bash(susi*)"
     ],
     "deny": [

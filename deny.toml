@@ -4,19 +4,12 @@
 # back to defaults (which reject nearly every license in the tree).
 
 [graph]
-# Restrict the dependency graph to the targets we actually build and
-# publish binaries for. Windows is
-# included. The gate exposes remaining dependency-license incompatibilities
-# rather than exempting shipped components.
+# Restrict the dependency graph to the targets these libraries are built for:
+# Core is built and tested on x86_64 Linux, and Susi builds the libraries for
+# x86_64 Linux and x86_64 Windows. Core builds no program of its own.
 targets = [
     "x86_64-unknown-linux-gnu",
-    "aarch64-unknown-linux-gnu",
-    "x86_64-apple-darwin",
-    "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
-    # Windows on ARM64: built and evidenced natively on GitHub windows-11-arm
-    # (CEO decision 2026-11-03); licenses must cover its graph before it ships.
-    "aarch64-pc-windows-msvc",
 ]
 [advisories]
 # No exceptions. RUSTSEC-2024-0436 (paste) was one until paste left the graph.
@@ -33,7 +26,8 @@ allow = [
 # The one exception, decided on 2026-11-22: unicode-ident is licensed
 # "(MIT OR Apache-2.0) AND Unicode-3.0" for its Unicode tables. Only the procedural
 # macros use it while compiling (every path to it runs through serde_derive), so its
-# tables are not linked into the program. It holds for this crate alone.
+# tables are not linked into anything built from these libraries. It holds for this
+# crate alone.
 exceptions = [
     { allow = ["Unicode-3.0"], crate = "unicode-ident" },
 ]

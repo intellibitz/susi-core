@@ -7,9 +7,6 @@ path = [
     "src/**",
     "crates/**",
     "tests/**",
-    "fuzz/**",
-    "toolchain/**",
-    "build.rs",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 IntelliBitz"
@@ -19,7 +16,6 @@ SPDX-License-Identifier = "Apache-2.0"
 path = [
     ".githooks/**",
     ".cargo/**",
-    "install.sh",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 IntelliBitz"
@@ -28,8 +24,6 @@ SPDX-License-Identifier = "Apache-2.0"
 [[annotations]]
 path = [
     "docs/**",
-    "deploy/**",
-    "releases/**",
     "*.md",
     "Cargo.toml",
     "Cargo.lock",
@@ -38,7 +32,6 @@ path = [
     "rust-toolchain.toml",
     ".gitattributes",
     ".gitignore",
-    ".mcp.json",
     ".susi-repo-role",
     "LICENSE",
     "NOTICE",
