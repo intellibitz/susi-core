@@ -1,7 +1,0 @@
-[alias]
-# `cargo core-size` measures the complete socket and prints its size. It is a
-# report: core has no line limit, and no size makes it fail.
-core-size = "test --offline --locked --package susi --test lean_core_ceilings complete_socket_size_is_reported -- --exact --ignored --nocapture"
-# Faster test runner: per-test process isolation, better scheduling than
-# libtest's per-binary thread pools. Requires `cargo install cargo-nextest`.
-xn = "nextest run --workspace --locked"
